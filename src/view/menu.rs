@@ -12,23 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use druid::PlatformError;
+use druid::menu::Menu;
+use druid::widget::prelude::*;
+use druid::WindowId;
 
-mod common;
-mod controller;
-mod model;
-mod view;
+use crate::model::app::AppState;
 
-use controller::delegate::Delegate;
-use model::app::AppState;
-use view::window;
-
-fn main() -> Result<(), PlatformError> {
-    let window = window::window();
-
-    let data = AppState::new(window.id);
-
-    druid::AppLauncher::with_window(window)
-        .delegate(Delegate)
-        .launch(data)
+pub fn menu_bar(_: Option<WindowId>, _: &AppState, _: &Env) -> Menu<AppState> {
+    druid::platform_menus::mac::menu_bar().rebuild_on(|_old_data, _data, _env| false)
 }

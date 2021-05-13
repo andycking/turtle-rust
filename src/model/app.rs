@@ -12,23 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use druid::PlatformError;
+/// Application state.
+#[derive(Clone, druid::Data)]
+pub struct AppState {
+    #[data(same_fn = "PartialEq::eq")]
+    window_id: druid::WindowId,
+}
 
-mod common;
-mod controller;
-mod model;
-mod view;
-
-use controller::delegate::Delegate;
-use model::app::AppState;
-use view::window;
-
-fn main() -> Result<(), PlatformError> {
-    let window = window::window();
-
-    let data = AppState::new(window.id);
-
-    druid::AppLauncher::with_window(window)
-        .delegate(Delegate)
-        .launch(data)
+impl AppState {
+    pub fn new(window_id: druid::WindowId) -> Self {
+        Self { window_id }
+    }
 }

@@ -12,23 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use druid::PlatformError;
+use crate::model::app::AppState;
 
-mod common;
-mod controller;
-mod model;
-mod view;
+pub struct Delegate;
 
-use controller::delegate::Delegate;
-use model::app::AppState;
-use view::window;
-
-fn main() -> Result<(), PlatformError> {
-    let window = window::window();
-
-    let data = AppState::new(window.id);
-
-    druid::AppLauncher::with_window(window)
-        .delegate(Delegate)
-        .launch(data)
+impl druid::AppDelegate<AppState> for Delegate {
+    fn command(
+        &mut self,
+        _ctx: &mut druid::DelegateCtx,
+        _target: druid::Target,
+        _cmd: &druid::Command,
+        _data: &mut AppState,
+        _env: &druid::Env,
+    ) -> druid::Handled {
+        druid::Handled::No
+    }
 }
