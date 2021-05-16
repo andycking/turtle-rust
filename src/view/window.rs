@@ -33,7 +33,7 @@ pub fn window() -> WindowDesc<AppState> {
     WindowDesc::new(ui)
         .title("Turtle")
         .menu(menu::menu_bar)
-        .window_size((window_width(), window_height()))
+        .window_size(window_size())
 }
 
 fn build_ui() -> impl Widget<AppState> {
@@ -63,12 +63,11 @@ fn build_input() -> impl Widget<AppState> {
     )
 }
 
-fn window_width() -> f64 {
-    theme::CANVAS_WIDTH + (theme::CANVAS_BORDER * 2.0)
-}
-
-fn window_height() -> f64 {
-    theme::CANVAS_HEIGHT + (theme::CANVAS_BORDER * 2.0) + text_height() + 2.0
+fn window_size() -> (f64, f64) {
+    (
+        theme::CANVAS_WIDTH + (theme::CANVAS_BORDER * 2.0),
+        theme::CANVAS_HEIGHT + (theme::CANVAS_BORDER * 2.0) + text_height() + 2.0,
+    )
 }
 
 fn text_height() -> f64 {
