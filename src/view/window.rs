@@ -13,9 +13,13 @@
 // limitations under the License.
 
 use druid::widget::prelude::*;
+use druid::widget::Container;
 use druid::widget::Controller;
+use druid::widget::CrossAxisAlignment;
 use druid::widget::Flex;
+use druid::widget::TextBox;
 use druid::widget::Widget;
+use druid::Color;
 use druid::WidgetExt;
 use druid::WindowDesc;
 
@@ -26,7 +30,7 @@ use crate::model::app::AppState;
 pub fn window() -> WindowDesc<AppState> {
     let ui = build_ui();
 
-    druid::WindowDesc::new(ui)
+    WindowDesc::new(ui)
         .title("Turtle")
         .menu(menu::menu_bar)
         .window_size((640.0, 480.0))
@@ -34,8 +38,22 @@ pub fn window() -> WindowDesc<AppState> {
 
 fn build_ui() -> impl Widget<AppState> {
     Flex::column()
-        .cross_axis_alignment(druid::widget::CrossAxisAlignment::End)
+        .cross_axis_alignment(CrossAxisAlignment::End)
+        .with_child(build_input())
+        .background(Color::WHITE)
         .controller(WindowController {})
+}
+
+fn build_input() -> impl Widget<AppState> {
+    Container::new(
+        TextBox::multiline()
+            .with_text_color(Color::BLACK)
+            .fix_height(40.0)
+            .expand_width()
+            .env_scope(|env, _| env.set(druid::theme::BACKGROUND_LIGHT, Color::WHITE))
+            .lens(AppState::input),
+    )
+    .background(Color::WHITE)
 }
 
 struct WindowController {}

@@ -12,15 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::sync::Arc;
+
 /// Application state.
-#[derive(Clone, druid::Data)]
+#[derive(Clone, druid::Data, druid::Lens)]
 pub struct AppState {
+    pub input: Arc<String>,
+
     #[data(same_fn = "PartialEq::eq")]
     window_id: druid::WindowId,
 }
 
 impl AppState {
     pub fn new(window_id: druid::WindowId) -> Self {
-        Self { window_id }
+        Self {
+            input: "".to_string().into(),
+            window_id,
+        }
     }
 }
