@@ -23,12 +23,14 @@ use druid::widget::Widget;
 use druid::Color;
 use druid::FontDescriptor;
 use druid::FontFamily;
+use druid::Size;
 use druid::WidgetExt;
 use druid::WindowDesc;
 
 use super::canvas::Canvas;
 use super::menu;
 
+use crate::common::constants::*;
 use crate::model::app::AppState;
 
 const FONT_SIZE: f64 = 19.0;
@@ -78,12 +80,8 @@ fn build_input() -> impl Widget<AppState> {
     )
 }
 
-fn window_size() -> (f64, f64) {
-    let canvas_width = 800.0;
-    let canvas_height = 600.0;
-    let input_height = text_height();
-
-    (canvas_width, canvas_height + input_height)
+fn window_size() -> Size {
+    Size::new(DIMS.width, DIMS.height + text_height())
 }
 
 fn text_height() -> f64 {

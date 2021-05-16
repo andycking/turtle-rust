@@ -14,24 +14,37 @@
 
 use std::sync::Arc;
 
-use super::pixbuf::PixBuf;
+use crate::common::constants::*;
 
-/// Application state.
-#[derive(Clone, druid::Data, druid::Lens)]
-pub struct AppState {
-    pub input: Arc<String>,
-    pub pixels: PixBuf,
-
-    #[data(same_fn = "PartialEq::eq")]
-    window_id: druid::WindowId,
+#[derive(Clone, druid::Data)]
+pub struct PixBuf {
+    width: u32,
+    height: u32,
+    bytes: Arc<Vec<u8>>,
 }
 
-impl AppState {
-    pub fn new(window_id: druid::WindowId) -> Self {
+impl PixBuf {
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    pub fn height(&self) -> u32 {
+        self.height
+    }
+
+    pub fn bytes(&self) -> &[u8] {
+        &self.bytes
+    }
+}
+
+impl Default for PixBuf {
+    fn default() -> Self {
+        let dims = DIMS.width as usize * DIMS.height as usize * 4;
+
         Self {
-            input: "".to_string().into(),
-            pixels: Default::default(),
-            window_id,
+            width: DIMS.width as u32,
+            height: DIMS.height as u32,
+            bytes: Arc::new(vec![0; dims]),
         }
     }
 }
