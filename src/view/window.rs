@@ -19,13 +19,17 @@ use druid::widget::CrossAxisAlignment;
 use druid::widget::Flex;
 use druid::widget::TextBox;
 use druid::widget::Widget;
+use druid::Color;
+use druid::FontDescriptor;
+use druid::FontFamily;
 use druid::WidgetExt;
 use druid::WindowDesc;
 
 use super::menu;
-use super::theme;
 
 use crate::model::app::AppState;
+
+const FONT_SIZE: f64 = 16.0;
 
 pub fn window() -> WindowDesc<AppState> {
     let ui = build_ui();
@@ -40,38 +44,39 @@ fn build_ui() -> impl Widget<AppState> {
     Flex::column()
         .cross_axis_alignment(CrossAxisAlignment::End)
         .with_child(build_input())
-        .background(theme::MAIN_FILL)
+        .background(Color::WHITE)
         .controller(WindowController {})
 }
 
 fn build_input() -> impl Widget<AppState> {
     Container::new(
         TextBox::multiline()
-            .with_text_color(theme::INPUT_FONT_COLOR)
-            .with_font(theme::INPUT_FONT)
+            .with_text_color(Color::BLACK)
+            .with_font(FontDescriptor::new(FontFamily::MONOSPACE).with_size(FONT_SIZE))
             .fix_height(text_height())
             .expand_width()
             .env_scope(|env, _| {
-                env.set(druid::theme::BACKGROUND_LIGHT, theme::INPUT_FILL);
+                env.set(druid::theme::BACKGROUND_LIGHT, Color::WHITE);
                 env.set(
                     druid::theme::SELECTED_TEXT_BACKGROUND_COLOR,
-                    theme::INPUT_SELECTION_COLOR,
+                    Color::rgb8(179, 216, 255),
                 );
-                env.set(druid::theme::CURSOR_COLOR, theme::INPUT_FONT_COLOR);
+                env.set(druid::theme::CURSOR_COLOR, Color::BLACK);
             })
             .lens(AppState::input),
     )
 }
 
 fn window_size() -> (f64, f64) {
-    (
-        theme::CANVAS_WIDTH + (theme::CANVAS_BORDER * 2.0),
-        theme::CANVAS_HEIGHT + (theme::CANVAS_BORDER * 2.0) + text_height() + 2.0,
-    )
+    let canvas_width = 640.0 + 2.0;
+    let canvas_height = 480.0 + 2.0;
+    let input_height = text_height() + 2.0;
+
+    (canvas_width, canvas_height + input_height)
 }
 
 fn text_height() -> f64 {
-    theme::INPUT_LINES * (6.0 + theme::INPUT_FONT_SIZE)
+    3.0 * (6.0 + FONT_SIZE)
 }
 
 struct WindowController {}

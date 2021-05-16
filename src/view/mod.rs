@@ -13,5 +13,4 @@
 // limitations under the License.
 
 pub mod menu;
-pub mod theme;
 pub mod window;
