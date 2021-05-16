@@ -12,5 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod app;
-pub mod pixbuf;
+use druid::Size;
+
+pub const DIMS: Size = Size::new(800.0, 600.0);
