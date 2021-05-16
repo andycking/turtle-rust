@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use druid::theme;
 use druid::widget::prelude::*;
 use druid::widget::Container;
 use druid::widget::Controller;
@@ -25,11 +26,12 @@ use druid::FontFamily;
 use druid::WidgetExt;
 use druid::WindowDesc;
 
+use super::canvas::Canvas;
 use super::menu;
 
 use crate::model::app::AppState;
 
-const FONT_SIZE: f64 = 16.0;
+const FONT_SIZE: f64 = 19.0;
 
 pub fn window() -> WindowDesc<AppState> {
     let ui = build_ui();
@@ -43,40 +45,52 @@ pub fn window() -> WindowDesc<AppState> {
 fn build_ui() -> impl Widget<AppState> {
     Flex::column()
         .cross_axis_alignment(CrossAxisAlignment::End)
+        .with_child(build_canvas())
+        .with_spacer(1.0)
         .with_child(build_input())
-        .background(Color::WHITE)
+        .background(Color::rgb8(208, 208, 208))
         .controller(WindowController {})
+}
+
+fn build_canvas() -> impl Widget<AppState> {
+    Canvas::new().background(Color::WHITE)
 }
 
 fn build_input() -> impl Widget<AppState> {
     Container::new(
         TextBox::multiline()
+            .with_placeholder("Control the turtle by typing your commands here.")
             .with_text_color(Color::BLACK)
             .with_font(FontDescriptor::new(FontFamily::MONOSPACE).with_size(FONT_SIZE))
             .fix_height(text_height())
             .expand_width()
             .env_scope(|env, _| {
-                env.set(druid::theme::BACKGROUND_LIGHT, Color::WHITE);
+                env.set(theme::BACKGROUND_LIGHT, Color::WHITE);
+                env.set(theme::PRIMARY_LIGHT, Color::WHITE);
+                env.set(theme::BORDER_DARK, Color::WHITE);
                 env.set(
-                    druid::theme::SELECTED_TEXT_BACKGROUND_COLOR,
+                    theme::SELECTED_TEXT_BACKGROUND_COLOR,
                     Color::rgb8(179, 216, 255),
                 );
-                env.set(druid::theme::CURSOR_COLOR, Color::BLACK);
+                env.set(theme::CURSOR_COLOR, Color::BLACK);
             })
             .lens(AppState::input),
     )
 }
 
 fn window_size() -> (f64, f64) {
-    let canvas_width = 640.0 + 2.0;
-    let canvas_height = 480.0 + 2.0;
-    let input_height = text_height() + 2.0;
+    let canvas_width = 800.0;
+    let canvas_height = 600.0;
+    let input_height = text_height();
 
     (canvas_width, canvas_height + input_height)
 }
 
 fn text_height() -> f64 {
-    3.0 * (6.0 + FONT_SIZE)
+    let lines = 3.0;
+    let pad = 6.0;
+
+    lines * (pad + FONT_SIZE)
 }
 
 struct WindowController {}
