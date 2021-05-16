@@ -20,6 +20,8 @@ use druid::widget::Flex;
 use druid::widget::TextBox;
 use druid::widget::Widget;
 use druid::Color;
+use druid::FontDescriptor;
+use druid::FontFamily;
 use druid::WidgetExt;
 use druid::WindowDesc;
 
@@ -45,12 +47,23 @@ fn build_ui() -> impl Widget<AppState> {
 }
 
 fn build_input() -> impl Widget<AppState> {
+    let height = (16.0 + 6.0) * 3.0;
+
     Container::new(
         TextBox::multiline()
             .with_text_color(Color::BLACK)
-            .fix_height(40.0)
+            .with_font(FontDescriptor::new(FontFamily::MONOSPACE).with_size(16.0))
+            .fix_height(height)
             .expand_width()
-            .env_scope(|env, _| env.set(druid::theme::BACKGROUND_LIGHT, Color::WHITE))
+            .env_scope(|env, _| {
+                env.set(druid::theme::BACKGROUND_LIGHT, Color::WHITE);
+                env.set(
+                    druid::theme::SELECTED_TEXT_BACKGROUND_COLOR,
+                    Color::rgb8(179, 216, 255),
+                );
+                env.set(druid::theme::SELECTION_TEXT_COLOR, Color::WHITE);
+                env.set(druid::theme::CURSOR_COLOR, Color::BLACK);
+            })
             .lens(AppState::input),
     )
     .background(Color::WHITE)
