@@ -14,30 +14,7 @@
 
 use druid::DelegateCtx;
 use druid::Env;
-use druid::Handled;
-use druid::Target;
 
-use crate::common::commands;
 use crate::model::app::AppState;
 
-pub struct Delegate;
-
-impl druid::AppDelegate<AppState> for Delegate {
-    fn command(
-        &mut self,
-        ctx: &mut DelegateCtx,
-        _target: Target,
-        cmd: &druid::Command,
-        data: &mut AppState,
-        _env: &Env,
-    ) -> Handled {
-        match cmd {
-            _ if cmd.is(commands::INTERPRETER_GO) => {
-                super::interpreter::go(ctx, cmd, data);
-                Handled::Yes
-            }
-
-            _ => Handled::No,
-        }
-    }
-}
+pub fn go(_ctx: &mut DelegateCtx, _cmd: &druid::Command, _data: &mut AppState) {}
