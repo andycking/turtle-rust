@@ -12,4 +12,87 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub fn go(_input: &str) {}
+use std::ops::Deref;
+use std::ops::DerefMut;
+
+#[derive(Clone, Copy, Debug)]
+enum ObjectType {
+    Word,
+    List,
+}
+
+trait Object {
+    fn object_type(&self) -> ObjectType;
+    fn symbol(&self) -> &str;
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct Word {
+    symbol: String,
+}
+
+impl Object for Word {
+    fn object_type(&self) -> ObjectType {
+        ObjectType::Word
+    }
+
+    fn symbol(&self) -> &str {
+        &self.symbol
+    }
+}
+
+impl Word {
+    pub fn new(symbol: &str) -> Self {
+        Self {
+            symbol: String::from(symbol),
+        }
+    }
+}
+
+impl Deref for Word {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.symbol
+    }
+}
+
+struct List {
+    items: Vec<Box<dyn Object>>,
+}
+
+impl Object for List {
+    fn object_type(&self) -> ObjectType {
+        ObjectType::List
+    }
+
+    fn symbol(&self) -> &str {
+        "LIST"
+    }
+}
+
+impl Deref for List {
+    type Target = Vec<Box<dyn Object>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.items
+    }
+}
+
+impl DerefMut for List {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.items
+    }
+}
+
+impl List {
+    pub fn new() -> Self {
+        Self { items: Vec::new() }
+    }
+}
+
+pub fn go(input: &str) {
+    for l in input.lines() {
+        let trimmed = l.trim();
+    }
+}

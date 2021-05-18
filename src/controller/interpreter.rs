@@ -13,7 +13,6 @@
 // limitations under the License.
 
 use druid::DelegateCtx;
-use druid::Env;
 
 use crate::model::app::AppState;
 use crate::runtime::interpreter;
