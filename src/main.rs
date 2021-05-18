@@ -17,6 +17,7 @@ use druid::PlatformError;
 mod common;
 mod controller;
 mod model;
+mod runtime;
 mod view;
 
 use controller::delegate::Delegate;

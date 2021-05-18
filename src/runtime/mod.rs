@@ -12,12 +12,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use druid::DelegateCtx;
-use druid::Env;
-
-use crate::model::app::AppState;
-use crate::runtime::interpreter;
-
-pub fn go(_ctx: &mut DelegateCtx, _cmd: &druid::Command, data: &mut AppState) {
-    interpreter::go(&data.input);
-}
+pub mod interpreter;

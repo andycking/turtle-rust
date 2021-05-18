@@ -23,15 +23,11 @@ use crate::common::commands;
 use crate::model::app::AppState;
 
 pub fn menu_bar(_: Option<WindowId>, _: &AppState, _: &Env) -> Menu<AppState> {
-    let mut base = Menu::empty();
     #[cfg(target_os = "macos")]
-    {
-        base = druid::platform_menus::mac::menu_bar();
-    }
+    let base = druid::platform_menus::mac::menu_bar();
+
     #[cfg(any(target_os = "windows", target_os = "linux"))]
-    {
-        base = base.entry(druid::platform_menus::win::file::default());
-    }
+    let base = base.entry(druid::platform_menus::win::file::default());
 
     base.entry(build_interpreter())
         .rebuild_on(|_old_data, _data, _env| false)
