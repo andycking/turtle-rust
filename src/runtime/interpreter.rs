@@ -108,67 +108,30 @@ impl List {
     }
 }
 
-struct Scope {
-    depth: u32,
-    in_list: bool,
-    items: List,
+struct Stack {
+    items: VecDeque<List>,
 }
 
-impl Scope {
-    pub fn new(depth: u32, in_list: bool) -> Self {
-        Self {
-            depth,
-            in_list,
-            items: List::new(),
-        }
-    }
-}
-
-impl Deref for Scope {
-    type Target = List;
-
-    fn deref(&self) -> &Self::Target {
-        &self.items
-    }
-}
-
-impl DerefMut for Scope {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.items
-    }
-}
-
-impl fmt::Display for Scope {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = self.items.to_string();
-        write!(f, "{} {} {}", self.depth, self.in_list, s)
-    }
-}
-
-struct Stack<'a> {
-    items: VecDeque<&'a Scope>,
-}
-
-impl<'a> Stack<'a> {
+impl Stack {
     pub fn new() -> Self {
         Self {
             items: VecDeque::new(),
         }
     }
 
-    pub fn push(&mut self, scope: &'a Scope) {
-        self.items.push_front(scope);
+    pub fn push(&mut self, list: List) {
+        self.items.push_front(list);
     }
 
-    pub fn pop(&mut self) -> Option<&Scope> {
+    pub fn pop(&mut self) -> Option<List> {
         self.items.pop_front()
     }
 }
 
 pub fn go(input: &str) {
     let mut stack = Stack::new();
-    let mut scope = Scope::new(0, false);
-    stack.push(&scope);
+    let mut list = List::new();
+    let mut depth = 1;
 
     for l in input.lines() {
         let mut word: String = String::new();
@@ -176,21 +139,58 @@ pub fn go(input: &str) {
         let trimmed = l.trim();
         for c in trimmed.chars() {
             match c {
-                ';' => break,
-                '[' => {}
-                ']' => {}
+                ';' => {
+                    if !word.is_empty() {
+                        let obj = Word::new(&word);
+                        list.push(Box::new(obj));
+                    }
+
+                    break;
+                }
+
+                '[' => {
+                    if !word.is_empty() {
+                        let obj = Word::new(&word);
+                        list.push(Box::new(obj));
+                        word = String::new();
+                    }
+
+                    stack.push(list);
+
+                    list = List::new();
+                    depth += 1;
+                }
+
+                ']' => {
+                    if !word.is_empty() {
+                        let obj = Word::new(&word);
+                        list.push(Box::new(obj));
+                        word = String::new();
+                    }
+
+                    if let Some(mut parent_list) = stack.pop() {
+                        parent_list.push(Box::new(list));
+                        list = parent_list;
+                        depth -= 1;
+                    } else {
+                    }
+                }
+
                 '(' => {}
+
                 ')' => {}
+
                 '+' | '-' | '*' | '/' | '=' | '<' | '>' => {
                     word.push(c);
                 }
+
                 _ => {
                     if c.is_whitespace() {
                         if !word.is_empty() {
                             let obj = Word::new(&word);
-                            scope.push(Box::new(obj));
+                            list.push(Box::new(obj));
+                            word = String::new();
                         }
-                        word = String::new();
                     } else if c.is_alphanumeric() {
                         word.push(c);
                     }
@@ -200,9 +200,9 @@ pub fn go(input: &str) {
 
         if !word.is_empty() {
             let obj = Word::new(&word);
-            scope.push(Box::new(obj));
+            list.push(Box::new(obj));
         }
     }
 
-    println!("{}", scope);
+    println!("{}", list);
 }
