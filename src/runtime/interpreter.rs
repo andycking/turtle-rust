@@ -93,6 +93,32 @@ impl List {
 
 pub fn go(input: &str) {
     for l in input.lines() {
+        let mut word: String = String::new();
+
         let trimmed = l.trim();
+        for c in trimmed.chars() {
+            match c {
+                ';' => break,
+                '[' => {}
+                ']' => {}
+                '(' => {}
+                ')' => {}
+                '+' | '-' | '*' | '/' | '=' | '<' | '>' => {}
+                _ => {
+                    if c.is_whitespace() {
+                        if !word.is_empty() {
+                            println!("{}", word);
+                        }
+                        word = String::new();
+                    } else if c.is_alphanumeric() {
+                        word.push(c);
+                    }
+                }
+            }
+        }
+
+        if !word.is_empty() {
+            println!("{}", word);
+        }
     }
 }
