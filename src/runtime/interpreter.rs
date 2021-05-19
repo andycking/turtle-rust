@@ -178,6 +178,7 @@ pub fn go(input: &str) -> Result<(), InterpreterError> {
                     if !word.is_empty() {
                         let obj = Word::new(&word);
                         list.push(Box::new(obj));
+
                         word = String::new();
                     }
 
@@ -191,6 +192,7 @@ pub fn go(input: &str) -> Result<(), InterpreterError> {
                     if !word.is_empty() {
                         let obj = Word::new(&word);
                         list.push(Box::new(obj));
+
                         word = String::new();
                     }
 
@@ -216,6 +218,7 @@ pub fn go(input: &str) -> Result<(), InterpreterError> {
                         if !word.is_empty() {
                             let obj = Word::new(&word);
                             list.push(Box::new(obj));
+
                             word = String::new();
                         }
                     } else if c.is_alphanumeric() {
