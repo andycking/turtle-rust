@@ -16,6 +16,7 @@ use std::collections::VecDeque;
 use std::fmt;
 use std::ops::Deref;
 use std::ops::DerefMut;
+use std::result::Result;
 
 #[derive(Clone, Copy, Debug)]
 enum ObjectType {
@@ -118,17 +119,42 @@ impl Stack {
             items: VecDeque::new(),
         }
     }
+}
 
-    pub fn push(&mut self, list: List) {
-        self.items.push_front(list);
-    }
+impl Deref for Stack {
+    type Target = VecDeque<List>;
 
-    pub fn pop(&mut self) -> Option<List> {
-        self.items.pop_front()
+    fn deref(&self) -> &Self::Target {
+        &self.items
     }
 }
 
-pub fn go(input: &str) {
+impl DerefMut for Stack {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.items
+    }
+}
+
+#[derive(Debug)]
+pub enum InterpreterError {
+    NoInput,
+    UnrecognizedCharacter,
+    UnbalancedList,
+}
+
+impl fmt::Display for InterpreterError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match *self {
+            Self::NoInput => "No input",
+            Self::UnrecognizedCharacter => "Unrecognized character",
+            Self::UnbalancedList => "Unbalanced list",
+        };
+
+        write!(f, "{}", s)
+    }
+}
+
+pub fn go(input: &str) -> Result<(), InterpreterError> {
     let mut stack = Stack::new();
     let mut list = List::new();
     let mut depth = 1;
@@ -155,7 +181,7 @@ pub fn go(input: &str) {
                         word = String::new();
                     }
 
-                    stack.push(list);
+                    stack.push_front(list);
 
                     list = List::new();
                     depth += 1;
@@ -168,11 +194,12 @@ pub fn go(input: &str) {
                         word = String::new();
                     }
 
-                    if let Some(mut parent_list) = stack.pop() {
+                    if let Some(mut parent_list) = stack.pop_front() {
                         parent_list.push(Box::new(list));
                         list = parent_list;
                         depth -= 1;
                     } else {
+                        return Err(InterpreterError::UnbalancedList);
                     }
                 }
 
@@ -193,6 +220,8 @@ pub fn go(input: &str) {
                         }
                     } else if c.is_alphanumeric() {
                         word.push(c);
+                    } else {
+                        return Err(InterpreterError::UnrecognizedCharacter);
                     }
                 }
             }
@@ -204,5 +233,11 @@ pub fn go(input: &str) {
         }
     }
 
+    if !stack.is_empty() {
+        return Err(InterpreterError::UnbalancedList);
+    }
+
     println!("{}", list);
+
+    return Ok(());
 }
