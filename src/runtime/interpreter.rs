@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::collections::VecDeque;
+use std::fmt;
 use std::ops::Deref;
 use std::ops::DerefMut;
 
@@ -85,13 +87,89 @@ impl DerefMut for List {
     }
 }
 
+impl fmt::Display for List {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut s = String::from("[");
+
+        for i in &self.items {
+            s += i.symbol();
+            s += ",";
+        }
+
+        s += "]";
+
+        write!(f, "{}", s)
+    }
+}
+
 impl List {
     pub fn new() -> Self {
         Self { items: Vec::new() }
     }
 }
 
+struct Scope {
+    depth: u32,
+    in_list: bool,
+    items: List,
+}
+
+impl Scope {
+    pub fn new(depth: u32, in_list: bool) -> Self {
+        Self {
+            depth,
+            in_list,
+            items: List::new(),
+        }
+    }
+}
+
+impl Deref for Scope {
+    type Target = List;
+
+    fn deref(&self) -> &Self::Target {
+        &self.items
+    }
+}
+
+impl DerefMut for Scope {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.items
+    }
+}
+
+impl fmt::Display for Scope {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = self.items.to_string();
+        write!(f, "{} {} {}", self.depth, self.in_list, s)
+    }
+}
+
+struct Stack<'a> {
+    items: VecDeque<&'a Scope>,
+}
+
+impl<'a> Stack<'a> {
+    pub fn new() -> Self {
+        Self {
+            items: VecDeque::new(),
+        }
+    }
+
+    pub fn push(&mut self, scope: &'a Scope) {
+        self.items.push_front(scope);
+    }
+
+    pub fn pop(&mut self) -> Option<&Scope> {
+        self.items.pop_front()
+    }
+}
+
 pub fn go(input: &str) {
+    let mut stack = Stack::new();
+    let mut scope = Scope::new(0, false);
+    stack.push(&scope);
+
     for l in input.lines() {
         let mut word: String = String::new();
 
@@ -103,11 +181,14 @@ pub fn go(input: &str) {
                 ']' => {}
                 '(' => {}
                 ')' => {}
-                '+' | '-' | '*' | '/' | '=' | '<' | '>' => {}
+                '+' | '-' | '*' | '/' | '=' | '<' | '>' => {
+                    word.push(c);
+                }
                 _ => {
                     if c.is_whitespace() {
                         if !word.is_empty() {
-                            println!("{}", word);
+                            let obj = Word::new(&word);
+                            scope.push(Box::new(obj));
                         }
                         word = String::new();
                     } else if c.is_alphanumeric() {
@@ -118,7 +199,10 @@ pub fn go(input: &str) {
         }
 
         if !word.is_empty() {
-            println!("{}", word);
+            let obj = Word::new(&word);
+            scope.push(Box::new(obj));
         }
     }
+
+    println!("{}", scope);
 }
