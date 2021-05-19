@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::any::Any;
 use std::collections::VecDeque;
 use std::fmt;
 use std::ops::Deref;
@@ -27,6 +28,7 @@ enum ObjectType {
 trait Object {
     fn object_type(&self) -> ObjectType;
     fn symbol(&self) -> &str;
+    fn as_any(&self) -> &dyn Any;
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -41,6 +43,10 @@ impl Object for Word {
 
     fn symbol(&self) -> &str {
         &self.symbol
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
@@ -72,6 +78,10 @@ impl Object for List {
     fn symbol(&self) -> &str {
         "LIST"
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 impl Deref for List {
@@ -88,18 +98,21 @@ impl DerefMut for List {
     }
 }
 
-impl fmt::Display for List {
+impl fmt::Debug for List {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut s = String::from("[");
+        write!(f, "[")?;
 
         for i in &self.items {
-            s += i.symbol();
-            s += ",";
+            if let Some(word) = i.as_any().downcast_ref::<Word>() {
+                write!(f, "{}, ", word.symbol())?;
+            }
+
+            if let Some(list) = i.as_any().downcast_ref::<List>() {
+                write!(f, "{:?}, ", list)?;
+            }
         }
 
-        s += "]";
-
-        write!(f, "{}", s)
+        write!(f, "]")
     }
 }
 
@@ -240,7 +253,7 @@ pub fn go(input: &str) -> Result<(), InterpreterError> {
         return Err(InterpreterError::UnbalancedList);
     }
 
-    println!("{}", list);
+    println!("{:?}", list);
 
-    return Ok(());
+    Ok(())
 }
