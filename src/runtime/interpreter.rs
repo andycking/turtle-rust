@@ -98,21 +98,25 @@ impl DerefMut for List {
     }
 }
 
-impl fmt::Debug for List {
+impl fmt::Debug for dyn Object {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[")?;
-
-        for i in &self.items {
-            if let Some(word) = i.as_any().downcast_ref::<Word>() {
-                write!(f, "{}, ", word.symbol())?;
+        match self.object_type() {
+            ObjectType::Word => {
+                let word = self.as_any().downcast_ref::<Word>().unwrap();
+                write!(f, "{}", word.symbol())
             }
 
-            if let Some(list) = i.as_any().downcast_ref::<List>() {
-                write!(f, "{:?}, ", list)?;
+            ObjectType::List => {
+                let list = self.as_any().downcast_ref::<List>().unwrap();
+                write!(f, "{:?}", list)
             }
         }
+    }
+}
 
-        write!(f, "]")
+impl fmt::Debug for List {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self.items)
     }
 }
 
