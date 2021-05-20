@@ -171,10 +171,32 @@ impl fmt::Display for InterpreterError {
     }
 }
 
+fn delimit(word: &str, list: &mut List) -> String {
+    if !word.is_empty() {
+        let obj = Word::new(&word);
+        list.push(Box::new(obj));
+    }
+
+    String::new()
+}
+
+fn open_list(list: List, stack: &mut Stack) -> List {
+    stack.push_front(list);
+    List::new()
+}
+
+fn close_list(list: List, stack: &mut Stack) -> Result<List, InterpreterError> {
+    if let Some(mut parent_list) = stack.pop_front() {
+        parent_list.push(Box::new(list));
+        Ok(parent_list)
+    } else {
+        Err(InterpreterError::UnbalancedList)
+    }
+}
+
 pub fn go(input: &str) -> Result<(), InterpreterError> {
     let mut stack = Stack::new();
     let mut list = List::new();
-    let mut depth = 1;
 
     for l in input.lines() {
         let mut word: String = String::new();
@@ -183,43 +205,18 @@ pub fn go(input: &str) -> Result<(), InterpreterError> {
         for c in trimmed.chars() {
             match c {
                 ';' => {
-                    if !word.is_empty() {
-                        let obj = Word::new(&word);
-                        list.push(Box::new(obj));
-                    }
-
+                    word = delimit(&word, &mut list);
                     break;
                 }
 
                 '[' => {
-                    if !word.is_empty() {
-                        let obj = Word::new(&word);
-                        list.push(Box::new(obj));
-
-                        word = String::new();
-                    }
-
-                    stack.push_front(list);
-
-                    list = List::new();
-                    depth += 1;
+                    word = delimit(&word, &mut list);
+                    list = open_list(list, &mut stack);
                 }
 
                 ']' => {
-                    if !word.is_empty() {
-                        let obj = Word::new(&word);
-                        list.push(Box::new(obj));
-
-                        word = String::new();
-                    }
-
-                    if let Some(mut parent_list) = stack.pop_front() {
-                        parent_list.push(Box::new(list));
-                        list = parent_list;
-                        depth -= 1;
-                    } else {
-                        return Err(InterpreterError::UnbalancedList);
-                    }
+                    word = delimit(&word, &mut list);
+                    list = close_list(list, &mut stack)?;
                 }
 
                 '(' => {}
@@ -232,12 +229,7 @@ pub fn go(input: &str) -> Result<(), InterpreterError> {
 
                 _ => {
                     if c.is_whitespace() {
-                        if !word.is_empty() {
-                            let obj = Word::new(&word);
-                            list.push(Box::new(obj));
-
-                            word = String::new();
-                        }
+                        word = delimit(&word, &mut list);
                     } else if c.is_alphanumeric() {
                         word.push(c);
                     } else {
@@ -247,10 +239,7 @@ pub fn go(input: &str) -> Result<(), InterpreterError> {
             }
         }
 
-        if !word.is_empty() {
-            let obj = Word::new(&word);
-            list.push(Box::new(obj));
-        }
+        delimit(&word, &mut list);
     }
 
     if !stack.is_empty() {
