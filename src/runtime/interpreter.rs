@@ -31,14 +31,14 @@ trait Object {
     fn as_any(&self) -> &dyn Any;
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 enum WordAttr {
     Basic,
     Literal,
     Variable,
 }
 
-impl fmt::Display for WordAttr {
+impl fmt::Debug for WordAttr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match *self {
             Self::Basic => "b",
@@ -128,7 +128,7 @@ impl fmt::Debug for dyn Object {
         match self.object_type() {
             ObjectType::Word => {
                 let word = self.as_any().downcast_ref::<Word>().unwrap();
-                write!(f, "{} ({})", word.symbol(), word.attr())
+                write!(f, "{} ({:?})", word.symbol(), word.attr())
             }
 
             ObjectType::List => {
