@@ -11,3 +11,18 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+use super::data_type::*;
+use super::error::*;
+
+pub struct Parser {}
+
+impl Parser {
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    pub fn go(&mut self, input: List) -> Result<(), InterpreterError> {
+        Ok(())
+    }
+}

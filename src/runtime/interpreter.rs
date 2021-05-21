@@ -14,10 +14,12 @@
 
 use super::error::*;
 use super::lexer::Lexer;
+use super::parser::Parser;
 
 pub fn go(input: &str) -> Result<(), InterpreterError> {
     match Lexer::new().go(input) {
-        Ok(list) => Ok(()),
+        Ok(list) => Parser::new().go(list),
+
         Err(e) => Err(e),
     }
 }
