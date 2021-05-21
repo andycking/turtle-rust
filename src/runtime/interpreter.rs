@@ -91,8 +91,10 @@ impl Deref for Word {
     }
 }
 
+type ListItems = Vec<Box<dyn Object>>;
+
 struct List {
-    items: Vec<Box<dyn Object>>,
+    items: ListItems,
 }
 
 impl Object for List {
@@ -110,7 +112,7 @@ impl Object for List {
 }
 
 impl Deref for List {
-    type Target = Vec<Box<dyn Object>>;
+    type Target = ListItems;
 
     fn deref(&self) -> &Self::Target {
         &self.items
@@ -145,9 +147,19 @@ impl fmt::Debug for List {
     }
 }
 
+impl From<ListItems> for List {
+    fn from(items: ListItems) -> Self {
+        Self { items }
+    }
+}
+
 impl List {
     pub fn new() -> Self {
         Self { items: Vec::new() }
+    }
+
+    pub fn consume(&mut self) -> ListItems {
+        std::mem::replace(&mut self.items, Vec::new())
     }
 }
 
@@ -203,6 +215,14 @@ impl fmt::Display for InterpreterError {
 struct Info {
     symbol: String,
     attr: WordAttr,
+    list: List,
+    stack: Stack,
+}
+
+impl fmt::Debug for Info {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} {:?} {:?}", self.symbol, self.attr, self.list)
+    }
 }
 
 impl Info {
@@ -210,6 +230,8 @@ impl Info {
         Self {
             symbol: String::new(),
             attr: WordAttr::Basic,
+            list: List::new(),
+            stack: Stack::new(),
         }
     }
 
@@ -226,10 +248,10 @@ impl Info {
         self.symbol.push(c);
     }
 
-    pub fn delimit(&mut self, list: &mut List) {
+    pub fn delimit(&mut self) {
         if !self.symbol.is_empty() {
             let obj = Word::new(&self.symbol, self.attr);
-            list.push(Box::new(obj));
+            self.list.push(Box::new(obj));
         }
 
         self.reset();
@@ -242,21 +264,28 @@ impl Info {
     pub fn set_attr(&mut self, attr: WordAttr) {
         self.attr = attr;
     }
-}
 
-fn open_list(list: List, stack: &mut Stack, info: &mut Info) -> List {
-    stack.push_front(list);
-    info.reset();
-    List::new()
-}
+    pub fn depth(&self) -> usize {
+        self.stack.len()
+    }
 
-fn close_list(list: List, stack: &mut Stack, info: &mut Info) -> Result<List, InterpreterError> {
-    info.reset();
-    if let Some(mut parent_list) = stack.pop_front() {
-        parent_list.push(Box::new(list));
-        Ok(parent_list)
-    } else {
-        Err(InterpreterError::UnbalancedList)
+    pub fn open_list(&mut self) {
+        self.reset();
+
+        let items = self.list.consume();
+        self.stack.push_front(List::from(items));
+    }
+
+    pub fn close_list(&mut self) {
+        self.reset();
+
+        let items = self.list.consume();
+        let child = List::from(items);
+
+        let mut parent = self.stack.pop_front().unwrap();
+        parent.push(Box::new(child));
+
+        self.list = parent;
     }
 }
 
@@ -265,8 +294,6 @@ pub fn go(input: &str) -> Result<(), InterpreterError> {
         return Err(InterpreterError::NoInput);
     }
 
-    let mut stack = Stack::new();
-    let mut list = List::new();
     let mut info = Info::new();
 
     for l in input.lines() {
@@ -274,18 +301,22 @@ pub fn go(input: &str) -> Result<(), InterpreterError> {
         for c in trimmed.chars() {
             match c {
                 ';' => {
-                    info.delimit(&mut list);
+                    info.delimit();
                     break;
                 }
 
                 '[' => {
-                    info.delimit(&mut list);
-                    list = open_list(list, &mut stack, &mut info);
+                    info.delimit();
+                    info.open_list();
                 }
 
                 ']' => {
-                    info.delimit(&mut list);
-                    list = close_list(list, &mut stack, &mut info)?;
+                    if info.depth() == 0 {
+                        return Err(InterpreterError::UnbalancedList);
+                    }
+
+                    info.delimit();
+                    info.close_list();
                 }
 
                 '(' => {}
@@ -314,7 +345,7 @@ pub fn go(input: &str) -> Result<(), InterpreterError> {
 
                 _ => {
                     if c.is_whitespace() {
-                        info.delimit(&mut list);
+                        info.delimit();
                     } else if c.is_alphanumeric() {
                         info.append_char(c);
                     } else {
@@ -324,14 +355,14 @@ pub fn go(input: &str) -> Result<(), InterpreterError> {
             }
         }
 
-        info.delimit(&mut list);
+        info.delimit();
     }
 
-    if !stack.is_empty() {
+    if info.depth() > 0 {
         return Err(InterpreterError::UnbalancedList);
     }
 
-    println!("{:?}", list);
+    println!("{:?}", info);
 
     Ok(())
 }
