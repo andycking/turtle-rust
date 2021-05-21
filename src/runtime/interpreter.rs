@@ -192,6 +192,7 @@ impl DerefMut for Stack {
 #[derive(Debug)]
 pub enum InterpreterError {
     NoInput,
+    MaxStack,
     UnbalancedList,
     UnexpectedLiteral,
     UnexpectedVariable,
@@ -202,6 +203,7 @@ impl fmt::Display for InterpreterError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match *self {
             Self::NoInput => "No input",
+            Self::MaxStack => "Maximum stack size exceeded",
             Self::UnbalancedList => "Unbalanced list",
             Self::UnexpectedLiteral => "Unexpected literal",
             Self::UnexpectedVariable => "Unexpected variable",
@@ -212,20 +214,20 @@ impl fmt::Display for InterpreterError {
     }
 }
 
-struct Info {
+struct TokenLexer {
     symbol: String,
     attr: WordAttr,
     list: List,
     stack: Stack,
 }
 
-impl fmt::Debug for Info {
+impl fmt::Debug for TokenLexer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {:?} {:?}", self.symbol, self.attr, self.list)
     }
 }
 
-impl Info {
+impl TokenLexer {
     pub fn new() -> Self {
         Self {
             symbol: String::new(),
@@ -240,8 +242,8 @@ impl Info {
         self.attr = WordAttr::Basic;
     }
 
-    pub fn symbol(&self) -> &str {
-        &self.symbol
+    pub fn has_symbol(&self) -> bool {
+        !self.symbol.is_empty()
     }
 
     pub fn append_char(&mut self, c: char) {
@@ -294,29 +296,33 @@ pub fn go(input: &str) -> Result<(), InterpreterError> {
         return Err(InterpreterError::NoInput);
     }
 
-    let mut info = Info::new();
+    let mut toklex = TokenLexer::new();
 
     for l in input.lines() {
         let trimmed = l.trim();
         for c in trimmed.chars() {
             match c {
                 ';' => {
-                    info.delimit();
+                    toklex.delimit();
                     break;
                 }
 
                 '[' => {
-                    info.delimit();
-                    info.open_list();
+                    if toklex.depth() == 32 {
+                        return Err(InterpreterError::MaxStack);
+                    }
+
+                    toklex.delimit();
+                    toklex.open_list();
                 }
 
                 ']' => {
-                    if info.depth() == 0 {
+                    if toklex.depth() == 0 {
                         return Err(InterpreterError::UnbalancedList);
                     }
 
-                    info.delimit();
-                    info.close_list();
+                    toklex.delimit();
+                    toklex.close_list();
                 }
 
                 '(' => {}
@@ -324,30 +330,30 @@ pub fn go(input: &str) -> Result<(), InterpreterError> {
                 ')' => {}
 
                 '+' | '-' | '*' | '/' | '=' | '<' | '>' => {
-                    info.append_char(c);
+                    toklex.append_char(c);
                 }
 
                 '\u{0022}' => {
-                    if !info.symbol().is_empty() {
+                    if !toklex.has_symbol() {
                         return Err(InterpreterError::UnexpectedLiteral);
                     }
 
-                    info.set_attr(WordAttr::Literal);
+                    toklex.set_attr(WordAttr::Literal);
                 }
 
                 ':' => {
-                    if !info.symbol().is_empty() {
+                    if !toklex.has_symbol() {
                         return Err(InterpreterError::UnexpectedVariable);
                     }
 
-                    info.set_attr(WordAttr::Variable);
+                    toklex.set_attr(WordAttr::Variable);
                 }
 
                 _ => {
                     if c.is_whitespace() {
-                        info.delimit();
+                        toklex.delimit();
                     } else if c.is_alphanumeric() {
-                        info.append_char(c);
+                        toklex.append_char(c);
                     } else {
                         return Err(InterpreterError::UnrecognizedCharacter);
                     }
@@ -355,14 +361,14 @@ pub fn go(input: &str) -> Result<(), InterpreterError> {
             }
         }
 
-        info.delimit();
+        toklex.delimit();
     }
 
-    if info.depth() > 0 {
+    if toklex.depth() > 0 {
         return Err(InterpreterError::UnbalancedList);
     }
 
-    println!("{:?}", info);
+    println!("{:?}", toklex);
 
     Ok(())
 }
