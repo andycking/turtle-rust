@@ -237,20 +237,20 @@ impl TokenLexer {
         }
     }
 
-    pub fn reset(&mut self) {
+    fn reset(&mut self) {
         self.symbol = String::new();
         self.attr = WordAttr::Basic;
     }
 
-    pub fn has_symbol(&self) -> bool {
+    fn has_symbol(&self) -> bool {
         !self.symbol.is_empty()
     }
 
-    pub fn append_char(&mut self, c: char) {
+    fn append_char(&mut self, c: char) {
         self.symbol.push(c);
     }
 
-    pub fn delimit(&mut self) {
+    fn delimit(&mut self) {
         if !self.symbol.is_empty() {
             let obj = Word::new(&self.symbol, self.attr);
             self.list.push(Box::new(obj));
@@ -259,26 +259,26 @@ impl TokenLexer {
         self.reset();
     }
 
-    pub fn attr(&self) -> WordAttr {
+    fn attr(&self) -> WordAttr {
         self.attr
     }
 
-    pub fn set_attr(&mut self, attr: WordAttr) {
+    fn set_attr(&mut self, attr: WordAttr) {
         self.attr = attr;
     }
 
-    pub fn depth(&self) -> usize {
+    fn depth(&self) -> usize {
         self.stack.len()
     }
 
-    pub fn open_list(&mut self) {
+    fn open_list(&mut self) {
         self.reset();
 
         let items = self.list.consume();
         self.stack.push_front(List::from(items));
     }
 
-    pub fn close_list(&mut self) {
+    fn close_list(&mut self) {
         self.reset();
 
         let items = self.list.consume();
@@ -289,86 +289,89 @@ impl TokenLexer {
 
         self.list = parent;
     }
-}
 
-pub fn go(input: &str) -> Result<(), InterpreterError> {
-    if input.is_empty() {
-        return Err(InterpreterError::NoInput);
-    }
+    pub fn go(&mut self, input: &str) -> Result<List, InterpreterError> {
+        if input.is_empty() {
+            return Err(InterpreterError::NoInput);
+        }
 
-    let mut toklex = TokenLexer::new();
-
-    for l in input.lines() {
-        let trimmed = l.trim();
-        for c in trimmed.chars() {
-            match c {
-                ';' => {
-                    toklex.delimit();
-                    break;
-                }
-
-                '[' => {
-                    if toklex.depth() == 32 {
-                        return Err(InterpreterError::MaxStack);
+        for l in input.lines() {
+            let trimmed = l.trim();
+            for c in trimmed.chars() {
+                match c {
+                    ';' => {
+                        self.delimit();
+                        break;
                     }
 
-                    toklex.delimit();
-                    toklex.open_list();
-                }
+                    '[' => {
+                        if self.depth() == 32 {
+                            return Err(InterpreterError::MaxStack);
+                        }
 
-                ']' => {
-                    if toklex.depth() == 0 {
-                        return Err(InterpreterError::UnbalancedList);
+                        self.delimit();
+                        self.open_list();
                     }
 
-                    toklex.delimit();
-                    toklex.close_list();
-                }
+                    ']' => {
+                        if self.depth() == 0 {
+                            return Err(InterpreterError::UnbalancedList);
+                        }
 
-                '(' => {}
-
-                ')' => {}
-
-                '+' | '-' | '*' | '/' | '=' | '<' | '>' => {
-                    toklex.append_char(c);
-                }
-
-                '\u{0022}' => {
-                    if !toklex.has_symbol() {
-                        return Err(InterpreterError::UnexpectedLiteral);
+                        self.delimit();
+                        self.close_list();
                     }
 
-                    toklex.set_attr(WordAttr::Literal);
-                }
+                    '(' => {}
 
-                ':' => {
-                    if !toklex.has_symbol() {
-                        return Err(InterpreterError::UnexpectedVariable);
+                    ')' => {}
+
+                    '+' | '-' | '*' | '/' | '=' | '<' | '>' => {
+                        self.append_char(c);
                     }
 
-                    toklex.set_attr(WordAttr::Variable);
-                }
+                    '\u{0022}' => {
+                        if !self.has_symbol() {
+                            return Err(InterpreterError::UnexpectedLiteral);
+                        }
 
-                _ => {
-                    if c.is_whitespace() {
-                        toklex.delimit();
-                    } else if c.is_alphanumeric() {
-                        toklex.append_char(c);
-                    } else {
-                        return Err(InterpreterError::UnrecognizedCharacter);
+                        self.set_attr(WordAttr::Literal);
+                    }
+
+                    ':' => {
+                        if !self.has_symbol() {
+                            return Err(InterpreterError::UnexpectedVariable);
+                        }
+
+                        self.set_attr(WordAttr::Variable);
+                    }
+
+                    _ => {
+                        if c.is_whitespace() {
+                            self.delimit();
+                        } else if c.is_alphanumeric() {
+                            self.append_char(c);
+                        } else {
+                            return Err(InterpreterError::UnrecognizedCharacter);
+                        }
                     }
                 }
             }
+
+            self.delimit();
         }
 
-        toklex.delimit();
+        if self.depth() > 0 {
+            return Err(InterpreterError::UnbalancedList);
+        }
+
+        Ok(List::from(self.list.consume()))
     }
+}
 
-    if toklex.depth() > 0 {
-        return Err(InterpreterError::UnbalancedList);
+pub fn go(input: &str) -> Result<(), InterpreterError> {
+    match TokenLexer::new().go(input) {
+        Ok(list) => Ok(()),
+        Err(e) => Err(e),
     }
-
-    println!("{:?}", toklex);
-
-    Ok(())
 }
