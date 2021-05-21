@@ -201,18 +201,38 @@ impl fmt::Display for InterpreterError {
 }
 
 struct Info {
+    symbol: String,
     attr: WordAttr,
 }
 
 impl Info {
     pub fn new() -> Self {
         Self {
+            symbol: String::new(),
             attr: WordAttr::Basic,
         }
     }
 
     pub fn reset(&mut self) {
+        self.symbol = String::new();
         self.attr = WordAttr::Basic;
+    }
+
+    pub fn symbol(&self) -> &str {
+        &self.symbol
+    }
+
+    pub fn append_char(&mut self, c: char) {
+        self.symbol.push(c);
+    }
+
+    pub fn delimit(&mut self, list: &mut List) {
+        if !self.symbol.is_empty() {
+            let obj = Word::new(&self.symbol, self.attr);
+            list.push(Box::new(obj));
+        }
+
+        self.reset();
     }
 
     pub fn attr(&self) -> WordAttr {
@@ -222,17 +242,6 @@ impl Info {
     pub fn set_attr(&mut self, attr: WordAttr) {
         self.attr = attr;
     }
-}
-
-fn delimit(word: &str, list: &mut List, info: &mut Info) -> String {
-    if !word.is_empty() {
-        let obj = Word::new(&word, info.attr);
-        list.push(Box::new(obj));
-    }
-
-    info.reset();
-
-    String::new()
 }
 
 fn open_list(list: List, stack: &mut Stack, info: &mut Info) -> List {
@@ -261,23 +270,21 @@ pub fn go(input: &str) -> Result<(), InterpreterError> {
     let mut info = Info::new();
 
     for l in input.lines() {
-        let mut word: String = String::new();
-
         let trimmed = l.trim();
         for c in trimmed.chars() {
             match c {
                 ';' => {
-                    word = delimit(&word, &mut list, &mut info);
+                    info.delimit(&mut list);
                     break;
                 }
 
                 '[' => {
-                    word = delimit(&word, &mut list, &mut info);
+                    info.delimit(&mut list);
                     list = open_list(list, &mut stack, &mut info);
                 }
 
                 ']' => {
-                    word = delimit(&word, &mut list, &mut info);
+                    info.delimit(&mut list);
                     list = close_list(list, &mut stack, &mut info)?;
                 }
 
@@ -286,11 +293,11 @@ pub fn go(input: &str) -> Result<(), InterpreterError> {
                 ')' => {}
 
                 '+' | '-' | '*' | '/' | '=' | '<' | '>' => {
-                    word.push(c);
+                    info.append_char(c);
                 }
 
                 '\u{0022}' => {
-                    if !word.is_empty() {
+                    if !info.symbol().is_empty() {
                         return Err(InterpreterError::UnexpectedLiteral);
                     }
 
@@ -298,7 +305,7 @@ pub fn go(input: &str) -> Result<(), InterpreterError> {
                 }
 
                 ':' => {
-                    if !word.is_empty() {
+                    if !info.symbol().is_empty() {
                         return Err(InterpreterError::UnexpectedVariable);
                     }
 
@@ -307,9 +314,9 @@ pub fn go(input: &str) -> Result<(), InterpreterError> {
 
                 _ => {
                     if c.is_whitespace() {
-                        word = delimit(&word, &mut list, &mut info);
+                        info.delimit(&mut list);
                     } else if c.is_alphanumeric() {
-                        word.push(c);
+                        info.append_char(c);
                     } else {
                         return Err(InterpreterError::UnrecognizedCharacter);
                     }
@@ -317,7 +324,7 @@ pub fn go(input: &str) -> Result<(), InterpreterError> {
             }
         }
 
-        delimit(&word, &mut list, &mut info);
+        info.delimit(&mut list);
     }
 
     if !stack.is_empty() {
