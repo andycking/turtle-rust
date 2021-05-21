@@ -31,9 +31,29 @@ trait Object {
     fn as_any(&self) -> &dyn Any;
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum WordAttr {
+    Basic,
+    Literal,
+    Variable,
+}
+
+impl fmt::Display for WordAttr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match *self {
+            Self::Basic => "b",
+            Self::Literal => "l",
+            Self::Variable => "v",
+        };
+
+        write!(f, "{}", s)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 struct Word {
     symbol: String,
+    attr: WordAttr,
 }
 
 impl Object for Word {
@@ -51,10 +71,15 @@ impl Object for Word {
 }
 
 impl Word {
-    pub fn new(symbol: &str) -> Self {
+    pub fn new(symbol: &str, attr: WordAttr) -> Self {
         Self {
             symbol: String::from(symbol),
+            attr,
         }
+    }
+
+    pub fn attr(&self) -> WordAttr {
+        self.attr
     }
 }
 
@@ -103,7 +128,7 @@ impl fmt::Debug for dyn Object {
         match self.object_type() {
             ObjectType::Word => {
                 let word = self.as_any().downcast_ref::<Word>().unwrap();
-                write!(f, "{}", word.symbol())
+                write!(f, "{} ({})", word.symbol(), word.attr())
             }
 
             ObjectType::List => {
@@ -155,37 +180,69 @@ impl DerefMut for Stack {
 #[derive(Debug)]
 pub enum InterpreterError {
     NoInput,
-    UnrecognizedCharacter,
     UnbalancedList,
+    UnexpectedLiteral,
+    UnexpectedVariable,
+    UnrecognizedCharacter,
 }
 
 impl fmt::Display for InterpreterError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match *self {
             Self::NoInput => "No input",
-            Self::UnrecognizedCharacter => "Unrecognized character",
             Self::UnbalancedList => "Unbalanced list",
+            Self::UnexpectedLiteral => "Unexpected literal",
+            Self::UnexpectedVariable => "Unexpected variable",
+            Self::UnrecognizedCharacter => "Unrecognized character",
         };
 
         write!(f, "{}", s)
     }
 }
 
-fn delimit(word: &str, list: &mut List) -> String {
+struct Info {
+    attr: WordAttr,
+}
+
+impl Info {
+    pub fn new() -> Self {
+        Self {
+            attr: WordAttr::Basic,
+        }
+    }
+
+    pub fn reset(&mut self) {
+        self.attr = WordAttr::Basic;
+    }
+
+    pub fn attr(&self) -> WordAttr {
+        self.attr
+    }
+
+    pub fn set_attr(&mut self, attr: WordAttr) {
+        self.attr = attr;
+    }
+}
+
+fn delimit(word: &str, list: &mut List, info: &mut Info) -> String {
     if !word.is_empty() {
-        let obj = Word::new(&word);
+        let obj = Word::new(&word, info.attr);
         list.push(Box::new(obj));
     }
+
+    info.reset();
 
     String::new()
 }
 
-fn open_list(list: List, stack: &mut Stack) -> List {
+fn open_list(list: List, stack: &mut Stack, info: &mut Info) -> List {
     stack.push_front(list);
+    info.reset();
     List::new()
 }
 
-fn close_list(list: List, stack: &mut Stack) -> Result<List, InterpreterError> {
+fn close_list(list: List, stack: &mut Stack, info: &mut Info) -> Result<List, InterpreterError> {
+    info.reset();
     if let Some(mut parent_list) = stack.pop_front() {
         parent_list.push(Box::new(list));
         Ok(parent_list)
@@ -195,8 +252,13 @@ fn close_list(list: List, stack: &mut Stack) -> Result<List, InterpreterError> {
 }
 
 pub fn go(input: &str) -> Result<(), InterpreterError> {
+    if input.is_empty() {
+        return Err(InterpreterError::NoInput);
+    }
+
     let mut stack = Stack::new();
     let mut list = List::new();
+    let mut info = Info::new();
 
     for l in input.lines() {
         let mut word: String = String::new();
@@ -205,18 +267,18 @@ pub fn go(input: &str) -> Result<(), InterpreterError> {
         for c in trimmed.chars() {
             match c {
                 ';' => {
-                    word = delimit(&word, &mut list);
+                    word = delimit(&word, &mut list, &mut info);
                     break;
                 }
 
                 '[' => {
-                    word = delimit(&word, &mut list);
-                    list = open_list(list, &mut stack);
+                    word = delimit(&word, &mut list, &mut info);
+                    list = open_list(list, &mut stack, &mut info);
                 }
 
                 ']' => {
-                    word = delimit(&word, &mut list);
-                    list = close_list(list, &mut stack)?;
+                    word = delimit(&word, &mut list, &mut info);
+                    list = close_list(list, &mut stack, &mut info)?;
                 }
 
                 '(' => {}
@@ -227,9 +289,25 @@ pub fn go(input: &str) -> Result<(), InterpreterError> {
                     word.push(c);
                 }
 
+                '\u{0022}' => {
+                    if !word.is_empty() {
+                        return Err(InterpreterError::UnexpectedLiteral);
+                    }
+
+                    info.set_attr(WordAttr::Literal);
+                }
+
+                ':' => {
+                    if !word.is_empty() {
+                        return Err(InterpreterError::UnexpectedVariable);
+                    }
+
+                    info.set_attr(WordAttr::Variable);
+                }
+
                 _ => {
                     if c.is_whitespace() {
-                        word = delimit(&word, &mut list);
+                        word = delimit(&word, &mut list, &mut info);
                     } else if c.is_alphanumeric() {
                         word.push(c);
                     } else {
@@ -239,7 +317,7 @@ pub fn go(input: &str) -> Result<(), InterpreterError> {
             }
         }
 
-        delimit(&word, &mut list);
+        delimit(&word, &mut list, &mut info);
     }
 
     if !stack.is_empty() {
