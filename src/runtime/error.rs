@@ -19,22 +19,28 @@ use std::fmt::Result;
 #[derive(Debug)]
 pub enum InterpreterError {
     NoInput,
-    MaxStack,
-    UnbalancedList,
-    UnexpectedLiteral,
-    UnexpectedVariable,
-    UnrecognizedCharacter,
+
+    LexerMaxStack,
+    LexerUnbalancedList,
+    LexerUnexpectedLiteral,
+    LexerUnexpectedVariable,
+    LexerUnrecognizedCharacter,
+
+    ParserExpectedCommand,
 }
 
 impl Display for InterpreterError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let s = match *self {
             Self::NoInput => "No input",
-            Self::MaxStack => "Maximum stack size exceeded",
-            Self::UnbalancedList => "Unbalanced list",
-            Self::UnexpectedLiteral => "Unexpected literal",
-            Self::UnexpectedVariable => "Unexpected variable",
-            Self::UnrecognizedCharacter => "Unrecognized character",
+
+            Self::LexerMaxStack => "[Lexer] Maximum stack size exceeded",
+            Self::LexerUnbalancedList => "[Lexer] Unbalanced list",
+            Self::LexerUnexpectedLiteral => "[Lexer] Unexpected literal",
+            Self::LexerUnexpectedVariable => "[Lexer] Unexpected variable",
+            Self::LexerUnrecognizedCharacter => "[Lexer] Unrecognized character",
+
+            Self::ParserExpectedCommand => "[Parser] Expected command",
         };
 
         write!(f, "{}", s)

@@ -19,7 +19,7 @@ use std::fmt::Result;
 use std::ops::Deref;
 use std::ops::DerefMut;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Tag {
     Word,
     List,

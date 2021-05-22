@@ -116,10 +116,6 @@ impl Lexer {
     }
 
     pub fn go(&mut self, input: &str) -> Result<List, InterpreterError> {
-        if input.is_empty() {
-            return Err(InterpreterError::NoInput);
-        }
-
         for l in input.lines() {
             let trimmed = l.trim();
             for c in trimmed.chars() {
@@ -131,7 +127,7 @@ impl Lexer {
 
                     '[' => {
                         if self.depth() == 32 {
-                            return Err(InterpreterError::MaxStack);
+                            return Err(InterpreterError::LexerMaxStack);
                         }
 
                         self.delimit();
@@ -140,7 +136,7 @@ impl Lexer {
 
                     ']' => {
                         if self.depth() == 0 {
-                            return Err(InterpreterError::UnbalancedList);
+                            return Err(InterpreterError::LexerUnbalancedList);
                         }
 
                         self.delimit();
@@ -157,7 +153,7 @@ impl Lexer {
 
                     '\u{0022}' => {
                         if !self.has_symbol() {
-                            return Err(InterpreterError::UnexpectedLiteral);
+                            return Err(InterpreterError::LexerUnexpectedLiteral);
                         }
 
                         self.set_attr(WordAttr::Literal);
@@ -165,7 +161,7 @@ impl Lexer {
 
                     ':' => {
                         if !self.has_symbol() {
-                            return Err(InterpreterError::UnexpectedVariable);
+                            return Err(InterpreterError::LexerUnexpectedVariable);
                         }
 
                         self.set_attr(WordAttr::Variable);
@@ -177,7 +173,7 @@ impl Lexer {
                         } else if c.is_alphanumeric() {
                             self.append_char(c);
                         } else {
-                            return Err(InterpreterError::UnrecognizedCharacter);
+                            return Err(InterpreterError::LexerUnrecognizedCharacter);
                         }
                     }
                 }
@@ -187,7 +183,7 @@ impl Lexer {
         }
 
         if self.depth() > 0 {
-            return Err(InterpreterError::UnbalancedList);
+            return Err(InterpreterError::LexerUnbalancedList);
         }
 
         Ok(List::from(self.list.consume()))

@@ -23,6 +23,29 @@ impl Parser {
     }
 
     pub fn go(&mut self, input: List) -> Result<(), InterpreterError> {
+        let mut iter = input.iter().peekable();
+
+        while let Some(item) = iter.next() {
+            if item.tag() != Tag::Word {
+                return Err(InterpreterError::ParserExpectedCommand);
+            }
+
+            let word = item.as_any().downcast_ref::<Word>().unwrap();
+            if word.attr() != WordAttr::Basic {
+                return Err(InterpreterError::ParserExpectedCommand);
+            }
+
+            match item.symbol().to_lowercase().as_str() {
+                "fd" | "forward" => {}
+
+                _ => {}
+            }
+        }
+
+        Ok(())
+    }
+
+    fn is_command(&self, item: &Box<dyn DataType>) -> Result<(), InterpreterError> {
         Ok(())
     }
 }
