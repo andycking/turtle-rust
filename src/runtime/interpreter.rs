@@ -17,12 +17,8 @@ use super::lexer::Lexer;
 use super::parser::Parser;
 
 pub fn go(input: &str) -> Result<(), InterpreterError> {
-    if input.is_empty() {
-        return Err(InterpreterError::NoInput);
-    }
-
-    match Lexer::new().go(input) {
-        Ok(list) => Parser::new().go(list),
+    match Lexer::new(input).go() {
+        Ok(list) => Parser::new(&list).go(),
 
         Err(e) => Err(e),
     }
