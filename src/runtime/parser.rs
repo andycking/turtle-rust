@@ -12,21 +12,59 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::ops::Deref;
+use std::ops::DerefMut;
+
 use super::data_type::*;
 use super::error::InterpreterError;
 use super::error::InterpreterError::*;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum InstructionTag {
-    Move,
     Home,
+    Make,
+    Move,
     Pen,
+    Procedure,
     Rotate,
     SetPosition,
 }
 
 trait Instruction {
     fn tag(&self) -> InstructionTag;
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct HomeInstruction {}
+
+impl Instruction for HomeInstruction {
+    fn tag(&self) -> InstructionTag {
+        InstructionTag::Home
+    }
+}
+
+impl HomeInstruction {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct MakeInstruction {
+    name: Word,
+    value: Word,
+}
+
+impl Instruction for MakeInstruction {
+    fn tag(&self) -> InstructionTag {
+        InstructionTag::Make
+    }
+}
+
+impl MakeInstruction {
+    pub fn new(name: Word, value: Word) -> Self {
+        Self { name, value }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -56,21 +94,6 @@ impl MoveInstruction {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-struct HomeInstruction {}
-
-impl Instruction for HomeInstruction {
-    fn tag(&self) -> InstructionTag {
-        InstructionTag::Home
-    }
-}
-
-impl HomeInstruction {
-    pub fn new() -> Self {
-        Self {}
-    }
-}
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum PenOperation {
     Down,
@@ -78,6 +101,7 @@ enum PenOperation {
     SetColor,
 }
 
+#[derive(Clone, Debug, PartialEq)]
 struct PenInstruction {
     op: PenOperation,
     color: Option<Word>,
@@ -92,6 +116,23 @@ impl Instruction for PenInstruction {
 impl PenInstruction {
     pub fn new(op: PenOperation, color: Option<Word>) -> Self {
         Self { op, color }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct ProcInstruction {
+    name: Word,
+}
+
+impl Instruction for ProcInstruction {
+    fn tag(&self) -> InstructionTag {
+        InstructionTag::Pen
+    }
+}
+
+impl ProcInstruction {
+    pub fn new(name: Word) -> Self {
+        Self { name }
     }
 }
 
@@ -137,6 +178,26 @@ impl SetPositionInstruction {
     }
 }
 
+pub type InstructionListItems = Vec<Box<dyn Instruction>>;
+
+struct InstructionList {
+    items: InstructionListItems,
+}
+
+impl Deref for InstructionList {
+    type Target = InstructionListItems;
+
+    fn deref(&self) -> &Self::Target {
+        &self.items
+    }
+}
+
+impl DerefMut for InstructionList {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.items
+    }
+}
+
 struct ListIter<'a> {
     list: &'a List,
     idx: usize,
@@ -165,21 +226,6 @@ impl<'a> ListIter<'a> {
         &self.list[temp]
     }
 
-    fn get_procedure(&mut self) -> Result<&Word, InterpreterError> {
-        let item = self.next();
-
-        if item.tag() != DataTypeTag::Word {
-            return Err(ParserExpectedProcedure);
-        }
-
-        let word = item.as_any().downcast_ref::<Word>().unwrap();
-        if word.attr() == WordAttr::Basic {
-            Ok(word)
-        } else {
-            Err(ParserExpectedProcedure)
-        }
-    }
-
     fn get_argument(&mut self) -> Result<&Word, InterpreterError> {
         let item = self.next();
 
@@ -198,6 +244,36 @@ impl<'a> ListIter<'a> {
         }
 
         Ok(item.as_any().downcast_ref::<List>().unwrap())
+    }
+
+    fn get_procedure(&mut self) -> Result<&Word, InterpreterError> {
+        let item = self.next();
+
+        if item.tag() != DataTypeTag::Word {
+            return Err(ParserExpectedProcedure);
+        }
+
+        let word = item.as_any().downcast_ref::<Word>().unwrap();
+        if word.attr() == WordAttr::Bare {
+            Ok(word)
+        } else {
+            Err(ParserExpectedProcedure)
+        }
+    }
+
+    fn get_quoted(&mut self) -> Result<&Word, InterpreterError> {
+        let item = self.next();
+
+        if item.tag() != DataTypeTag::Word {
+            return Err(ParserExpectedProcedure);
+        }
+
+        let word = item.as_any().downcast_ref::<Word>().unwrap();
+        if word.attr() == WordAttr::Quoted {
+            Ok(word)
+        } else {
+            Err(ParserExpectedQuoted)
+        }
     }
 }
 
@@ -222,6 +298,10 @@ impl<'a> Parser<'a> {
                     self.back()?;
                 }
 
+                "end" => {
+                    self.end()?;
+                }
+
                 "fd" | "forward" => {
                     self.forward()?;
                 }
@@ -232,6 +312,14 @@ impl<'a> Parser<'a> {
 
                 "lt" | "left" => {
                     self.left()?;
+                }
+
+                "make" => {
+                    self.make()?;
+                }
+
+                "name" => {
+                    self.name()?;
                 }
 
                 "pd" | "pendown" => {
@@ -266,6 +354,10 @@ impl<'a> Parser<'a> {
                     self.sety()?;
                 }
 
+                "to" => {
+                    self.to()?;
+                }
+
                 _ => {
                     return Err(ParserUnrecognizedProcedure);
                 }
@@ -277,51 +369,67 @@ impl<'a> Parser<'a> {
 
     fn back(&mut self) -> Result<(), InterpreterError> {
         self.iter.expect(1)?;
-        let distance = self.iter.get_argument()?;
-        let instruction = MoveInstruction::new(distance.clone(), MoveDirection::Backwards);
+        let distance = self.iter.get_argument()?.clone();
+        let instr = MoveInstruction::new(distance, MoveDirection::Backwards);
         Ok(())
     }
 
     fn forward(&mut self) -> Result<(), InterpreterError> {
         self.iter.expect(1)?;
-        let distance = self.iter.get_argument()?;
-        let instruction = MoveInstruction::new(distance.clone(), MoveDirection::Forwards);
+        let distance = self.iter.get_argument()?.clone();
+        let instr = MoveInstruction::new(distance, MoveDirection::Forwards);
         Ok(())
     }
 
     fn home(&mut self) -> Result<(), InterpreterError> {
-        let instruction = HomeInstruction::new();
+        let instr = HomeInstruction::new();
+        Ok(())
+    }
+
+    fn make(&mut self) -> Result<(), InterpreterError> {
+        self.iter.expect(2)?;
+        let name = self.iter.get_quoted()?.clone();
+        let value = self.iter.get_argument()?.clone();
+        let instr = MakeInstruction::new(name, value);
+        Ok(())
+    }
+
+    fn name(&mut self) -> Result<(), InterpreterError> {
+        self.iter.expect(2);
+        let value = self.iter.get_argument()?.clone();
+        let name = self.iter.get_quoted()?.clone();
+        let instr = MakeInstruction::new(name, value);
         Ok(())
     }
 
     fn left(&mut self) -> Result<(), InterpreterError> {
         self.iter.expect(1)?;
-        let angle = self.iter.get_argument()?;
-        let instruction = RotateInstruction::new(angle.clone(), RotateDirection::Left);
+        let angle = self.iter.get_argument()?.clone();
+        let instr = RotateInstruction::new(angle, RotateDirection::Left);
         Ok(())
     }
 
     fn pendown(&mut self) -> Result<(), InterpreterError> {
-        let instruction = PenInstruction::new(PenOperation::Down, None);
+        let instr = PenInstruction::new(PenOperation::Down, None);
         Ok(())
     }
 
     fn penup(&mut self) -> Result<(), InterpreterError> {
-        let instruction = PenInstruction::new(PenOperation::Up, None);
+        let instr = PenInstruction::new(PenOperation::Up, None);
         Ok(())
     }
 
     fn right(&mut self) -> Result<(), InterpreterError> {
         self.iter.expect(1)?;
-        let angle = self.iter.get_argument()?;
-        let instruction = RotateInstruction::new(angle.clone(), RotateDirection::Right);
+        let angle = self.iter.get_argument()?.clone();
+        let instr = RotateInstruction::new(angle, RotateDirection::Right);
         Ok(())
     }
 
     fn setpencolor(&mut self) -> Result<(), InterpreterError> {
         self.iter.expect(1)?;
         let color = self.iter.get_argument()?;
-        let instruction = PenInstruction::new(PenOperation::SetColor, Some(color.clone()));
+        let instr = PenInstruction::new(PenOperation::SetColor, Some(color.clone()));
         Ok(())
     }
 
@@ -332,29 +440,40 @@ impl<'a> Parser<'a> {
         pos_iter.expect(2)?;
         let x = pos_iter.get_argument()?.clone();
         let y = pos_iter.get_argument()?.clone();
-        let instruction = SetPositionInstruction::new(Some(x), Some(y));
+        let instr = SetPositionInstruction::new(Some(x), Some(y));
         Ok(())
     }
 
     fn setxy(&mut self) -> Result<(), InterpreterError> {
-        self.iter.expect(2);
+        self.iter.expect(2)?;
         let x = self.iter.get_argument()?.clone();
         let y = self.iter.get_argument()?.clone();
-        let instruction = SetPositionInstruction::new(Some(x), Some(y));
+        let instr = SetPositionInstruction::new(Some(x), Some(y));
         Ok(())
     }
 
     fn setx(&mut self) -> Result<(), InterpreterError> {
-        self.iter.expect(1);
+        self.iter.expect(1)?;
         let x = self.iter.get_argument()?.clone();
-        let instruction = SetPositionInstruction::new(Some(x), None);
+        let instr = SetPositionInstruction::new(Some(x), None);
         Ok(())
     }
 
     fn sety(&mut self) -> Result<(), InterpreterError> {
-        self.iter.expect(1);
+        self.iter.expect(1)?;
         let y = self.iter.get_argument()?.clone();
-        let instruction = SetPositionInstruction::new(None, Some(y));
+        let instr = SetPositionInstruction::new(None, Some(y));
+        Ok(())
+    }
+
+    fn end(&mut self) -> Result<(), InterpreterError> {
+        Ok(())
+    }
+
+    fn to(&mut self) -> Result<(), InterpreterError> {
+        self.iter.expect(2)?;
+        let name = self.iter.get_argument()?.clone();
+        let instr = ProcInstruction::new(name);
         Ok(())
     }
 }

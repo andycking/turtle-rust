@@ -58,7 +58,7 @@ impl<'a> Lexer<'a> {
         Self {
             input,
             symbol: String::new(),
-            attr: WordAttr::Basic,
+            attr: WordAttr::Bare,
             list: List::new(),
             stack: Stack::new(),
         }
@@ -66,7 +66,7 @@ impl<'a> Lexer<'a> {
 
     fn reset(&mut self) {
         self.symbol = String::new();
-        self.attr = WordAttr::Basic;
+        self.attr = WordAttr::Bare;
     }
 
     fn has_symbol(&self) -> bool {
@@ -155,18 +155,18 @@ impl<'a> Lexer<'a> {
 
                     '\u{0022}' => {
                         if !self.has_symbol() {
-                            return Err(InterpreterError::LexerUnexpectedLiteral);
+                            return Err(InterpreterError::LexerUnexpectedQuote);
                         }
 
-                        self.set_attr(WordAttr::Literal);
+                        self.set_attr(WordAttr::Quoted);
                     }
 
                     ':' => {
                         if !self.has_symbol() {
-                            return Err(InterpreterError::LexerUnexpectedVariable);
+                            return Err(InterpreterError::LexerUnexpectedValueOf);
                         }
 
-                        self.set_attr(WordAttr::Variable);
+                        self.set_attr(WordAttr::ValueOf);
                     }
 
                     _ => {

@@ -33,17 +33,17 @@ pub trait DataType {
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum WordAttr {
-    Basic,
-    Literal,
-    Variable,
+    Bare,
+    Quoted,
+    ValueOf,
 }
 
 impl Debug for WordAttr {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let s = match *self {
-            Self::Basic => "b",
-            Self::Literal => "l",
-            Self::Variable => "v",
+            Self::Bare => "b",
+            Self::Quoted => "q",
+            Self::ValueOf => "v",
         };
 
         write!(f, "{}", s)
