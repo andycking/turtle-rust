@@ -12,62 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::any::Any;
-use std::fmt::Debug;
-use std::fmt::Formatter;
-use std::fmt::Result;
 use std::ops::Deref;
 use std::ops::DerefMut;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum DataTypeTag {
-    Word,
-    List,
-}
-
-pub trait DataType {
-    fn tag(&self) -> DataTypeTag;
-    fn symbol(&self) -> &str;
-    fn as_any(&self) -> &dyn Any;
-}
-
-#[derive(Clone, Copy, PartialEq)]
 pub enum WordAttr {
     Bare,
     Quoted,
     ValueOf,
 }
 
-impl Debug for WordAttr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let s = match *self {
-            Self::Bare => "b",
-            Self::Quoted => "q",
-            Self::ValueOf => "v",
-        };
-
-        write!(f, "{}", s)
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct Word {
     symbol: String,
     attr: WordAttr,
-}
-
-impl DataType for Word {
-    fn tag(&self) -> DataTypeTag {
-        DataTypeTag::Word
-    }
-
-    fn symbol(&self) -> &str {
-        &self.symbol
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
 }
 
 impl Word {
@@ -81,36 +39,29 @@ impl Word {
     pub fn attr(&self) -> WordAttr {
         self.attr
     }
+
+    pub fn symbol(&self) -> &str {
+        &self.symbol
+    }
 }
 
-pub type ListItems = Vec<Box<dyn DataType>>;
-
+#[derive(Clone, Debug)]
 pub struct List {
-    items: ListItems,
+    items: Vec<DataType>,
 }
 
-impl DataType for List {
-    fn tag(&self) -> DataTypeTag {
-        DataTypeTag::List
+impl List {
+    pub fn new() -> Self {
+        Self { items: Vec::new() }
     }
 
-    fn symbol(&self) -> &str {
-        "LIST"
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-}
-
-impl Debug for List {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{:?}", self.items)
+    pub fn consume(&mut self) -> Vec<DataType> {
+        std::mem::replace(&mut self.items, Vec::new())
     }
 }
 
 impl Deref for List {
-    type Target = ListItems;
+    type Target = Vec<DataType>;
 
     fn deref(&self) -> &Self::Target {
         &self.items
@@ -123,34 +74,14 @@ impl DerefMut for List {
     }
 }
 
-impl From<ListItems> for List {
-    fn from(items: ListItems) -> Self {
+#[derive(Clone, Debug)]
+pub enum DataType {
+    Word(Word),
+    List(List),
+}
+
+impl From<Vec<DataType>> for List {
+    fn from(items: Vec<DataType>) -> Self {
         Self { items }
-    }
-}
-
-impl List {
-    pub fn new() -> Self {
-        Self { items: Vec::new() }
-    }
-
-    pub fn consume(&mut self) -> ListItems {
-        std::mem::replace(&mut self.items, Vec::new())
-    }
-}
-
-impl Debug for dyn DataType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        match self.tag() {
-            DataTypeTag::Word => {
-                let word = self.as_any().downcast_ref::<Word>().unwrap();
-                write!(f, "{} ({:?})", word.symbol(), word.attr())
-            }
-
-            DataTypeTag::List => {
-                let list = self.as_any().downcast_ref::<List>().unwrap();
-                write!(f, "{:?}", list)
-            }
-        }
     }
 }

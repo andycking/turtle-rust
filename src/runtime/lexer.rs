@@ -19,6 +19,7 @@ use std::ops::DerefMut;
 use super::data_type::*;
 use super::error::*;
 
+#[derive(Clone, Debug)]
 struct Stack {
     items: VecDeque<List>,
 }
@@ -45,6 +46,7 @@ impl Stack {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct Lexer<'a> {
     input: &'a str,
     symbol: String,
@@ -64,11 +66,6 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn reset(&mut self) {
-        self.symbol = String::new();
-        self.attr = WordAttr::Bare;
-    }
-
     fn has_symbol(&self) -> bool {
         !self.symbol.is_empty()
     }
@@ -79,11 +76,14 @@ impl<'a> Lexer<'a> {
 
     fn delimit(&mut self) {
         if !self.symbol.is_empty() {
-            let obj = Word::new(&self.symbol, self.attr);
-            self.list.push(Box::new(obj));
+            let word = Word::new(&self.symbol, self.attr);
+            let data_type = DataType::Word(word);
+            self.list.push(data_type);
+
+            self.symbol = String::new();
         }
 
-        self.reset();
+        self.attr = WordAttr::Bare;
     }
 
     fn set_attr(&mut self, attr: WordAttr) {
@@ -95,20 +95,23 @@ impl<'a> Lexer<'a> {
     }
 
     fn open_list(&mut self) {
-        self.reset();
+        self.symbol = String::new();
+        self.attr = WordAttr::Bare;
 
         let items = self.list.consume();
         self.stack.push_front(List::from(items));
     }
 
     fn close_list(&mut self) {
-        self.reset();
+        self.symbol = String::new();
+        self.attr = WordAttr::Bare;
 
         let items = self.list.consume();
         let child = List::from(items);
+        let data_type = DataType::List(child);
 
         let mut parent = self.stack.pop_front().unwrap();
-        parent.push(Box::new(child));
+        parent.push(data_type);
 
         self.list = parent;
     }
