@@ -19,6 +19,7 @@ use super::error::InterpreterError::*;
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum InstructionTag {
     Move,
+    Home,
     Pen,
     Rotate,
     SetPosition,
@@ -52,6 +53,21 @@ impl MoveInstruction {
             distance,
             direction,
         }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct HomeInstruction {}
+
+impl Instruction for HomeInstruction {
+    fn tag(&self) -> InstructionTag {
+        InstructionTag::Home
+    }
+}
+
+impl HomeInstruction {
+    pub fn new() -> Self {
+        Self {}
     }
 }
 
@@ -105,8 +121,8 @@ impl RotateInstruction {
 
 #[derive(Clone, Debug, PartialEq)]
 struct SetPositionInstruction {
-    x: Option<f64>,
-    y: Option<f64>,
+    x: Option<Word>,
+    y: Option<Word>,
 }
 
 impl Instruction for SetPositionInstruction {
@@ -116,131 +132,27 @@ impl Instruction for SetPositionInstruction {
 }
 
 impl SetPositionInstruction {
-    pub fn new(x: Option<f64>, y: Option<f64>) -> Self {
+    pub fn new(x: Option<Word>, y: Option<Word>) -> Self {
         Self { x, y }
     }
 }
 
-pub struct Parser<'a> {
-    input: &'a List,
+struct ListIter<'a> {
+    list: &'a List,
     idx: usize,
 }
 
-impl<'a> Parser<'a> {
-    pub fn new(input: &'a List) -> Self {
-        Self { input, idx: 0 }
+impl<'a> ListIter<'a> {
+    pub fn new(list: &'a List) -> Self {
+        Self { list, idx: 0 }
     }
 
-    pub fn go(&mut self) -> Result<(), InterpreterError> {
-        if self.input.is_empty() {
-            return Err(ParserNoInput);
-        }
-
-        while self.idx < self.input.len() {
-            let proc = self.get_procedure()?;
-            match proc.symbol().to_lowercase().as_str() {
-                "bk" | "back" => {
-                    self.back()?;
-                }
-
-                "fd" | "forward" => {
-                    self.forward()?;
-                }
-
-                "home" => {}
-
-                "lt" | "left" => {
-                    self.left()?;
-                }
-
-                "pd" | "pendown" => {
-                    self.pendown()?;
-                }
-
-                "pu" | "penup" => {
-                    self.penup()?;
-                }
-
-                "rt" | "right" => {
-                    self.right()?;
-                }
-
-                "setpc" | "setpencolor" => {
-                    self.setpencolor()?;
-                }
-
-                "setpos" => {
-                    self.setpos()?;
-                }
-
-                "setxy" => {}
-
-                "setx" => {}
-
-                "sety" => {}
-
-                _ => {
-                    return Err(ParserUnrecognizedProcedure);
-                }
-            }
-        }
-
-        Ok(())
-    }
-
-    fn back(&mut self) -> Result<(), InterpreterError> {
-        self.expect(1)?;
-        let distance = self.get_argument()?;
-        let instruction = MoveInstruction::new(distance.clone(), MoveDirection::Backwards);
-        Ok(())
-    }
-
-    fn forward(&mut self) -> Result<(), InterpreterError> {
-        self.expect(1)?;
-        let distance = self.get_argument()?;
-        let instruction = MoveInstruction::new(distance.clone(), MoveDirection::Forwards);
-        Ok(())
-    }
-
-    fn left(&mut self) -> Result<(), InterpreterError> {
-        self.expect(1)?;
-        let angle = self.get_argument()?;
-        let instruction = RotateInstruction::new(angle.clone(), RotateDirection::Left);
-        Ok(())
-    }
-
-    fn pendown(&mut self) -> Result<(), InterpreterError> {
-        let instruction = PenInstruction::new(PenOperation::Down, None);
-        Ok(())
-    }
-
-    fn penup(&mut self) -> Result<(), InterpreterError> {
-        let instruction = PenInstruction::new(PenOperation::Up, None);
-        Ok(())
-    }
-
-    fn right(&mut self) -> Result<(), InterpreterError> {
-        self.expect(1)?;
-        let angle = self.get_argument()?;
-        let instruction = RotateInstruction::new(angle.clone(), RotateDirection::Right);
-        Ok(())
-    }
-
-    fn setpencolor(&mut self) -> Result<(), InterpreterError> {
-        self.expect(1)?;
-        let color = self.get_argument()?;
-        let instruction = PenInstruction::new(PenOperation::SetColor, Some(color.clone()));
-        Ok(())
-    }
-
-    fn setpos(&mut self) -> Result<(), InterpreterError> {
-        self.expect(1)?;
-        let pos = self.get_list(2)?;
-        Ok(())
+    fn is_empty(&self) -> bool {
+        self.idx >= self.list.len()
     }
 
     fn expect(&self, n: usize) -> Result<(), InterpreterError> {
-        if self.idx + n >= self.input.len() {
+        if self.idx + n >= self.list.len() {
             Err(ParserUnexpectedEnd)
         } else {
             Ok(())
@@ -250,7 +162,7 @@ impl<'a> Parser<'a> {
     fn next(&mut self) -> &Box<dyn DataType> {
         let temp = self.idx;
         self.idx += 1;
-        &self.input[temp]
+        &self.list[temp]
     }
 
     fn get_procedure(&mut self) -> Result<&Word, InterpreterError> {
@@ -278,18 +190,171 @@ impl<'a> Parser<'a> {
         Ok(item.as_any().downcast_ref::<Word>().unwrap())
     }
 
-    fn get_list(&mut self, n: usize) -> Result<&List, InterpreterError> {
+    fn get_list(&mut self) -> Result<&List, InterpreterError> {
         let item = self.next();
 
         if item.tag() != DataTypeTag::List {
             return Err(ParserExpectedList);
         }
 
-        let list = item.as_any().downcast_ref::<List>().unwrap();
-        if list.len() != n {
-            return Err(ParserTooFewItemsInList);
+        Ok(item.as_any().downcast_ref::<List>().unwrap())
+    }
+}
+
+pub struct Parser<'a> {
+    iter: ListIter<'a>,
+}
+
+impl<'a> Parser<'a> {
+    pub fn new(input: &'a List) -> Self {
+        Self {
+            iter: ListIter::new(input),
+        }
+    }
+
+    pub fn go(&mut self) -> Result<(), InterpreterError> {
+        self.iter.expect(1)?;
+
+        while !self.iter.is_empty() {
+            let proc = self.iter.get_procedure()?;
+            match proc.symbol().to_lowercase().as_str() {
+                "bk" | "back" => {
+                    self.back()?;
+                }
+
+                "fd" | "forward" => {
+                    self.forward()?;
+                }
+
+                "home" => {
+                    self.home()?;
+                }
+
+                "lt" | "left" => {
+                    self.left()?;
+                }
+
+                "pd" | "pendown" => {
+                    self.pendown()?;
+                }
+
+                "pu" | "penup" => {
+                    self.penup()?;
+                }
+
+                "rt" | "right" => {
+                    self.right()?;
+                }
+
+                "setpc" | "setpencolor" => {
+                    self.setpencolor()?;
+                }
+
+                "setpos" => {
+                    self.setpos()?;
+                }
+
+                "setxy" => {
+                    self.setxy()?;
+                }
+
+                "setx" => {
+                    self.setx()?;
+                }
+
+                "sety" => {
+                    self.sety()?;
+                }
+
+                _ => {
+                    return Err(ParserUnrecognizedProcedure);
+                }
+            }
         }
 
-        Ok(list)
+        Ok(())
+    }
+
+    fn back(&mut self) -> Result<(), InterpreterError> {
+        self.iter.expect(1)?;
+        let distance = self.iter.get_argument()?;
+        let instruction = MoveInstruction::new(distance.clone(), MoveDirection::Backwards);
+        Ok(())
+    }
+
+    fn forward(&mut self) -> Result<(), InterpreterError> {
+        self.iter.expect(1)?;
+        let distance = self.iter.get_argument()?;
+        let instruction = MoveInstruction::new(distance.clone(), MoveDirection::Forwards);
+        Ok(())
+    }
+
+    fn home(&mut self) -> Result<(), InterpreterError> {
+        let instruction = HomeInstruction::new();
+        Ok(())
+    }
+
+    fn left(&mut self) -> Result<(), InterpreterError> {
+        self.iter.expect(1)?;
+        let angle = self.iter.get_argument()?;
+        let instruction = RotateInstruction::new(angle.clone(), RotateDirection::Left);
+        Ok(())
+    }
+
+    fn pendown(&mut self) -> Result<(), InterpreterError> {
+        let instruction = PenInstruction::new(PenOperation::Down, None);
+        Ok(())
+    }
+
+    fn penup(&mut self) -> Result<(), InterpreterError> {
+        let instruction = PenInstruction::new(PenOperation::Up, None);
+        Ok(())
+    }
+
+    fn right(&mut self) -> Result<(), InterpreterError> {
+        self.iter.expect(1)?;
+        let angle = self.iter.get_argument()?;
+        let instruction = RotateInstruction::new(angle.clone(), RotateDirection::Right);
+        Ok(())
+    }
+
+    fn setpencolor(&mut self) -> Result<(), InterpreterError> {
+        self.iter.expect(1)?;
+        let color = self.iter.get_argument()?;
+        let instruction = PenInstruction::new(PenOperation::SetColor, Some(color.clone()));
+        Ok(())
+    }
+
+    fn setpos(&mut self) -> Result<(), InterpreterError> {
+        self.iter.expect(1)?;
+        let pos = self.iter.get_list()?;
+        let mut pos_iter = ListIter::new(pos);
+        pos_iter.expect(2)?;
+        let x = pos_iter.get_argument()?.clone();
+        let y = pos_iter.get_argument()?.clone();
+        let instruction = SetPositionInstruction::new(Some(x), Some(y));
+        Ok(())
+    }
+
+    fn setxy(&mut self) -> Result<(), InterpreterError> {
+        self.iter.expect(2);
+        let x = self.iter.get_argument()?.clone();
+        let y = self.iter.get_argument()?.clone();
+        let instruction = SetPositionInstruction::new(Some(x), Some(y));
+        Ok(())
+    }
+
+    fn setx(&mut self) -> Result<(), InterpreterError> {
+        self.iter.expect(1);
+        let x = self.iter.get_argument()?.clone();
+        let instruction = SetPositionInstruction::new(Some(x), None);
+        Ok(())
+    }
+
+    fn sety(&mut self) -> Result<(), InterpreterError> {
+        self.iter.expect(1);
+        let y = self.iter.get_argument()?.clone();
+        let instruction = SetPositionInstruction::new(None, Some(y));
+        Ok(())
     }
 }
