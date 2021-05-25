@@ -25,11 +25,13 @@ pub enum InterpreterError {
     LexerUnexpectedVariable,
     LexerUnrecognizedCharacter,
 
-    ParserExpectedCommand,
-    ParserExpectedDistance,
+    ParserExpectedArgument,
+    ParserExpectedList,
+    ParserExpectedProcedure,
     ParserNoInput,
+    ParserTooFewItemsInList,
     ParserUnexpectedEnd,
-    ParserUnrecognizedCommand,
+    ParserUnrecognizedProcedure,
 }
 
 impl Display for InterpreterError {
@@ -42,11 +44,13 @@ impl Display for InterpreterError {
             Self::LexerUnexpectedVariable => "[Lexer] Unexpected variable",
             Self::LexerUnrecognizedCharacter => "[Lexer] Unrecognized character",
 
-            Self::ParserExpectedCommand => "[Parser] Expected command",
-            Self::ParserExpectedDistance => "[Parser] Expected distance",
+            Self::ParserExpectedArgument => "[Parser] Expected argument",
+            Self::ParserExpectedList => "[Parser] Expected list",
+            Self::ParserExpectedProcedure => "[Parser] Expected procedure",
             Self::ParserNoInput => "[Parser] No input",
+            Self::ParserTooFewItemsInList => "[Parser] Too few items in list",
             Self::ParserUnexpectedEnd => "[Parser] Unexpected end of input",
-            Self::ParserUnrecognizedCommand => "[Parser] Unrecognized command",
+            Self::ParserUnrecognizedProcedure => "[Parser] Unrecognized procedure",
         };
 
         write!(f, "{}", s)

@@ -20,13 +20,13 @@ use std::ops::Deref;
 use std::ops::DerefMut;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Tag {
+pub enum DataTypeTag {
     Word,
     List,
 }
 
 pub trait DataType {
-    fn tag(&self) -> Tag;
+    fn tag(&self) -> DataTypeTag;
     fn symbol(&self) -> &str;
     fn as_any(&self) -> &dyn Any;
 }
@@ -57,8 +57,8 @@ pub struct Word {
 }
 
 impl DataType for Word {
-    fn tag(&self) -> Tag {
-        Tag::Word
+    fn tag(&self) -> DataTypeTag {
+        DataTypeTag::Word
     }
 
     fn symbol(&self) -> &str {
@@ -90,8 +90,8 @@ pub struct List {
 }
 
 impl DataType for List {
-    fn tag(&self) -> Tag {
-        Tag::List
+    fn tag(&self) -> DataTypeTag {
+        DataTypeTag::List
     }
 
     fn symbol(&self) -> &str {
@@ -142,12 +142,12 @@ impl List {
 impl Debug for dyn DataType {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self.tag() {
-            Tag::Word => {
+            DataTypeTag::Word => {
                 let word = self.as_any().downcast_ref::<Word>().unwrap();
                 write!(f, "{} ({:?})", word.symbol(), word.attr())
             }
 
-            Tag::List => {
+            DataTypeTag::List => {
                 let list = self.as_any().downcast_ref::<List>().unwrap();
                 write!(f, "{:?}", list)
             }
