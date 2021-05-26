@@ -12,179 +12,108 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::VecDeque;
-use std::ops::Deref;
-use std::ops::DerefMut;
+use std::str::Chars;
 
 use super::data_type::*;
 use super::error::*;
 
-#[derive(Clone, Debug)]
-struct Stack {
-    items: VecDeque<List>,
-}
-
-impl Deref for Stack {
-    type Target = VecDeque<List>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.items
-    }
-}
-
-impl DerefMut for Stack {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.items
-    }
-}
-
-impl Stack {
-    pub fn new() -> Self {
-        Self {
-            items: VecDeque::new(),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct Lexer {
-    symbol: String,
-    attr: WordAttr,
-    list: List,
-    stack: Stack,
-}
+#[derive(Clone, Copy, Debug)]
+pub struct Lexer {}
 
 impl Lexer {
     pub fn new() -> Self {
-        Self {
-            symbol: String::new(),
-            attr: WordAttr::Bare,
-            list: List::new(),
-            stack: Stack::new(),
-        }
-    }
-
-    fn has_symbol(&self) -> bool {
-        !self.symbol.is_empty()
-    }
-
-    fn append_char(&mut self, c: char) {
-        self.symbol.push(c);
-    }
-
-    fn delimit(&mut self) {
-        if !self.symbol.is_empty() {
-            let word = Word::new(&self.symbol, self.attr);
-            let data_type = DataType::Word(word);
-            self.list.push(data_type);
-
-            self.symbol = String::new();
-        }
-
-        self.attr = WordAttr::Bare;
-    }
-
-    fn set_attr(&mut self, attr: WordAttr) {
-        self.attr = attr;
-    }
-
-    fn depth(&self) -> usize {
-        self.stack.len()
-    }
-
-    fn open_list(&mut self) {
-        self.symbol = String::new();
-        self.attr = WordAttr::Bare;
-
-        let items = self.list.consume();
-        self.stack.push_front(List::from(items));
-    }
-
-    fn close_list(&mut self) {
-        self.symbol = String::new();
-        self.attr = WordAttr::Bare;
-
-        let items = self.list.consume();
-        let child = List::from(items);
-        let data_type = DataType::List(child);
-
-        let mut parent = self.stack.pop_front().unwrap();
-        parent.push(data_type);
-
-        self.list = parent;
+        Self {}
     }
 
     pub fn go(&mut self, input: &str) -> Result<List, InterpreterError> {
-        for l in input.lines() {
-            let trimmed = l.trim();
-            for c in trimmed.chars() {
-                match c {
-                    ';' => {
-                        self.delimit();
-                        break;
+        let mut iter = input.chars();
+        self.lex(&mut iter)
+    }
+
+    fn lex(&mut self, iter: &mut Chars) -> Result<List, InterpreterError> {
+        let mut list = List::new();
+        let mut symbol = String::new();
+        let mut attr = WordAttr::Bare;
+
+        while let Some(c) = iter.next() {
+            match c {
+                '[' => {
+                    if !symbol.is_empty() {
+                        let word = Word::new(&symbol, attr);
+                        let dt = DataType::Word(word);
+                        list.push(dt);
+
+                        symbol = String::new();
+                        attr = WordAttr::Bare;
                     }
 
-                    '[' => {
-                        if self.depth() == 32 {
-                            return Err(InterpreterError::LexerMaxStack);
+                    let child = self.lex(iter)?;
+                    let dt = DataType::List(child);
+                    list.push(dt);
+                }
+
+                ']' => {
+                    if !symbol.is_empty() {
+                        let word = Word::new(&symbol, attr);
+                        let dt = DataType::Word(word);
+                        list.push(dt);
+
+                        symbol = String::new();
+                        attr = WordAttr::Bare;
+                    }
+
+                    break;
+                }
+
+                '(' => {}
+
+                ')' => {}
+
+                '+' | '-' | '*' | '/' | '=' | '<' | '>' => {
+                    symbol.push(c);
+                }
+
+                '\u{0022}' => {
+                    if !symbol.is_empty() {
+                        return Err(InterpreterError::LexerUnexpectedQuote);
+                    }
+                    attr = WordAttr::Quoted;
+                }
+
+                ':' => {
+                    if !symbol.is_empty() {
+                        return Err(InterpreterError::LexerUnexpectedValueOf);
+                    }
+                    attr = WordAttr::ValueOf;
+                }
+
+                _ => {
+                    if c.is_whitespace() {
+                        if !symbol.is_empty() {
+                            let word = Word::new(&symbol, attr);
+                            let dt = DataType::Word(word);
+                            list.push(dt);
+
+                            symbol = String::new();
+                            attr = WordAttr::Bare;
                         }
-
-                        self.delimit();
-                        self.open_list();
-                    }
-
-                    ']' => {
-                        if self.depth() == 0 {
-                            return Err(InterpreterError::LexerUnbalancedList);
-                        }
-
-                        self.delimit();
-                        self.close_list();
-                    }
-
-                    '(' => {}
-
-                    ')' => {}
-
-                    '+' | '-' | '*' | '/' | '=' | '<' | '>' => {
-                        self.append_char(c);
-                    }
-
-                    '\u{0022}' => {
-                        if !self.has_symbol() {
-                            return Err(InterpreterError::LexerUnexpectedQuote);
-                        }
-
-                        self.set_attr(WordAttr::Quoted);
-                    }
-
-                    ':' => {
-                        if !self.has_symbol() {
-                            return Err(InterpreterError::LexerUnexpectedValueOf);
-                        }
-
-                        self.set_attr(WordAttr::ValueOf);
-                    }
-
-                    _ => {
-                        if c.is_whitespace() {
-                            self.delimit();
-                        } else if c.is_alphanumeric() {
-                            self.append_char(c);
-                        } else {
-                            return Err(InterpreterError::LexerUnrecognizedCharacter);
-                        }
+                    } else if c.is_alphanumeric() {
+                        symbol.push(c);
+                    } else {
+                        return Err(InterpreterError::LexerUnrecognizedCharacter);
                     }
                 }
             }
-
-            self.delimit();
         }
 
-        if self.depth() > 0 {
-            return Err(InterpreterError::LexerUnbalancedList);
+        if !symbol.is_empty() {
+            let word = Word::new(&symbol, attr);
+            let dt = DataType::Word(word);
+            list.push(dt);
         }
 
-        Ok(List::from(self.list.consume()))
+        println!("{:?}", list);
+
+        Ok(list)
     }
 }

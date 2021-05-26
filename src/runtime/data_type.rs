@@ -54,10 +54,6 @@ impl List {
     pub fn new() -> Self {
         Self { items: Vec::new() }
     }
-
-    pub fn consume(&mut self) -> Vec<DataType> {
-        std::mem::replace(&mut self.items, Vec::new())
-    }
 }
 
 impl Deref for List {
@@ -78,10 +74,4 @@ impl DerefMut for List {
 pub enum DataType {
     Word(Word),
     List(List),
-}
-
-impl From<Vec<DataType>> for List {
-    fn from(items: Vec<DataType>) -> Self {
-        Self { items }
-    }
 }
