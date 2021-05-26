@@ -45,11 +45,11 @@ pub fn window() -> WindowDesc<AppState> {
 }
 
 fn build_ui() -> impl Widget<AppState> {
-    Flex::column()
-        .cross_axis_alignment(CrossAxisAlignment::End)
-        .with_child(build_canvas())
-        .with_spacer(1.0)
+    Flex::row()
+        .cross_axis_alignment(CrossAxisAlignment::Start)
         .with_child(build_input())
+        .with_spacer(1.0)
+        .with_child(build_canvas())
         .background(Color::rgb8(208, 208, 208))
         .controller(WindowController {})
 }
@@ -61,18 +61,18 @@ fn build_canvas() -> impl Widget<AppState> {
 fn build_input() -> impl Widget<AppState> {
     Container::new(
         TextBox::multiline()
-            .with_placeholder("Control the turtle by typing your commands here.")
-            .with_text_color(Color::BLACK)
+            .with_placeholder("Type your commands in here.\nPress \u{2318}G to make the turle go!")
+            .with_text_color(Color::rgb8(88, 110, 117))
             .with_font(FontDescriptor::new(FontFamily::MONOSPACE).with_size(FONT_SIZE))
-            .fix_height(text_height())
-            .expand_width()
+            .fix_width(input_width())
+            .expand_height()
             .env_scope(|env, _| {
-                env.set(theme::BACKGROUND_LIGHT, Color::WHITE);
-                env.set(theme::PRIMARY_LIGHT, Color::WHITE);
-                env.set(theme::BORDER_DARK, Color::WHITE);
+                env.set(theme::BACKGROUND_LIGHT, Color::rgb8(253, 246, 227));
+                env.set(theme::PRIMARY_LIGHT, Color::rgb8(253, 246, 227));
+                env.set(theme::BORDER_DARK, Color::rgb8(253, 246, 227));
                 env.set(
                     theme::SELECTED_TEXT_BACKGROUND_COLOR,
-                    Color::rgb8(179, 216, 255),
+                    Color::rgb8(238, 232, 213),
                 );
                 env.set(theme::CURSOR_COLOR, Color::BLACK);
             })
@@ -81,14 +81,11 @@ fn build_input() -> impl Widget<AppState> {
 }
 
 fn window_size() -> Size {
-    Size::new(DIMS.width, DIMS.height + text_height())
+    Size::new(DIMS.width + input_width(), DIMS.height)
 }
 
-fn text_height() -> f64 {
-    let lines = 3.0;
-    let pad = 6.0;
-
-    lines * (pad + FONT_SIZE)
+fn input_width() -> f64 {
+    400.0
 }
 
 struct WindowController {}
