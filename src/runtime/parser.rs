@@ -36,7 +36,7 @@ impl<'a> ListIter<'a> {
 
     fn expect(&self, n: usize) -> Result<(), InterpreterError> {
         if self.idx + n > self.list.len() {
-            Err(ParserUnexpectedEnd)
+            Err(ParserUnexpectedEndOfInput)
         } else {
             Ok(())
         }
@@ -59,7 +59,7 @@ impl<'a> ListIter<'a> {
             }
         }
 
-        Err(ParserExpectedEnd)
+        Err(ParserExpectedEndOfProcedure)
     }
 
     fn get_list(&mut self) -> Result<List, InterpreterError> {

@@ -26,11 +26,11 @@ pub enum InterpreterError {
 
     ParserDuplicateProcedure,
     ParserExpectedArgument,
-    ParserExpectedEnd,
+    ParserExpectedEndOfProcedure,
     ParserExpectedList,
     ParserExpectedProcedure,
     ParserExpectedQuoted,
-    ParserUnexpectedEnd,
+    ParserUnexpectedEndOfInput,
     ParserUnrecognizedProcedure,
 }
 
@@ -43,13 +43,13 @@ impl Display for InterpreterError {
             Self::LexerUnexpectedValueOf => "[Lexer] Unexpected value of",
             Self::LexerUnrecognizedCharacter => "[Lexer] Unrecognized character",
 
-            Self::ParserDuplicateProcedure => "",
+            Self::ParserDuplicateProcedure => "[Parser] Procedure already exists",
             Self::ParserExpectedArgument => "[Parser] Expected argument",
-            Self::ParserExpectedEnd => "",
+            Self::ParserExpectedEndOfProcedure => "[Parser] Expected end of procedure definition",
             Self::ParserExpectedList => "[Parser] Expected list",
             Self::ParserExpectedProcedure => "[Parser] Expected procedure",
             Self::ParserExpectedQuoted => "[Parser] Expected quoted word",
-            Self::ParserUnexpectedEnd => "[Parser] Unexpected end of input",
+            Self::ParserUnexpectedEndOfInput => "[Parser] Unexpected end of input",
             Self::ParserUnrecognizedProcedure => "[Parser] Unrecognized procedure",
         };
 
