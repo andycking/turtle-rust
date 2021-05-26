@@ -23,11 +23,16 @@ use super::instr::*;
 struct ListIter<'a> {
     list: &'a [DataType],
     idx: usize,
+    depth: usize,
 }
 
 impl<'a> ListIter<'a> {
     pub fn new(list: &'a [DataType]) -> Self {
-        Self { list, idx: 0 }
+        Self {
+            list,
+            idx: 0,
+            depth: 0,
+        }
     }
 
     fn is_empty(&self) -> bool {
@@ -46,20 +51,6 @@ impl<'a> ListIter<'a> {
         let temp = self.idx;
         self.idx += 1;
         self.list[temp].clone()
-    }
-
-    fn slice_to(&mut self, name: &str) -> Result<&'a [DataType], InterpreterError> {
-        for i in self.idx..self.list.len() {
-            if let DataType::Word(word) = &self.list[i] {
-                if word.symbol() == name {
-                    let slice = &self.list[self.idx..i];
-                    self.idx = i + 1;
-                    return Ok(slice);
-                }
-            }
-        }
-
-        Err(ParserExpectedEndOfProcedure)
     }
 
     fn get_list(&mut self) -> Result<List, InterpreterError> {
@@ -116,6 +107,10 @@ impl Parser {
 
     pub fn go(&mut self, input: &[DataType]) -> Result<InstructionList, InterpreterError> {
         let mut iter = ListIter::new(input);
+        self.parse(&mut iter)
+    }
+
+    fn parse(&mut self, iter: &mut ListIter) -> Result<InstructionList, InterpreterError> {
         let mut list = InstructionList::new();
 
         iter.expect(1)?;
@@ -125,89 +120,93 @@ impl Parser {
             let symbol = proc.symbol();
             match symbol.to_lowercase().as_str() {
                 "bk" | "back" => {
-                    let instr = self.back(&mut iter)?;
+                    let instr = self.back(iter)?;
                     list.push(instr);
                 }
 
+                "end" => {
+                    break;
+                }
+
                 "fd" | "forward" => {
-                    let instr = self.forward(&mut iter)?;
+                    let instr = self.forward(iter)?;
                     list.push(instr);
                 }
 
                 "home" => {
-                    let instr = self.home(&mut iter);
+                    let instr = self.home(iter);
                     list.push(instr);
                 }
 
                 "lt" | "left" => {
-                    let instr = self.left(&mut iter)?;
+                    let instr = self.left(iter)?;
                     list.push(instr);
                 }
 
                 "make" => {
-                    let instr = self.make(&mut iter)?;
+                    let instr = self.make(iter)?;
                     list.push(instr);
                 }
 
                 "name" => {
-                    let instr = self.name(&mut iter)?;
+                    let instr = self.name(iter)?;
                     list.push(instr);
                 }
 
                 "pd" | "pendown" => {
-                    let instr = self.pendown(&mut iter);
+                    let instr = self.pendown(iter);
                     list.push(instr);
                 }
 
                 "pu" | "penup" => {
-                    let instr = self.penup(&mut iter);
+                    let instr = self.penup(iter);
                     list.push(instr);
                 }
 
                 "repeat" => {
-                    let instr = self.repeat(&mut iter)?;
+                    let instr = self.repeat(iter)?;
                     list.push(instr);
                 }
 
                 "rt" | "right" => {
-                    let instr = self.right(&mut iter)?;
+                    let instr = self.right(iter)?;
                     list.push(instr);
                 }
 
                 "setpc" | "setpencolor" => {
-                    let instr = self.setpencolor(&mut iter)?;
+                    let instr = self.setpencolor(iter)?;
                     list.push(instr);
                 }
 
                 "setpos" => {
-                    let instr = self.setpos(&mut iter)?;
+                    let instr = self.setpos(iter)?;
                     list.push(instr);
                 }
 
                 "setxy" => {
-                    let instr = self.setxy(&mut iter)?;
+                    let instr = self.setxy(iter)?;
                     list.push(instr);
                 }
 
                 "setx" => {
-                    let instr = self.setx(&mut iter)?;
+                    let instr = self.setx(iter)?;
                     list.push(instr);
                 }
 
                 "sety" => {
-                    let instr = self.sety(&mut iter)?;
+                    let instr = self.sety(iter)?;
                     list.push(instr);
                 }
 
                 "to" => {
-                    let instr = self.to(&mut iter)?;
+                    let instr = self.to(iter)?;
                     list.push(instr);
                 }
 
                 _ => {
                     if self.procedures.contains_key(symbol) {
                         let num_args = self.procedures[symbol];
-                        let instr = self.call(&mut iter, proc, num_args)?;
+                        let instr = self.call(iter, proc, num_args)?;
                         list.push(instr);
                     } else {
                         return Err(ParserUnrecognizedProcedure);
@@ -389,8 +388,7 @@ impl Parser {
 
         let name = iter.get_word()?;
         self.check_dupe(name.symbol(), 0)?;
-        let slice = iter.slice_to("end")?;
-        let instr_list = self.go(slice)?;
+        let instr_list = self.parse(iter)?;
         let make_instr = MakeProcInstruction::new(name, 0, instr_list);
         let instr = Instruction::MakeProc(make_instr);
 
