@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::ops::Deref;
-use std::ops::DerefMut;
+use std::collections::HashMap;
 
 use super::data_type::*;
 use super::error::InterpreterError;
@@ -22,12 +21,12 @@ use super::instr::*;
 
 #[derive(Clone, Debug)]
 struct ListIter<'a> {
-    list: &'a List,
+    list: &'a [DataType],
     idx: usize,
 }
 
 impl<'a> ListIter<'a> {
-    pub fn new(list: &'a List) -> Self {
+    pub fn new(list: &'a [DataType]) -> Self {
         Self { list, idx: 0 }
     }
 
@@ -36,7 +35,7 @@ impl<'a> ListIter<'a> {
     }
 
     fn expect(&self, n: usize) -> Result<(), InterpreterError> {
-        if self.idx + n >= self.list.len() {
+        if self.idx + n > self.list.len() {
             Err(ParserUnexpectedEnd)
         } else {
             Ok(())
@@ -47,6 +46,20 @@ impl<'a> ListIter<'a> {
         let temp = self.idx;
         self.idx += 1;
         self.list[temp].clone()
+    }
+
+    fn slice_to(&mut self, name: &str) -> Result<&'a [DataType], InterpreterError> {
+        for i in self.idx..self.list.len() {
+            if let DataType::Word(word) = &self.list[i] {
+                if word.symbol() == name {
+                    let slice = &self.list[self.idx..i];
+                    self.idx = i + 1;
+                    return Ok(slice);
+                }
+            }
+        }
+
+        Err(ParserExpectedEnd)
     }
 
     fn get_argument(&mut self) -> Result<Word, InterpreterError> {
@@ -90,209 +103,245 @@ impl<'a> ListIter<'a> {
     }
 }
 
-pub struct Parser<'a> {
-    iter: ListIter<'a>,
-    list: MakeProcInstruction,
+pub struct Parser {
+    procedures: HashMap<String, usize>,
 }
 
-impl<'a> Parser<'a> {
-    pub fn new(input: &'a List) -> Self {
+impl Parser {
+    pub fn new() -> Self {
         Self {
-            iter: ListIter::new(input),
-            list: MakeProcInstruction::new(Word::new("main", WordAttr::Bare)),
+            procedures: HashMap::new(),
         }
     }
 
-    pub fn go(&mut self) -> Result<(), InterpreterError> {
-        self.iter.expect(1)?;
+    pub fn go(&mut self, input: &[DataType]) -> Result<InstructionList, InterpreterError> {
+        let mut iter = ListIter::new(input);
+        let mut list = InstructionList::new();
 
-        while !self.iter.is_empty() {
-            let proc = self.iter.get_procedure()?;
-            match proc.symbol().to_lowercase().as_str() {
+        iter.expect(1)?;
+
+        while !iter.is_empty() {
+            let proc = iter.get_procedure()?;
+            let symbol = proc.symbol();
+            match symbol.to_lowercase().as_str() {
                 "bk" | "back" => {
-                    self.back()?;
-                }
-
-                "end" => {
-                    self.end()?;
+                    let instr = self.back(&mut iter)?;
+                    list.push(instr);
                 }
 
                 "fd" | "forward" => {
-                    self.forward()?;
+                    let instr = self.forward(&mut iter)?;
+                    list.push(instr);
                 }
 
                 "home" => {
-                    self.home()?;
+                    let instr = self.home(&mut iter);
+                    list.push(instr);
                 }
 
                 "lt" | "left" => {
-                    self.left()?;
+                    let instr = self.left(&mut iter)?;
+                    list.push(instr);
                 }
 
                 "make" => {
-                    self.make()?;
+                    let instr = self.make(&mut iter)?;
+                    list.push(instr);
                 }
 
                 "name" => {
-                    self.name()?;
+                    let instr = self.name(&mut iter)?;
+                    list.push(instr);
                 }
 
                 "pd" | "pendown" => {
-                    self.pendown()?;
+                    let instr = self.pendown(&mut iter);
+                    list.push(instr);
                 }
 
                 "pu" | "penup" => {
-                    self.penup()?;
+                    let instr = self.penup(&mut iter);
+                    list.push(instr);
+                }
+
+                "repeat" => {
+                    let instr = self.repeat(&mut iter)?;
+                    list.push(instr);
                 }
 
                 "rt" | "right" => {
-                    self.right()?;
+                    let instr = self.right(&mut iter)?;
+                    list.push(instr);
                 }
 
                 "setpc" | "setpencolor" => {
-                    self.setpencolor()?;
+                    let instr = self.setpencolor(&mut iter)?;
+                    list.push(instr);
                 }
 
                 "setpos" => {
-                    self.setpos()?;
+                    let instr = self.setpos(&mut iter)?;
+                    list.push(instr);
                 }
 
                 "setxy" => {
-                    self.setxy()?;
+                    let instr = self.setxy(&mut iter)?;
+                    list.push(instr);
                 }
 
                 "setx" => {
-                    self.setx()?;
+                    let instr = self.setx(&mut iter)?;
+                    list.push(instr);
                 }
 
                 "sety" => {
-                    self.sety()?;
+                    let instr = self.sety(&mut iter)?;
+                    list.push(instr);
                 }
 
                 "to" => {
-                    self.to()?;
+                    let instr = self.to(&mut iter)?;
+                    list.push(instr);
                 }
 
                 _ => {
-                    return Err(ParserUnrecognizedProcedure);
+                    if self.procedures.contains_key(symbol) {
+                        let num_args = self.procedures[symbol];
+                        let instr = self.call(&mut iter, proc, num_args)?;
+                        list.push(instr);
+                    } else {
+                        return Err(ParserUnrecognizedProcedure);
+                    }
                 }
             }
         }
 
-        Ok(())
+        println!("{:?}", list);
+
+        Ok(list)
     }
 
-    fn back(&mut self) -> Result<(), InterpreterError> {
-        self.iter.expect(1)?;
+    fn back(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
+        iter.expect(1)?;
 
-        let distance = self.iter.get_argument()?;
+        let distance = iter.get_argument()?;
         let move_instr = MoveInstruction::new(distance, MoveDirection::Backwards);
         let instr = Instruction::Move(move_instr);
-        self.list.push(instr);
 
-        Ok(())
+        Ok(instr)
     }
 
-    fn end(&mut self) -> Result<(), InterpreterError> {
-        Ok(())
+    fn call(
+        &mut self,
+        iter: &mut ListIter,
+        name: Word,
+        num_args: usize,
+    ) -> Result<Instruction, InterpreterError> {
+        iter.expect(num_args)?;
+
+        let mut list: Vec<Word> = Vec::new();
+        for _ in 0..num_args {
+            list.push(iter.get_argument()?);
+        }
+        let call_instr = CallInstruction::new(name, list);
+        let instr = Instruction::Call(call_instr);
+
+        Ok(instr)
     }
 
-    fn forward(&mut self) -> Result<(), InterpreterError> {
-        self.iter.expect(1)?;
+    fn forward(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
+        iter.expect(1)?;
 
-        let distance = self.iter.get_argument()?;
+        let distance = iter.get_argument()?;
         let move_instr = MoveInstruction::new(distance, MoveDirection::Forwards);
         let instr = Instruction::Move(move_instr);
-        self.list.push(instr);
 
-        Ok(())
+        Ok(instr)
     }
 
-    fn home(&mut self) -> Result<(), InterpreterError> {
+    fn home(&mut self, _: &mut ListIter) -> Instruction {
         let home_instr = HomeInstruction {};
-        let instr = Instruction::Home(home_instr);
-        self.list.push(instr);
-
-        Ok(())
+        Instruction::Home(home_instr)
     }
 
-    fn left(&mut self) -> Result<(), InterpreterError> {
-        self.iter.expect(1)?;
+    fn left(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
+        iter.expect(1)?;
 
-        let angle = self.iter.get_argument()?;
+        let angle = iter.get_argument()?;
         let rotate_instr = RotateInstruction::new(angle, RotateDirection::Left);
         let instr = Instruction::Rotate(rotate_instr);
-        self.list.push(instr);
 
-        Ok(())
+        Ok(instr)
     }
 
-    fn make(&mut self) -> Result<(), InterpreterError> {
-        self.iter.expect(2)?;
+    fn make(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
+        iter.expect(2)?;
 
-        let name = self.iter.get_quoted()?;
-        let value = self.iter.get_argument()?;
+        let name = iter.get_quoted()?;
+        let value = iter.get_argument()?;
         let make_instr = MakeVarInstruction::new(name, value);
         let instr = Instruction::MakeVar(make_instr);
-        self.list.push(instr);
 
-        Ok(())
+        Ok(instr)
     }
 
-    fn name(&mut self) -> Result<(), InterpreterError> {
-        self.iter.expect(2)?;
+    fn name(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
+        iter.expect(2)?;
 
-        let value = self.iter.get_argument()?;
-        let name = self.iter.get_quoted()?;
+        let value = iter.get_argument()?;
+        let name = iter.get_quoted()?;
         let make_instr = MakeVarInstruction::new(name, value);
         let instr = Instruction::MakeVar(make_instr);
-        self.list.push(instr);
 
-        Ok(())
+        Ok(instr)
     }
 
-    fn pendown(&mut self) -> Result<(), InterpreterError> {
+    fn pendown(&mut self, _: &mut ListIter) -> Instruction {
         let pen_instr = PenInstruction::new(PenOperation::Down, None);
-        let instr = Instruction::Pen(pen_instr);
-        self.list.push(instr);
-
-        Ok(())
+        Instruction::Pen(pen_instr)
     }
 
-    fn penup(&mut self) -> Result<(), InterpreterError> {
+    fn penup(&mut self, _: &mut ListIter) -> Instruction {
         let pen_instr = PenInstruction::new(PenOperation::Up, None);
-        let instr = Instruction::Pen(pen_instr);
-        self.list.push(instr);
-
-        Ok(())
+        Instruction::Pen(pen_instr)
     }
 
-    fn right(&mut self) -> Result<(), InterpreterError> {
-        self.iter.expect(1)?;
+    fn repeat(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
+        iter.expect(2)?;
 
-        let angle = self.iter.get_argument()?;
+        let count = iter.get_argument()?;
+        let list = iter.get_list()?;
+        let instr_list = self.go(&list[..])?;
+        let rep_instr = RepeatInstruction::new(count, instr_list);
+        let instr = Instruction::Repeat(rep_instr);
+
+        Ok(instr)
+    }
+
+    fn right(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
+        iter.expect(1)?;
+
+        let angle = iter.get_argument()?;
         let rotate_instr = RotateInstruction::new(angle, RotateDirection::Right);
         let instr = Instruction::Rotate(rotate_instr);
-        self.list.push(instr);
 
-        Ok(())
+        Ok(instr)
     }
 
-    fn setpencolor(&mut self) -> Result<(), InterpreterError> {
-        self.iter.expect(1)?;
+    fn setpencolor(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
+        iter.expect(1)?;
 
-        let color = self.iter.get_argument()?;
+        let color = iter.get_argument()?;
         let pen_instr = PenInstruction::new(PenOperation::SetColor, Some(color));
         let instr = Instruction::Pen(pen_instr);
-        self.list.push(instr);
 
-        Ok(())
+        Ok(instr)
     }
 
-    fn setpos(&mut self) -> Result<(), InterpreterError> {
-        self.iter.expect(1)?;
+    fn setpos(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
+        iter.expect(1)?;
 
-        let pos = self.iter.get_list()?;
+        let pos = iter.get_list()?;
         let mut pos_iter = ListIter::new(&pos);
 
         pos_iter.expect(2)?;
@@ -300,52 +349,59 @@ impl<'a> Parser<'a> {
         let y = pos_iter.get_argument()?;
         let pos_instr = SetPositionInstruction::new(Some(x), Some(y));
         let instr = Instruction::SetPosition(pos_instr);
-        self.list.push(instr);
 
-        Ok(())
+        Ok(instr)
     }
 
-    fn setxy(&mut self) -> Result<(), InterpreterError> {
-        self.iter.expect(2)?;
+    fn setxy(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
+        iter.expect(2)?;
 
-        let x = self.iter.get_argument()?;
-        let y = self.iter.get_argument()?;
+        let x = iter.get_argument()?;
+        let y = iter.get_argument()?;
         let pos_instr = SetPositionInstruction::new(Some(x), Some(y));
         let instr = Instruction::SetPosition(pos_instr);
-        self.list.push(instr);
 
-        Ok(())
+        Ok(instr)
     }
 
-    fn setx(&mut self) -> Result<(), InterpreterError> {
-        self.iter.expect(1)?;
+    fn setx(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
+        iter.expect(1)?;
 
-        let x = self.iter.get_argument()?;
+        let x = iter.get_argument()?;
         let pos_instr = SetPositionInstruction::new(Some(x), None);
         let instr = Instruction::SetPosition(pos_instr);
-        self.list.push(instr);
 
-        Ok(())
+        Ok(instr)
     }
 
-    fn sety(&mut self) -> Result<(), InterpreterError> {
-        self.iter.expect(1)?;
+    fn sety(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
+        iter.expect(1)?;
 
-        let y = self.iter.get_argument()?;
+        let y = iter.get_argument()?;
         let pos_instr = SetPositionInstruction::new(None, Some(y));
         let instr = Instruction::SetPosition(pos_instr);
-        self.list.push(instr);
 
-        Ok(())
+        Ok(instr)
     }
 
-    fn to(&mut self) -> Result<(), InterpreterError> {
-        self.iter.expect(1)?;
+    fn to(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
+        iter.expect(1)?;
 
-        let name = self.iter.get_argument()?;
-        let make_instr = MakeProcInstruction::new(name);
+        let name = iter.get_argument()?;
+        self.check_dupe(name.symbol(), 0)?;
+        let slice = iter.slice_to("end")?;
+        let instr_list = self.go(slice)?;
+        let make_instr = MakeProcInstruction::new(name, 0, instr_list);
         let instr = Instruction::MakeProc(make_instr);
 
-        Ok(())
+        Ok(instr)
+    }
+
+    fn check_dupe(&mut self, name: &str, num_args: usize) -> Result<(), InterpreterError> {
+        if self.procedures.insert(name.to_string(), num_args).is_none() {
+            Ok(())
+        } else {
+            Err(ParserDuplicateProcedure)
+        }
     }
 }

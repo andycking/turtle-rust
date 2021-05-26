@@ -19,18 +19,17 @@ use std::fmt::Result;
 #[derive(Debug)]
 pub enum InterpreterError {
     LexerMaxStack,
-    LexerNoInput,
     LexerUnbalancedList,
     LexerUnexpectedQuote,
     LexerUnexpectedValueOf,
     LexerUnrecognizedCharacter,
 
+    ParserDuplicateProcedure,
     ParserExpectedArgument,
+    ParserExpectedEnd,
     ParserExpectedList,
     ParserExpectedProcedure,
     ParserExpectedQuoted,
-    ParserNoInput,
-    ParserTooFewItemsInList,
     ParserUnexpectedEnd,
     ParserUnrecognizedProcedure,
 }
@@ -39,18 +38,17 @@ impl Display for InterpreterError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let s = match *self {
             Self::LexerMaxStack => "[Lexer] Maximum stack size exceeded",
-            Self::LexerNoInput => "[Lexer] No input",
             Self::LexerUnbalancedList => "[Lexer] Unbalanced list",
             Self::LexerUnexpectedQuote => "[Lexer] Unexpected quote",
             Self::LexerUnexpectedValueOf => "[Lexer] Unexpected value of",
             Self::LexerUnrecognizedCharacter => "[Lexer] Unrecognized character",
 
+            Self::ParserDuplicateProcedure => "",
             Self::ParserExpectedArgument => "[Parser] Expected argument",
+            Self::ParserExpectedEnd => "",
             Self::ParserExpectedList => "[Parser] Expected list",
             Self::ParserExpectedProcedure => "[Parser] Expected procedure",
             Self::ParserExpectedQuoted => "[Parser] Expected quoted word",
-            Self::ParserNoInput => "[Parser] No input",
-            Self::ParserTooFewItemsInList => "[Parser] Too few items in list",
             Self::ParserUnexpectedEnd => "[Parser] Unexpected end of input",
             Self::ParserUnrecognizedProcedure => "[Parser] Unrecognized procedure",
         };

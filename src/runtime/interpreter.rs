@@ -17,9 +17,19 @@ use super::lexer::Lexer;
 use super::parser::Parser;
 
 pub fn go(input: &str) -> Result<(), InterpreterError> {
-    match Lexer::new(input).go() {
-        Ok(list) => Parser::new(&list).go(),
+    match Lexer::new().go(input) {
+        Ok(list) => match Parser::new().go(&list[..]) {
+            Ok(instr_list) => Ok(()),
 
-        Err(e) => Err(e),
+            Err(e) => {
+                println!("{:?}", e);
+                Err(e)
+            }
+        },
+
+        Err(e) => {
+            println!("{:?}", e);
+            Err(e)
+        }
     }
 }

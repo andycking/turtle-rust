@@ -18,5 +18,7 @@ use crate::model::app::AppState;
 use crate::runtime::interpreter;
 
 pub fn go(_ctx: &mut DelegateCtx, _cmd: &druid::Command, data: &mut AppState) {
-    interpreter::go(&data.input);
+    if let Err(err) = interpreter::go(&data.input) {
+        println!("{:?}", err);
+    }
 }

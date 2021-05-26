@@ -47,18 +47,16 @@ impl Stack {
 }
 
 #[derive(Clone, Debug)]
-pub struct Lexer<'a> {
-    input: &'a str,
+pub struct Lexer {
     symbol: String,
     attr: WordAttr,
     list: List,
     stack: Stack,
 }
 
-impl<'a> Lexer<'a> {
-    pub fn new(input: &'a str) -> Self {
+impl Lexer {
+    pub fn new() -> Self {
         Self {
-            input,
             symbol: String::new(),
             attr: WordAttr::Bare,
             list: List::new(),
@@ -116,12 +114,8 @@ impl<'a> Lexer<'a> {
         self.list = parent;
     }
 
-    pub fn go(&mut self) -> Result<List, InterpreterError> {
-        if self.input.is_empty() {
-            return Err(InterpreterError::LexerNoInput);
-        }
-
-        for l in self.input.lines() {
+    pub fn go(&mut self, input: &str) -> Result<List, InterpreterError> {
+        for l in input.lines() {
             let trimmed = l.trim();
             for c in trimmed.chars() {
                 match c {

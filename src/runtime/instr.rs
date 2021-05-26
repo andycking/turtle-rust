@@ -20,6 +20,13 @@ use super::data_type::*;
 #[derive(Clone, Debug, PartialEq)]
 pub struct CallInstruction {
     name: Word,
+    list: Vec<Word>,
+}
+
+impl CallInstruction {
+    pub fn new(name: Word, list: Vec<Word>) -> Self {
+        Self { name, list }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -28,14 +35,16 @@ pub struct HomeInstruction {}
 #[derive(Clone, Debug)]
 pub struct MakeProcInstruction {
     name: Word,
-    list: Vec<Instruction>,
+    num_args: usize,
+    list: InstructionList,
 }
 
 impl MakeProcInstruction {
-    pub fn new(name: Word) -> Self {
+    pub fn new(name: Word, num_args: usize, list: InstructionList) -> Self {
         Self {
             name,
-            list: Vec::new(),
+            num_args,
+            list,
         }
     }
 }
@@ -106,6 +115,18 @@ impl PenInstruction {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct RepeatInstruction {
+    count: Word,
+    list: InstructionList,
+}
+
+impl RepeatInstruction {
+    pub fn new(count: Word, list: InstructionList) -> Self {
+        Self { count, list }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum RotateDirection {
     Left,
@@ -144,6 +165,32 @@ pub enum Instruction {
     MakeVar(MakeVarInstruction),
     Move(MoveInstruction),
     Pen(PenInstruction),
+    Repeat(RepeatInstruction),
     Rotate(RotateInstruction),
     SetPosition(SetPositionInstruction),
+}
+
+#[derive(Clone, Debug)]
+pub struct InstructionList {
+    list: Vec<Instruction>,
+}
+
+impl Deref for InstructionList {
+    type Target = Vec<Instruction>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.list
+    }
+}
+
+impl DerefMut for InstructionList {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.list
+    }
+}
+
+impl InstructionList {
+    pub fn new() -> Self {
+        Self { list: Vec::new() }
+    }
 }
