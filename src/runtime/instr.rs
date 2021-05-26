@@ -17,14 +17,14 @@ use std::ops::DerefMut;
 
 use super::data_type::*;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct CallInstruction {
     name: Word,
-    list: Vec<Word>,
+    list: List,
 }
 
 impl CallInstruction {
-    pub fn new(name: Word, list: Vec<Word>) -> Self {
+    pub fn new(name: Word, list: List) -> Self {
         Self { name, list }
     }
 }

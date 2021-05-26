@@ -62,14 +62,6 @@ impl<'a> ListIter<'a> {
         Err(ParserExpectedEnd)
     }
 
-    fn get_argument(&mut self) -> Result<Word, InterpreterError> {
-        if let DataType::Word(word) = self.next() {
-            Ok(word)
-        } else {
-            Err(ParserExpectedArgument)
-        }
-    }
-
     fn get_list(&mut self) -> Result<List, InterpreterError> {
         if let DataType::List(list) = self.next() {
             Ok(list)
@@ -90,7 +82,7 @@ impl<'a> ListIter<'a> {
         }
     }
 
-    fn get_quoted(&mut self) -> Result<Word, InterpreterError> {
+    fn get_quoted_word(&mut self) -> Result<Word, InterpreterError> {
         if let DataType::Word(word) = self.next() {
             if word.attr() == WordAttr::Quoted {
                 Ok(word)
@@ -99,6 +91,14 @@ impl<'a> ListIter<'a> {
             }
         } else {
             Err(ParserExpectedQuoted)
+        }
+    }
+
+    fn get_word(&mut self) -> Result<Word, InterpreterError> {
+        if let DataType::Word(word) = self.next() {
+            Ok(word)
+        } else {
+            Err(ParserExpectedArgument)
         }
     }
 }
@@ -224,7 +224,7 @@ impl Parser {
     fn back(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
         iter.expect(1)?;
 
-        let distance = iter.get_argument()?;
+        let distance = iter.get_word()?;
         let move_instr = MoveInstruction::new(distance, MoveDirection::Backwards);
         let instr = Instruction::Move(move_instr);
 
@@ -239,9 +239,9 @@ impl Parser {
     ) -> Result<Instruction, InterpreterError> {
         iter.expect(num_args)?;
 
-        let mut list: Vec<Word> = Vec::new();
+        let mut list = List::new();
         for _ in 0..num_args {
-            list.push(iter.get_argument()?);
+            list.push(iter.next());
         }
         let call_instr = CallInstruction::new(name, list);
         let instr = Instruction::Call(call_instr);
@@ -252,7 +252,7 @@ impl Parser {
     fn forward(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
         iter.expect(1)?;
 
-        let distance = iter.get_argument()?;
+        let distance = iter.get_word()?;
         let move_instr = MoveInstruction::new(distance, MoveDirection::Forwards);
         let instr = Instruction::Move(move_instr);
 
@@ -267,7 +267,7 @@ impl Parser {
     fn left(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
         iter.expect(1)?;
 
-        let angle = iter.get_argument()?;
+        let angle = iter.get_word()?;
         let rotate_instr = RotateInstruction::new(angle, RotateDirection::Left);
         let instr = Instruction::Rotate(rotate_instr);
 
@@ -277,8 +277,8 @@ impl Parser {
     fn make(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
         iter.expect(2)?;
 
-        let name = iter.get_quoted()?;
-        let value = iter.get_argument()?;
+        let name = iter.get_quoted_word()?;
+        let value = iter.get_word()?;
         let make_instr = MakeVarInstruction::new(name, value);
         let instr = Instruction::MakeVar(make_instr);
 
@@ -288,8 +288,8 @@ impl Parser {
     fn name(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
         iter.expect(2)?;
 
-        let value = iter.get_argument()?;
-        let name = iter.get_quoted()?;
+        let value = iter.get_word()?;
+        let name = iter.get_quoted_word()?;
         let make_instr = MakeVarInstruction::new(name, value);
         let instr = Instruction::MakeVar(make_instr);
 
@@ -309,7 +309,7 @@ impl Parser {
     fn repeat(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
         iter.expect(2)?;
 
-        let count = iter.get_argument()?;
+        let count = iter.get_word()?;
         let list = iter.get_list()?;
         let instr_list = self.go(&list[..])?;
         let rep_instr = RepeatInstruction::new(count, instr_list);
@@ -321,7 +321,7 @@ impl Parser {
     fn right(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
         iter.expect(1)?;
 
-        let angle = iter.get_argument()?;
+        let angle = iter.get_word()?;
         let rotate_instr = RotateInstruction::new(angle, RotateDirection::Right);
         let instr = Instruction::Rotate(rotate_instr);
 
@@ -331,7 +331,7 @@ impl Parser {
     fn setpencolor(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
         iter.expect(1)?;
 
-        let color = iter.get_argument()?;
+        let color = iter.get_word()?;
         let pen_instr = PenInstruction::new(PenOperation::SetColor, Some(color));
         let instr = Instruction::Pen(pen_instr);
 
@@ -345,8 +345,8 @@ impl Parser {
         let mut pos_iter = ListIter::new(&pos);
 
         pos_iter.expect(2)?;
-        let x = pos_iter.get_argument()?;
-        let y = pos_iter.get_argument()?;
+        let x = pos_iter.get_word()?;
+        let y = pos_iter.get_word()?;
         let pos_instr = SetPositionInstruction::new(Some(x), Some(y));
         let instr = Instruction::SetPosition(pos_instr);
 
@@ -356,8 +356,8 @@ impl Parser {
     fn setxy(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
         iter.expect(2)?;
 
-        let x = iter.get_argument()?;
-        let y = iter.get_argument()?;
+        let x = iter.get_word()?;
+        let y = iter.get_word()?;
         let pos_instr = SetPositionInstruction::new(Some(x), Some(y));
         let instr = Instruction::SetPosition(pos_instr);
 
@@ -367,7 +367,7 @@ impl Parser {
     fn setx(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
         iter.expect(1)?;
 
-        let x = iter.get_argument()?;
+        let x = iter.get_word()?;
         let pos_instr = SetPositionInstruction::new(Some(x), None);
         let instr = Instruction::SetPosition(pos_instr);
 
@@ -377,7 +377,7 @@ impl Parser {
     fn sety(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
         iter.expect(1)?;
 
-        let y = iter.get_argument()?;
+        let y = iter.get_word()?;
         let pos_instr = SetPositionInstruction::new(None, Some(y));
         let instr = Instruction::SetPosition(pos_instr);
 
@@ -387,7 +387,7 @@ impl Parser {
     fn to(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
         iter.expect(1)?;
 
-        let name = iter.get_argument()?;
+        let name = iter.get_word()?;
         self.check_dupe(name.symbol(), 0)?;
         let slice = iter.slice_to("end")?;
         let instr_list = self.go(slice)?;
