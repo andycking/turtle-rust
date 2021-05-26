@@ -34,6 +34,7 @@ use crate::common::constants::*;
 use crate::model::app::AppState;
 
 const FONT_SIZE: f64 = 19.0;
+const INPUT_WIDTH: f64 = 400.0;
 
 pub fn window() -> WindowDesc<AppState> {
     let ui = build_ui();
@@ -59,12 +60,18 @@ fn build_canvas() -> impl Widget<AppState> {
 }
 
 fn build_input() -> impl Widget<AppState> {
+    let placeholder = "Type your commands here.\n\
+        \n\
+        When you're ready to make the \n\
+        turtle go, press Command-G!";
+
     Container::new(
         TextBox::multiline()
-            .with_placeholder("Type your commands in here.\nPress \u{2318}G to make the turle go!")
+            .with_placeholder(placeholder)
             .with_text_color(Color::rgb8(88, 110, 117))
             .with_font(FontDescriptor::new(FontFamily::MONOSPACE).with_size(FONT_SIZE))
-            .fix_width(input_width())
+            .with_line_wrapping(false)
+            .fix_width(INPUT_WIDTH)
             .expand_height()
             .env_scope(|env, _| {
                 env.set(theme::BACKGROUND_LIGHT, Color::rgb8(253, 246, 227));
@@ -81,11 +88,7 @@ fn build_input() -> impl Widget<AppState> {
 }
 
 fn window_size() -> Size {
-    Size::new(DIMS.width + input_width(), DIMS.height)
-}
-
-fn input_width() -> f64 {
-    400.0
+    Size::new(DIMS.width + INPUT_WIDTH + 1.0, DIMS.height)
 }
 
 struct WindowController {}
