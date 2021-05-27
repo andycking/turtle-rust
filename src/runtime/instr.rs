@@ -100,18 +100,27 @@ impl MoveInstruction {
 pub enum PenOperation {
     Down,
     Up,
-    SetColor,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PenInstruction {
     op: PenOperation,
-    color: Option<Word>,
 }
 
 impl PenInstruction {
-    pub fn new(op: PenOperation, color: Option<Word>) -> Self {
-        Self { op, color }
+    pub fn new(op: PenOperation) -> Self {
+        Self { op }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct PenColorInstruction {
+    color: Word,
+}
+
+impl PenColorInstruction {
+    pub fn new(color: Word) -> Self {
+        Self { color }
     }
 }
 
@@ -146,6 +155,17 @@ impl RotateInstruction {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct ScreenColorInstruction {
+    color: Word,
+}
+
+impl ScreenColorInstruction {
+    pub fn new(color: Word) -> Self {
+        Self { color }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct SetPositionInstruction {
     x: Option<Word>,
     y: Option<Word>,
@@ -165,8 +185,10 @@ pub enum Instruction {
     MakeVar(MakeVarInstruction),
     Move(MoveInstruction),
     Pen(PenInstruction),
+    PenColor(PenColorInstruction),
     Repeat(RepeatInstruction),
     Rotate(RotateInstruction),
+    ScreenColor(ScreenColorInstruction),
     SetPosition(SetPositionInstruction),
 }
 

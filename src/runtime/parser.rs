@@ -183,6 +183,11 @@ impl Parser {
                     list.push(instr);
                 }
 
+                "setsc" | "setscreencolor" => {
+                    let instr = self.setscreencolor(iter)?;
+                    list.push(instr);
+                }
+
                 "setxy" => {
                     let instr = self.setxy(iter)?;
                     list.push(instr);
@@ -296,12 +301,12 @@ impl Parser {
     }
 
     fn pendown(&mut self, _: &mut ListIter) -> Instruction {
-        let pen_instr = PenInstruction::new(PenOperation::Down, None);
+        let pen_instr = PenInstruction::new(PenOperation::Down);
         Instruction::Pen(pen_instr)
     }
 
     fn penup(&mut self, _: &mut ListIter) -> Instruction {
-        let pen_instr = PenInstruction::new(PenOperation::Up, None);
+        let pen_instr = PenInstruction::new(PenOperation::Up);
         Instruction::Pen(pen_instr)
     }
 
@@ -327,12 +332,22 @@ impl Parser {
         Ok(instr)
     }
 
+    fn setscreencolor(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
+        iter.expect(1)?;
+
+        let color = iter.get_word()?;
+        let screen_instr = ScreenColorInstruction::new(color);
+        let instr = Instruction::ScreenColor(screen_instr);
+
+        Ok(instr)
+    }
+
     fn setpencolor(&mut self, iter: &mut ListIter) -> Result<Instruction, InterpreterError> {
         iter.expect(1)?;
 
         let color = iter.get_word()?;
-        let pen_instr = PenInstruction::new(PenOperation::SetColor, Some(color));
-        let instr = Instruction::Pen(pen_instr);
+        let pen_instr = PenColorInstruction::new(color);
+        let instr = Instruction::PenColor(pen_instr);
 
         Ok(instr)
     }
