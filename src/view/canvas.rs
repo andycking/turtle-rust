@@ -58,18 +58,15 @@ impl Canvas {
             let mut x = x0;
             let mut y = y0;
             loop {
-                if sx < 0 {
-                    if x < x1 {
-                        break;
-                    }
-                } else {
-                    if x > x1 {
-                        break;
-                    }
+                if sx < 0 && x < x1 {
+                    break;
+                }
+                if sx >= 0 && x > x1 {
+                    break;
                 }
 
-                let screen = Self::screen_xy(x, y);
-                data.pixels.write_xy(screen.0, screen.1, &Color::WHITE);
+                let screen_p = Self::screen_xy(x, y);
+                data.pixels.write_xy(screen_p.0, screen_p.1, &Color::WHITE);
 
                 eps += ady;
                 if (eps << 1) >= adx {
@@ -83,18 +80,15 @@ impl Canvas {
             let mut x = x0;
             let mut y = y0;
             loop {
-                if sy < 0 {
-                    if y < y1 {
-                        break;
-                    }
-                } else {
-                    if y > y1 {
-                        break;
-                    }
+                if sy < 0 && y < y1 {
+                    break;
+                }
+                if sy >= 0 && y > y1 {
+                    break;
                 }
 
-                let screen = Self::screen_xy(x, y);
-                data.pixels.write_xy(screen.0, screen.1, &Color::WHITE);
+                let screen_p = Self::screen_xy(x, y);
+                data.pixels.write_xy(screen_p.0, screen_p.1, &Color::WHITE);
 
                 eps += adx;
                 if (eps << 1) >= ady {
