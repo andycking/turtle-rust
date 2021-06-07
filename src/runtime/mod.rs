@@ -12,9 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod data_type;
+use error::*;
+use interpreter::Interpreter;
+use lexer::Lexer;
+use parser::Parser;
+
 pub mod error;
-mod instr;
-pub mod interpreter;
+mod interpreter;
 mod lexer;
+mod lexer_types;
 mod parser;
+mod parser_types;
+
+pub fn entry(input: &str) -> RuntimeResult {
+    let lexer_out = Lexer::new().go(input)?;
+    let parser_out = Parser::new().go(&lexer_out)?;
+    let intrp_out = Interpreter::new().go(&parser_out)?;
+    Ok(())
+}

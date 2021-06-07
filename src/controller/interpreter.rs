@@ -15,10 +15,10 @@
 use druid::DelegateCtx;
 
 use crate::model::app::AppState;
-use crate::runtime::interpreter;
+use crate::runtime;
 
 pub fn go(_ctx: &mut DelegateCtx, _cmd: &druid::Command, data: &mut AppState) {
-    if let Err(err) = interpreter::go(&data.input) {
+    if let Err(err) = runtime::entry(&data.input) {
         println!("{:?}", err);
     }
 }

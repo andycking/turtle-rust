@@ -12,47 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::fmt::Display;
-use std::fmt::Formatter;
-use std::fmt::Result;
+use std::fmt;
 
 #[derive(Debug)]
-pub enum InterpreterError {
-    LexerMaxStack,
-    LexerUnbalancedList,
-    LexerUnexpectedQuote,
-    LexerUnexpectedValueOf,
-    LexerUnrecognizedCharacter,
-
-    ParserDuplicateProcedure,
-    ParserExpectedArgument,
-    ParserExpectedEndOfProcedure,
-    ParserExpectedList,
-    ParserExpectedProcedure,
-    ParserExpectedQuoted,
-    ParserUnexpectedEndOfInput,
-    ParserUnrecognizedProcedure,
+pub enum RuntimeError {
+    Lexer(String),
+    Parser(String),
+    Interpreter(String),
 }
 
-impl Display for InterpreterError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let s = match *self {
-            Self::LexerMaxStack => "[Lexer] Maximum stack size exceeded",
-            Self::LexerUnbalancedList => "[Lexer] Unbalanced list",
-            Self::LexerUnexpectedQuote => "[Lexer] Unexpected quote",
-            Self::LexerUnexpectedValueOf => "[Lexer] Unexpected value of",
-            Self::LexerUnrecognizedCharacter => "[Lexer] Unrecognized character",
-
-            Self::ParserDuplicateProcedure => "[Parser] Procedure already exists",
-            Self::ParserExpectedArgument => "[Parser] Expected argument",
-            Self::ParserExpectedEndOfProcedure => "[Parser] Expected end of procedure definition",
-            Self::ParserExpectedList => "[Parser] Expected list",
-            Self::ParserExpectedProcedure => "[Parser] Expected procedure",
-            Self::ParserExpectedQuoted => "[Parser] Expected quoted word",
-            Self::ParserUnexpectedEndOfInput => "[Parser] Unexpected end of input",
-            Self::ParserUnrecognizedProcedure => "[Parser] Unrecognized procedure",
-        };
-
-        write!(f, "{}", s)
+impl fmt::Display for RuntimeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            RuntimeError::Lexer(msg) => write!(f, "Lexer: {}", msg),
+            RuntimeError::Parser(msg) => write!(f, "Parser: {}", msg),
+            RuntimeError::Interpreter(msg) => write!(f, "Interpreter: {}", msg),
+        }
     }
 }
+
+pub type RuntimeResult<T = ()> = Result<T, RuntimeError>;
