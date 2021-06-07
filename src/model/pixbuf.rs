@@ -14,6 +14,9 @@
 
 use std::sync::Arc;
 
+use druid::Color;
+use druid::Point;
+
 use crate::common::constants::*;
 
 #[derive(Clone, druid::Data)]
@@ -34,6 +37,47 @@ impl PixBuf {
 
     pub fn bytes(&self) -> &[u8] {
         &self.bytes
+    }
+
+    #[inline]
+    fn xy_to_idx(&self, x: usize, y: usize) -> usize {
+        y * (self.width as usize) + x
+    }
+
+    #[inline]
+    fn xy_to_byte_idx(&self, x: usize, y: usize) -> usize {
+        self.xy_to_idx(x, y) * 4
+    }
+
+    pub fn read_xy(&self, x: usize, y: usize) -> Color {
+        let byte_idx = self.xy_to_byte_idx(x, y);
+
+        druid::Color::rgba8(
+            self.bytes[byte_idx],
+            self.bytes[byte_idx + 1],
+            self.bytes[byte_idx + 2],
+            self.bytes[byte_idx + 3],
+        )
+    }
+
+    #[inline]
+    pub fn read(&self, p: Point) -> Color {
+        self.read_xy(p.x as usize, p.y as usize)
+    }
+
+    pub fn write_xy(&mut self, x: usize, y: usize, color: &Color) {
+        let byte_idx = self.xy_to_byte_idx(x, y);
+        let (red, green, blue, alpha) = color.as_rgba8();
+
+        let pixels = Arc::make_mut(&mut self.bytes);
+        pixels[byte_idx] = red;
+        pixels[byte_idx + 1] = green;
+        pixels[byte_idx + 2] = blue;
+        pixels[byte_idx + 3] = alpha;
+    }
+
+    pub fn write(&mut self, p: Point, color: &Color) {
+        self.write_xy(p.x as usize, p.y as usize, color);
     }
 }
 

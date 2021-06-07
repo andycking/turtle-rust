@@ -13,8 +13,12 @@
 // limitations under the License.
 
 use druid::DelegateCtx;
-use druid::Env;
 
 use crate::model::app::AppState;
+use crate::runtime;
 
-pub fn go(_ctx: &mut DelegateCtx, _cmd: &druid::Command, _data: &mut AppState) {}
+pub fn go(_ctx: &mut DelegateCtx, _cmd: &druid::Command, data: &mut AppState) {
+    if let Err(err) = runtime::entry(&data.input) {
+        println!("{:?}", err);
+    }
+}

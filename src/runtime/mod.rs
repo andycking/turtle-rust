@@ -12,24 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use druid::PlatformError;
+use error::*;
+use interpreter::Interpreter;
+use lexer::Lexer;
+use parser::Parser;
 
-mod common;
-mod controller;
-mod model;
-mod runtime;
-mod view;
+pub mod error;
+mod interpreter;
+mod lexer;
+mod lexer_types;
+mod parser;
+mod parser_types;
 
-use controller::delegate::Delegate;
-use model::app::AppState;
-use view::window;
-
-fn main() -> Result<(), PlatformError> {
-    let window = window::window();
-
-    let data = AppState::new(window.id);
-
-    druid::AppLauncher::with_window(window)
-        .delegate(Delegate)
-        .launch(data)
+pub fn entry(input: &str) -> RuntimeResult {
+    let lexer_out = Lexer::new().go(input)?;
+    let parser_out = Parser::new().go(&lexer_out)?;
+    let intrp_out = Interpreter::new().go(&parser_out)?;
+    Ok(())
 }

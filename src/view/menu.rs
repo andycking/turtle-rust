@@ -23,18 +23,25 @@ use crate::common::commands;
 use crate::model::app::AppState;
 
 pub fn menu_bar(_: Option<WindowId>, _: &AppState, _: &Env) -> Menu<AppState> {
-    let mut base = Menu::empty();
     #[cfg(target_os = "macos")]
-    {
-        base = druid::platform_menus::mac::menu_bar();
-    }
-    #[cfg(any(target_os = "windows", target_os = "linux"))]
-    {
-        base = base.entry(druid::platform_menus::win::file::default());
-    }
+    let base = druid::platform_menus::mac::menu_bar();
 
-    base.entry(build_interpreter())
+    #[cfg(any(target_os = "windows", target_os = "linux"))]
+    let base = base.entry(druid::platform_menus::win::file::default());
+
+    base.entry(build_edit())
+        .entry(build_interpreter())
         .rebuild_on(|_old_data, _data, _env| false)
+}
+
+fn build_edit() -> Menu<AppState> {
+    Menu::new(LocalizedString::new("common-menu-edit-menu"))
+        .entry(druid::platform_menus::common::undo())
+        .entry(druid::platform_menus::common::redo())
+        .separator()
+        .entry(druid::platform_menus::common::cut())
+        .entry(druid::platform_menus::common::copy())
+        .entry(druid::platform_menus::common::paste())
 }
 
 fn build_interpreter() -> Menu<AppState> {

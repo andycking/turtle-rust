@@ -12,24 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use druid::PlatformError;
+use std::fmt;
 
-mod common;
-mod controller;
-mod model;
-mod runtime;
-mod view;
-
-use controller::delegate::Delegate;
-use model::app::AppState;
-use view::window;
-
-fn main() -> Result<(), PlatformError> {
-    let window = window::window();
-
-    let data = AppState::new(window.id);
-
-    druid::AppLauncher::with_window(window)
-        .delegate(Delegate)
-        .launch(data)
+#[derive(Debug)]
+pub enum RuntimeError {
+    Lexer(String),
+    Parser(String),
+    Interpreter(String),
 }
+
+impl fmt::Display for RuntimeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            RuntimeError::Lexer(msg) => write!(f, "Lexer: {}", msg),
+            RuntimeError::Parser(msg) => write!(f, "Parser: {}", msg),
+            RuntimeError::Interpreter(msg) => write!(f, "Interpreter: {}", msg),
+        }
+    }
+}
+
+pub type RuntimeResult<T = ()> = Result<T, RuntimeError>;

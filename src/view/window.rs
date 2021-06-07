@@ -33,7 +33,8 @@ use super::menu;
 use crate::common::constants::*;
 use crate::model::app::AppState;
 
-const FONT_SIZE: f64 = 19.0;
+const FONT_SIZE: f64 = 14.0;
+const INPUT_WIDTH: f64 = 300.0;
 
 pub fn window() -> WindowDesc<AppState> {
     let ui = build_ui();
@@ -45,50 +46,53 @@ pub fn window() -> WindowDesc<AppState> {
 }
 
 fn build_ui() -> impl Widget<AppState> {
-    Flex::column()
-        .cross_axis_alignment(CrossAxisAlignment::End)
-        .with_child(build_canvas())
-        .with_spacer(1.0)
+    Flex::row()
+        .cross_axis_alignment(CrossAxisAlignment::Start)
         .with_child(build_input())
-        .background(Color::rgb8(208, 208, 208))
+        .with_child(build_canvas())
+        .background(Color::WHITE)
         .controller(WindowController {})
 }
 
 fn build_canvas() -> impl Widget<AppState> {
-    Canvas::new().background(Color::WHITE)
+    Canvas::new().background(Color::BLACK)
 }
 
 fn build_input() -> impl Widget<AppState> {
+    let placeholder = "Type your instructions in here.\n\
+        \n\
+        Once you're ready to make the\n\
+        turtle carry them out, press\n\
+        Command-G.\n\
+        \n\
+        If you're stuck, try typing this:\n\
+        \n\
+        fd 10";
+
     Container::new(
         TextBox::multiline()
-            .with_placeholder("Control the turtle by typing your commands here.")
-            .with_text_color(Color::BLACK)
+            .with_placeholder(placeholder)
+            .with_text_color(Color::WHITE)
             .with_font(FontDescriptor::new(FontFamily::MONOSPACE).with_size(FONT_SIZE))
-            .fix_height(text_height())
-            .expand_width()
+            .with_line_wrapping(false)
+            .fix_width(INPUT_WIDTH)
+            .expand_height()
             .env_scope(|env, _| {
-                env.set(theme::BACKGROUND_LIGHT, Color::WHITE);
-                env.set(theme::PRIMARY_LIGHT, Color::WHITE);
-                env.set(theme::BORDER_DARK, Color::WHITE);
+                env.set(theme::BACKGROUND_LIGHT, Color::BLACK);
+                env.set(theme::PRIMARY_LIGHT, Color::BLACK);
+                env.set(theme::BORDER_DARK, Color::BLACK);
                 env.set(
                     theme::SELECTED_TEXT_BACKGROUND_COLOR,
-                    Color::rgb8(179, 216, 255),
+                    Color::rgb8(100, 100, 100),
                 );
-                env.set(theme::CURSOR_COLOR, Color::BLACK);
+                env.set(theme::CURSOR_COLOR, Color::WHITE);
             })
             .lens(AppState::input),
     )
 }
 
 fn window_size() -> Size {
-    Size::new(DIMS.width, DIMS.height + text_height())
-}
-
-fn text_height() -> f64 {
-    let lines = 3.0;
-    let pad = 6.0;
-
-    lines * (pad + FONT_SIZE)
+    Size::new(DIMS.width + INPUT_WIDTH, DIMS.height)
 }
 
 struct WindowController {}
