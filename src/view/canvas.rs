@@ -23,22 +23,20 @@ use druid::Widget;
 use crate::common::constants::*;
 use crate::model::app::AppState;
 
+const ORIGIN: (i32, i32) = ((DIMS.width / 2.0) as i32, (DIMS.height / 2.0) as i32);
+
 pub struct Canvas {}
 
 impl Canvas {
-    const MID: (i32, i32) = ((DIMS.width / 2.0) as i32, (DIMS.height / 2.0) as i32);
-
     pub fn new() -> Self {
         Self {}
     }
 
     fn screen_xy(x: i32, y: i32) -> (usize, usize) {
-        ((x + Self::MID.0) as usize, (y + Self::MID.1) as usize)
+        ((x + ORIGIN.0) as usize, (y + ORIGIN.1) as usize)
     }
 
     fn draw_line(&self, data: &mut AppState) {
-        let mid = (DIMS.width / 2.0, DIMS.height / 2.0);
-
         let p = Point::new(0.0, 0.0);
         let q = Point::new(0.0, 10.0);
 
@@ -71,7 +69,7 @@ impl Canvas {
                 }
 
                 let screen = Self::screen_xy(x, y);
-                data.pixels.write_xy(screen.0, screen.1, &Color::BLACK);
+                data.pixels.write_xy(screen.0, screen.1, &Color::WHITE);
 
                 eps += ady;
                 if (eps << 1) >= adx {
@@ -96,7 +94,7 @@ impl Canvas {
                 }
 
                 let screen = Self::screen_xy(x, y);
-                data.pixels.write_xy(screen.0, screen.1, &Color::BLACK);
+                data.pixels.write_xy(screen.0, screen.1, &Color::WHITE);
 
                 eps += adx;
                 if (eps << 1) >= ady {

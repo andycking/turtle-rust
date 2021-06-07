@@ -33,8 +33,8 @@ use super::menu;
 use crate::common::constants::*;
 use crate::model::app::AppState;
 
-const FONT_SIZE: f64 = 19.0;
-const INPUT_WIDTH: f64 = 400.0;
+const FONT_SIZE: f64 = 14.0;
+const INPUT_WIDTH: f64 = 300.0;
 
 pub fn window() -> WindowDesc<AppState> {
     let ui = build_ui();
@@ -49,46 +49,50 @@ fn build_ui() -> impl Widget<AppState> {
     Flex::row()
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .with_child(build_input())
-        .with_spacer(1.0)
         .with_child(build_canvas())
-        .background(Color::rgb8(208, 208, 208))
+        .background(Color::WHITE)
         .controller(WindowController {})
 }
 
 fn build_canvas() -> impl Widget<AppState> {
-    Canvas::new().background(Color::WHITE)
+    Canvas::new().background(Color::BLACK)
 }
 
 fn build_input() -> impl Widget<AppState> {
-    let placeholder = "Type your commands here.\n\
+    let placeholder = "Type your instructions in here.\n\
         \n\
-        When you're ready to make the \n\
-        turtle go, press Command-G!";
+        Once you're ready to make the\n\
+        turtle carry them out, press\n\
+        Command-G.\n\
+        \n\
+        If you're stuck, try typing this:\n\
+        \n\
+        fd 10";
 
     Container::new(
         TextBox::multiline()
             .with_placeholder(placeholder)
-            .with_text_color(Color::rgb8(88, 110, 117))
+            .with_text_color(Color::WHITE)
             .with_font(FontDescriptor::new(FontFamily::MONOSPACE).with_size(FONT_SIZE))
             .with_line_wrapping(false)
             .fix_width(INPUT_WIDTH)
             .expand_height()
             .env_scope(|env, _| {
-                env.set(theme::BACKGROUND_LIGHT, Color::rgb8(253, 246, 227));
-                env.set(theme::PRIMARY_LIGHT, Color::rgb8(253, 246, 227));
-                env.set(theme::BORDER_DARK, Color::rgb8(253, 246, 227));
+                env.set(theme::BACKGROUND_LIGHT, Color::BLACK);
+                env.set(theme::PRIMARY_LIGHT, Color::BLACK);
+                env.set(theme::BORDER_DARK, Color::BLACK);
                 env.set(
                     theme::SELECTED_TEXT_BACKGROUND_COLOR,
-                    Color::rgb8(238, 232, 213),
+                    Color::rgb8(100, 100, 100),
                 );
-                env.set(theme::CURSOR_COLOR, Color::BLACK);
+                env.set(theme::CURSOR_COLOR, Color::WHITE);
             })
             .lens(AppState::input),
     )
 }
 
 fn window_size() -> Size {
-    Size::new(DIMS.width + INPUT_WIDTH + 1.0, DIMS.height)
+    Size::new(DIMS.width + INPUT_WIDTH, DIMS.height)
 }
 
 struct WindowController {}
