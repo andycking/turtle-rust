@@ -16,6 +16,9 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::ops::DerefMut;
 
+use druid::Color;
+use druid::Point;
+
 use super::error::*;
 use super::lexer_types::*;
 use super::parser_types::*;
@@ -53,53 +56,22 @@ enum Value {
 
 type VarMap = HashMap<String, Value>;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-struct Color {
-    red: u8,
-    green: u8,
-    blue: u8,
+macro_rules! hashmap {
+    ($( $key: expr => $val: expr ),*) => {{
+         let mut map = ::std::collections::HashMap::new();
+         $( map.insert($key, $val); )*
+         map
+    }}
 }
 
-impl Color {
-    pub fn rgb8(red: u8, green: u8, blue: u8) -> Self {
-        Self { red, green, blue }
-    }
-}
 type Palette = HashMap<u8, Color>;
-
-#[derive(Clone, Copy, Debug)]
-pub struct Point {
-    pub x: f64,
-    pub y: f64,
-}
-
-impl Point {
-    pub const ZERO: Self = Self { x: 0.0, y: 0.0 };
-
-    pub fn new(x: f64, y: f64) -> Self {
-        Self { x, y }
-    }
-
-    pub fn angle(&self, other: &Point) -> f64 {
-        other.y.atan2(other.x) - self.y.atan2(self.x)
-    }
-
-    pub fn distance(&self, other: &Point) -> f64 {
-        ((other.x - self.x).powi(2) + (other.y - self.y).powi(2)).sqrt()
-    }
-
-    pub fn move_by(&mut self, distance: f64, angle: f64) {
-        self.x = (self.x + distance * angle.cos()).round();
-        self.y = (self.y + distance * angle.sin()).round();
-    }
-}
 
 #[derive(Clone, Debug)]
 pub struct Data {
     angle: f64,
     color: Color,
-    pos: Point,
     pen_down: bool,
+    pos: Point,
     screen_color: Color,
 }
 
@@ -107,10 +79,10 @@ impl Data {
     pub fn new() -> Self {
         Self {
             angle: 0.0,
-            color: Color::rgb8(0, 0, 0),
-            pos: Point::ZERO,
+            color: Color::WHITE,
             pen_down: true,
-            screen_color: Color::rgb8(255, 255, 255),
+            pos: Point::ZERO,
+            screen_color: Color::BLACK,
         }
     }
 }
@@ -123,8 +95,16 @@ pub struct Interpreter {
 
 impl Interpreter {
     pub fn new() -> Self {
-        let mut pal = Palette::with_capacity(16);
-        pal.insert(0, Color::rgb8(0, 0, 0));
+        let pal = hashmap![
+            0 => Color::BLACK,
+            1 => Color::BLUE,
+            2 => Color::GREEN,
+            3 => Color::AQUA,
+            4 => Color::RED,
+            5 => Color::MAROON,
+            6 => Color::YELLOW,
+            7 => Color::WHITE
+        ];
 
         Self {
             pal,
@@ -198,25 +178,15 @@ impl Interpreter {
         Ok(())
     }
 
-    fn move_to(&mut self, new_p: Point) {
-        let p = self.data.pos;
-        let angle = (90.0_f64).to_radians() - p.angle(&new_p);
-        let distance = p.distance(&new_p);
-    }
+    fn move_to(&mut self, new_p: Point) {}
 
     fn eval_move(&mut self, vmap: &mut VarMap, node: &MoveNode) -> RuntimeResult {
         let distance = self.eval_expr_num_word_as_number(vmap, node.distance())?;
         let angle = (90.0_f64).to_radians() - self.data.angle;
 
         match node.direction() {
-            Direction::Forward => {
-                self.data.pos.move_by(distance, angle);
-                Ok(())
-            }
-            Direction::Backward => {
-                self.data.pos.move_by(-distance, angle);
-                Ok(())
-            }
+            Direction::Forward => Ok(()),
+            Direction::Backward => Ok(()),
             _ => {
                 let msg = "Movement must be forward or backward".to_string();
                 Err(RuntimeError::Interpreter(msg))
@@ -488,7 +458,7 @@ impl Interpreter {
             Value::Number(num) => {
                 let idx = *num as u8;
                 if let Some(color) = pal.get(&idx) {
-                    Ok(*color)
+                    Ok(color.clone())
                 } else {
                     let msg = format!("Invalid palette index {}", idx);
                     Err(RuntimeError::Interpreter(msg))

@@ -15,11 +15,12 @@
 use std::sync::Arc;
 
 use druid::Color;
+use druid::Data;
 use druid::Point;
 
 use crate::common::constants::*;
 
-#[derive(Clone, druid::Data)]
+#[derive(Clone, Data, Debug)]
 pub struct PixBuf {
     width: u32,
     height: u32,

@@ -14,10 +14,13 @@
 
 use std::sync::Arc;
 
+use druid::Data;
+use druid::Lens;
+
 use super::pixbuf::PixBuf;
 
 /// Application state.
-#[derive(Clone, druid::Data, druid::Lens)]
+#[derive(Clone, Data, Debug, Lens)]
 pub struct AppState {
     pub input: Arc<String>,
     pub pixels: PixBuf,
