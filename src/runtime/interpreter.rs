@@ -97,7 +97,7 @@ impl Interpreter {
         Ok(self.draw_list.to_owned())
     }
 
-    fn run(&mut self, fmap: &FuncMap, vmap: &mut VarMap, list: &NodeList) -> RuntimeResult {
+    fn run(&mut self, fmap: &FuncMap, vmap: &mut VarMap, list: &[Node]) -> RuntimeResult {
         for node in list.iter() {
             match node {
                 Node::Assign(node) => self.eval_assign(vmap, node)?,
@@ -312,7 +312,7 @@ impl Interpreter {
         Self::get_number(&val)
     }
 
-    fn eval_list(&mut self, vmap: &VarMap, list: &List) -> RuntimeResult<Value> {
+    fn eval_list(&mut self, vmap: &VarMap, list: &[AnyItem]) -> RuntimeResult<Value> {
         let mut out = ValueList::new();
         for item in list.iter() {
             let v = self.eval_any_item(vmap, item)?;
@@ -485,7 +485,7 @@ impl Interpreter {
         ));
     }
 
-    fn vlist_expect(list: &ValueList, n: usize) -> RuntimeResult {
+    fn vlist_expect(list: &[Value], n: usize) -> RuntimeResult {
         if list.len() < n {
             let msg = format!("Expected a list of at least {} items", n);
             Err(RuntimeError::Interpreter(msg))
