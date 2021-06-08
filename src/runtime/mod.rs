@@ -23,6 +23,7 @@ mod lexer;
 mod lexer_types;
 mod parser;
 mod parser_types;
+pub mod types;
 
 pub fn entry(input: &str) -> RuntimeResult {
     let lexer_out = Lexer::new().go(input)?;

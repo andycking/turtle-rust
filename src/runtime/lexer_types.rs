@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::ops::Deref;
-use std::ops::DerefMut;
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct Word {
     name: String,
@@ -85,30 +82,7 @@ impl Expression {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct List {
-    items: Vec<AnyItem>,
-}
-
-impl List {
-    pub fn new() -> Self {
-        Self { items: Vec::new() }
-    }
-}
-
-impl Deref for List {
-    type Target = Vec<AnyItem>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.items
-    }
-}
-
-impl DerefMut for List {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.items
-    }
-}
+pub type List = Vec<AnyItem>;
 
 pub type Block = List;
 

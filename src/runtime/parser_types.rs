@@ -13,8 +13,6 @@
 // limitations under the License.
 
 use std::collections::HashMap;
-use std::ops::Deref;
-use std::ops::DerefMut;
 
 use super::lexer_types::*;
 
@@ -215,30 +213,7 @@ pub enum Node {
     SetScreenColor(SetScreenColorNode),
 }
 
-#[derive(Clone, Debug)]
-pub struct NodeList {
-    list: Vec<Node>,
-}
-
-impl Deref for NodeList {
-    type Target = Vec<Node>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.list
-    }
-}
-
-impl DerefMut for NodeList {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.list
-    }
-}
-
-impl NodeList {
-    pub fn new() -> Self {
-        Self { list: Vec::new() }
-    }
-}
+pub type NodeList = Vec<Node>;
 
 pub type FuncDefinition = NodeList;
 

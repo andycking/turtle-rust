@@ -13,8 +13,6 @@
 // limitations under the License.
 
 use std::collections::HashMap;
-use std::ops::Deref;
-use std::ops::DerefMut;
 
 use druid::Color;
 use druid::Point;
@@ -22,31 +20,9 @@ use druid::Point;
 use super::error::*;
 use super::lexer_types::*;
 use super::parser_types::*;
+use super::types::*;
 
-#[derive(Clone, Debug, PartialEq)]
-struct ValueList {
-    items: Vec<Value>,
-}
-
-impl ValueList {
-    pub fn new() -> Self {
-        Self { items: Vec::new() }
-    }
-}
-
-impl Deref for ValueList {
-    type Target = Vec<Value>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.items
-    }
-}
-
-impl DerefMut for ValueList {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.items
-    }
-}
+type ValueList = Vec<Value>;
 
 #[derive(Clone, Debug, PartialEq)]
 enum Value {
@@ -112,16 +88,25 @@ impl Interpreter {
         }
     }
 
-    pub fn go(&mut self, input: &ParserOutput) -> RuntimeResult {
+    pub fn go(&mut self, input: &ParserOutput) -> RuntimeResult<DrawList> {
         let mut vmap = VarMap::new();
         self.run(&input.fmap, &mut vmap, &input.list)
     }
 
-    fn run(&mut self, fmap: &FuncMap, vmap: &mut VarMap, list: &NodeList) -> RuntimeResult {
+    fn run(
+        &mut self,
+        fmap: &FuncMap,
+        vmap: &mut VarMap,
+        list: &NodeList,
+    ) -> RuntimeResult<DrawList> {
+        let draw_list = DrawList::new();
+
         for node in list.iter() {
             match node {
                 Node::Assign(node) => self.eval_assign(vmap, node)?,
-                Node::Call(node) => self.eval_call(fmap, vmap, node)?,
+                Node::Call(node) => {
+                    self.eval_call(fmap, vmap, node)?;
+                }
                 Node::Clean => self.eval_clean(),
                 Node::ClearScreen => self.eval_clear_screen(),
                 Node::Home => self.eval_home(),
@@ -137,7 +122,7 @@ impl Interpreter {
             }
         }
 
-        Ok(())
+        Ok(draw_list)
     }
 
     fn eval_assign(&mut self, vmap: &mut VarMap, node: &AssignNode) -> RuntimeResult {
@@ -151,7 +136,12 @@ impl Interpreter {
         }
     }
 
-    fn eval_call(&mut self, fmap: &FuncMap, vmap: &mut VarMap, node: &CallNode) -> RuntimeResult {
+    fn eval_call(
+        &mut self,
+        fmap: &FuncMap,
+        vmap: &mut VarMap,
+        node: &CallNode,
+    ) -> RuntimeResult<DrawList> {
         let name = node.name();
         if let Some(func) = fmap.get(name.name()) {
             self.run(fmap, vmap, func)
@@ -372,14 +362,14 @@ impl Interpreter {
             Value::List(a_list) => match b {
                 Value::List(b_list) => {
                     let mut merged = ValueList::new();
-                    merged.extend_from_slice(&a_list.items);
-                    merged.extend_from_slice(&b_list.items);
+                    merged.extend_from_slice(&a_list);
+                    merged.extend_from_slice(&b_list);
                     Ok(Value::List(merged))
                 }
                 Value::Number(b_num) => {
                     let mut merged = ValueList::new();
-                    merged.extend_from_slice(&a_list.items);
-                    merged.items.push(Value::Number(*b_num));
+                    merged.extend_from_slice(&a_list);
+                    merged.push(Value::Number(*b_num));
                     Ok(Value::List(merged))
                 }
             },
