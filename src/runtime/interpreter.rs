@@ -20,7 +20,7 @@ use druid::Point;
 use super::error::*;
 use super::lexer_types::*;
 use super::parser_types::*;
-use super::types::*;
+use crate::model::runtime::*;
 
 type ValueList = Vec<Value>;
 

@@ -12,21 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::model::runtime::DrawList;
-use error::*;
-use interpreter::Interpreter;
-use lexer::Lexer;
-use parser::Parser;
+use druid::Color;
+use druid::Data;
+use druid::Point;
 
-pub mod error;
-mod interpreter;
-mod lexer;
-mod lexer_types;
-mod parser;
-mod parser_types;
-
-pub fn entry(input: &str) -> RuntimeResult<DrawList> {
-    let lexer_out = Lexer::new().go(input)?;
-    let parser_out = Parser::new().go(&lexer_out)?;
-    Interpreter::new().go(&parser_out)
+#[derive(Clone, Data, Debug)]
+pub struct DrawCommand {
+    angle: f64,
+    color: Color,
+    distance: f64,
+    pen_down: bool,
+    pos: Point,
 }
+
+impl DrawCommand {
+    pub fn new(angle: f64, color: Color, distance: f64, pen_down: bool, pos: Point) -> Self {
+        Self {
+            angle,
+            color,
+            distance,
+            pen_down,
+            pos,
+        }
+    }
+}
+
+pub type DrawList = Vec<DrawCommand>;

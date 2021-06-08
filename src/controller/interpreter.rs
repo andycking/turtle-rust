@@ -12,13 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::sync::Arc;
+
 use druid::DelegateCtx;
 
 use crate::model::app::AppState;
+use crate::model::runtime::DrawList;
 use crate::runtime;
 
 pub fn go(_ctx: &mut DelegateCtx, _cmd: &druid::Command, data: &mut AppState) {
-    if let Err(err) = runtime::entry(&data.input) {
-        println!("{:?}", err);
+    match runtime::entry(&data.input) {
+        Ok(draw_list) => {
+            data.draw_list = Arc::new(draw_list);
+        }
+        Err(err) => {}
     }
 }

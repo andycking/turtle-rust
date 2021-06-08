@@ -18,11 +18,14 @@ use druid::Data;
 use druid::Lens;
 
 use super::pixbuf::PixBuf;
+use super::runtime::DrawList;
 
 /// Application state.
 #[derive(Clone, Data, Debug, Lens)]
 pub struct AppState {
+    pub draw_list: Arc<DrawList>,
     pub input: Arc<String>,
+    pub output: Arc<String>,
     pub pixels: PixBuf,
 
     #[data(same_fn = "PartialEq::eq")]
@@ -32,7 +35,9 @@ pub struct AppState {
 impl AppState {
     pub fn new(window_id: druid::WindowId) -> Self {
         Self {
+            draw_list: DrawList::new().into(),
             input: "".to_string().into(),
+            output: "".to_string().into(),
             pixels: Default::default(),
             window_id,
         }
