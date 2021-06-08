@@ -1,0 +1,39 @@
+// Copyright 2021 Andy King
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+use druid::Color;
+use druid::Point;
+
+#[derive(Clone, Debug)]
+pub struct DrawCommand {
+    angle: f64,
+    color: Color,
+    distance: f64,
+    pen_down: bool,
+    pos: Point,
+}
+
+impl DrawCommand {
+    pub fn new(angle: f64, color: Color, distance: f64, pen_down: bool, pos: Point) -> Self {
+        Self {
+            angle,
+            color,
+            distance,
+            pen_down,
+            pos,
+        }
+    }
+}
+
+pub type DrawList = Vec<DrawCommand>;

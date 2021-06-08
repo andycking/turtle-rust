@@ -43,7 +43,7 @@ macro_rules! hashmap {
 type Palette = HashMap<u8, Color>;
 
 #[derive(Clone, Debug)]
-pub struct Data {
+pub struct State {
     angle: f64,
     color: Color,
     pen_down: bool,
@@ -51,7 +51,7 @@ pub struct Data {
     screen_color: Color,
 }
 
-impl Data {
+impl State {
     pub fn new() -> Self {
         Self {
             angle: 0.0,
@@ -65,8 +65,9 @@ impl Data {
 
 #[derive(Clone, Debug)]
 pub struct Interpreter {
+    draw_list: DrawList,
     pal: Palette,
-    data: Data,
+    state: State,
 }
 
 impl Interpreter {
@@ -83,30 +84,23 @@ impl Interpreter {
         ];
 
         Self {
+            draw_list: DrawList::new(),
             pal,
-            data: Data::new(),
+            state: State::new(),
         }
     }
 
     pub fn go(&mut self, input: &ParserOutput) -> RuntimeResult<DrawList> {
         let mut vmap = VarMap::new();
-        self.run(&input.fmap, &mut vmap, &input.list)
+        self.run(&input.fmap, &mut vmap, &input.list)?;
+        Ok(self.draw_list.to_owned())
     }
 
-    fn run(
-        &mut self,
-        fmap: &FuncMap,
-        vmap: &mut VarMap,
-        list: &NodeList,
-    ) -> RuntimeResult<DrawList> {
-        let draw_list = DrawList::new();
-
+    fn run(&mut self, fmap: &FuncMap, vmap: &mut VarMap, list: &NodeList) -> RuntimeResult {
         for node in list.iter() {
             match node {
                 Node::Assign(node) => self.eval_assign(vmap, node)?,
-                Node::Call(node) => {
-                    self.eval_call(fmap, vmap, node)?;
-                }
+                Node::Call(node) => self.eval_call(fmap, vmap, node)?,
                 Node::Clean => self.eval_clean(),
                 Node::ClearScreen => self.eval_clear_screen(),
                 Node::Home => self.eval_home(),
@@ -122,7 +116,7 @@ impl Interpreter {
             }
         }
 
-        Ok(draw_list)
+        Ok(())
     }
 
     fn eval_assign(&mut self, vmap: &mut VarMap, node: &AssignNode) -> RuntimeResult {
@@ -136,12 +130,7 @@ impl Interpreter {
         }
     }
 
-    fn eval_call(
-        &mut self,
-        fmap: &FuncMap,
-        vmap: &mut VarMap,
-        node: &CallNode,
-    ) -> RuntimeResult<DrawList> {
+    fn eval_call(&mut self, fmap: &FuncMap, vmap: &mut VarMap, node: &CallNode) -> RuntimeResult {
         let name = node.name();
         if let Some(func) = fmap.get(name.name()) {
             self.run(fmap, vmap, func)
@@ -168,15 +157,18 @@ impl Interpreter {
         Ok(())
     }
 
-    fn move_to(&mut self, new_p: Point) {}
-
     fn eval_move(&mut self, vmap: &mut VarMap, node: &MoveNode) -> RuntimeResult {
         let distance = self.eval_expr_num_word_as_number(vmap, node.distance())?;
-        let angle = (90.0_f64).to_radians() - self.data.angle;
 
         match node.direction() {
-            Direction::Forward => Ok(()),
-            Direction::Backward => Ok(()),
+            Direction::Forward => {
+                self.move_by(distance);
+                Ok(())
+            }
+            Direction::Backward => {
+                self.move_by(-distance);
+                Ok(())
+            }
             _ => {
                 let msg = "Movement must be forward or backward".to_string();
                 Err(RuntimeError::Interpreter(msg))
@@ -186,8 +178,8 @@ impl Interpreter {
 
     fn eval_pen(&mut self, node: &PenNode) {
         match node {
-            PenNode::Down => self.data.pen_down = true,
-            PenNode::Up => self.data.pen_down = false,
+            PenNode::Down => self.state.pen_down = true,
+            PenNode::Up => self.state.pen_down = false,
         }
     }
 
@@ -212,11 +204,11 @@ impl Interpreter {
 
         match node.direction() {
             Direction::Left => {
-                self.data.angle -= angle.to_radians();
+                self.state.angle -= angle.to_radians();
                 Ok(())
             }
             Direction::Right => {
-                self.data.angle += angle.to_radians();
+                self.state.angle += angle.to_radians();
                 Ok(())
             }
             _ => {
@@ -228,13 +220,13 @@ impl Interpreter {
 
     fn eval_set_heading(&mut self, vmap: &mut VarMap, node: &SetHeadingNode) -> RuntimeResult {
         let angle = self.eval_expr_num_word_as_number(vmap, node.angle())?;
-        self.data.angle = angle.to_radians();
+        self.state.angle = angle.to_radians();
         Ok(())
     }
 
     fn eval_set_pen_color(&mut self, vmap: &mut VarMap, node: &SetPenColorNode) -> RuntimeResult {
         let val = self.eval_list_num_word(vmap, node.color())?;
-        self.data.color = Self::get_color(&self.pal, &val)?;
+        self.state.color = Self::get_color(&self.pal, &val)?;
         Ok(())
     }
 
@@ -242,13 +234,13 @@ impl Interpreter {
         let new_x = if let Some(xitem) = node.x() {
             self.eval_expr_num_word_as_number(vmap, xitem)?
         } else {
-            self.data.pos.x
+            self.state.pos.x
         };
 
         let new_y = if let Some(yitem) = node.y() {
             self.eval_expr_num_word_as_number(vmap, yitem)?
         } else {
-            self.data.pos.y
+            self.state.pos.y
         };
 
         self.move_to(Point::new(new_x, new_y));
@@ -262,7 +254,7 @@ impl Interpreter {
         node: &SetScreenColorNode,
     ) -> RuntimeResult {
         let val = self.eval_list_num_word(vmap, node.color())?;
-        self.data.screen_color = Self::get_color(&self.pal, &val)?;
+        self.state.screen_color = Self::get_color(&self.pal, &val)?;
         Ok(())
     }
 
@@ -466,6 +458,32 @@ impl Interpreter {
         }
     }
 
+    fn move_to(&mut self, p: Point) {
+        let angle = angle(&p, &self.state.pos);
+        self.push_cmd(angle, p);
+        self.state.pos = p;
+    }
+
+    fn move_by(&mut self, distance: f64) {
+        let angle = (90.0_f64).to_radians() - self.state.angle;
+        let p = Point::new(
+            (self.state.pos.x + distance * angle.cos()).round(),
+            (self.state.pos.y + distance * angle.sin()).round(),
+        );
+        self.push_cmd(angle, p);
+        self.state.pos = p;
+    }
+
+    fn push_cmd(&mut self, angle: f64, pos: Point) {
+        self.draw_list.push(DrawCommand::new(
+            angle,
+            self.state.color.clone(),
+            0.0,
+            self.state.pen_down,
+            pos,
+        ));
+    }
+
     fn vlist_expect(list: &ValueList, n: usize) -> RuntimeResult {
         if list.len() < n {
             let msg = format!("Expected a list of at least {} items", n);
@@ -474,4 +492,8 @@ impl Interpreter {
             Ok(())
         }
     }
+}
+
+fn angle(p: &Point, other: &Point) -> f64 {
+    other.y.atan2(other.x) - p.y.atan2(p.x)
 }
