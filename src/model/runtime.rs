@@ -15,6 +15,8 @@
 use druid::Color;
 use druid::Data;
 use druid::Point;
+use futures::channel::mpsc::UnboundedReceiver;
+use futures::channel::mpsc::UnboundedSender;
 
 #[derive(Clone, Data, Debug)]
 pub struct DrawCommand {
@@ -38,3 +40,5 @@ impl DrawCommand {
 }
 
 pub type DrawList = Vec<DrawCommand>;
+pub type DrawReceiver = UnboundedReceiver<DrawCommand>;
+pub type DrawSender = UnboundedSender<DrawCommand>;

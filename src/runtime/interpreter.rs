@@ -16,6 +16,7 @@ use std::collections::HashMap;
 
 use druid::Color;
 use druid::Point;
+use futures::channel::mpsc::UnboundedSender;
 
 use super::error::*;
 use super::lexer_types::*;

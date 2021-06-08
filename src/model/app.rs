@@ -16,9 +16,11 @@ use std::sync::Arc;
 
 use druid::Data;
 use druid::Lens;
+use futures::executor::ThreadPool;
 
 use super::pixbuf::PixBuf;
 use super::runtime::DrawList;
+use super::runtime::DrawSender;
 
 /// Application state.
 #[derive(Clone, Data, Debug, Lens)]
@@ -27,18 +29,25 @@ pub struct AppState {
     pub input: Arc<String>,
     pub output: Arc<String>,
     pub pixels: PixBuf,
+    pub thread_pool: Arc<ThreadPool>,
+    pub tx: Arc<DrawSender>,
 
     #[data(same_fn = "PartialEq::eq")]
     window_id: druid::WindowId,
 }
 
 impl AppState {
-    pub fn new(window_id: druid::WindowId) -> Self {
+    pub fn new(tx: DrawSender, window_id: druid::WindowId) -> Self {
+        let thread_pool = ThreadPool::new().expect("Failed to create thread pool");
+
         Self {
             draw_list: DrawList::new().into(),
             input: "".to_string().into(),
             output: "".to_string().into(),
             pixels: Default::default(),
+            thread_pool: Arc::new(thread_pool),
+            tx: Arc::new(tx),
+
             window_id,
         }
     }

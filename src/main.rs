@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use druid::PlatformError;
+use futures::channel::mpsc;
 
 mod common;
 mod controller;
@@ -22,12 +23,13 @@ mod view;
 
 use controller::delegate::Delegate;
 use model::app::AppState;
+use model::runtime::DrawCommand;
 use view::window;
 
 fn main() -> Result<(), PlatformError> {
-    let window = window::window();
-
-    let data = AppState::new(window.id);
+    let (tx, rx) = mpsc::unbounded::<DrawCommand>();
+    let window = window::window(rx);
+    let data = AppState::new(tx, window.id);
 
     druid::AppLauncher::with_window(window)
         .delegate(Delegate)

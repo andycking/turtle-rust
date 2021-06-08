@@ -14,17 +14,29 @@
 
 use std::sync::Arc;
 
+use druid::Color;
 use druid::DelegateCtx;
+use druid::Point;
 
 use crate::model::app::AppState;
-use crate::model::runtime::DrawList;
+use crate::model::runtime::DrawCommand;
+use crate::model::runtime::DrawSender;
 use crate::runtime;
 
+async fn foo(tx: Arc<DrawSender>) {
+    let cmd = DrawCommand::new(1.0, Color::BLACK, 0.0, false, Point::ZERO);
+    println!("Weeeeee");
+    tx.unbounded_send(cmd);
+}
+
 pub fn go(_ctx: &mut DelegateCtx, _cmd: &druid::Command, data: &mut AppState) {
-    match runtime::entry(&data.input) {
+    let future = foo(data.tx.clone());
+    data.thread_pool.spawn_ok(future);
+
+    /*match runtime::entry(&data.input) {
         Ok(draw_list) => {
             data.draw_list = Arc::new(draw_list);
         }
         Err(err) => {}
-    }
+    }*/
 }

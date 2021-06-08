@@ -32,12 +32,14 @@ use super::menu;
 
 use crate::common::constants::*;
 use crate::model::app::AppState;
+use crate::model::runtime::DrawCommand;
+use crate::model::runtime::DrawReceiver;
 
 const FONT_SIZE: f64 = 14.0;
 const INPUT_WIDTH: f64 = 300.0;
 
-pub fn window() -> WindowDesc<AppState> {
-    let ui = build_ui();
+pub fn window(rx: DrawReceiver) -> WindowDesc<AppState> {
+    let ui = build_ui(rx);
 
     WindowDesc::new(ui)
         .title("Turtle")
@@ -45,17 +47,17 @@ pub fn window() -> WindowDesc<AppState> {
         .window_size(window_size())
 }
 
-fn build_ui() -> impl Widget<AppState> {
+fn build_ui(rx: DrawReceiver) -> impl Widget<AppState> {
     Flex::row()
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .with_child(build_input())
-        .with_child(build_canvas())
+        .with_child(build_canvas(rx))
         .background(Color::WHITE)
         .controller(WindowController {})
 }
 
-fn build_canvas() -> impl Widget<AppState> {
-    Canvas::new().background(Color::BLACK)
+fn build_canvas(rx: DrawReceiver) -> impl Widget<AppState> {
+    Canvas::new(rx).background(Color::BLACK)
 }
 
 fn build_input() -> impl Widget<AppState> {
