@@ -16,6 +16,7 @@ use std::sync::Arc;
 
 use druid::Data;
 use druid::Lens;
+use druid::Point;
 use futures::executor::ThreadPool;
 
 use super::pixbuf::PixBuf;
@@ -27,6 +28,7 @@ pub struct AppState {
     pub input: Arc<String>,
     pub output: Arc<String>,
     pub pixels: PixBuf,
+    pub pos: Point,
     pub thread_pool: Arc<ThreadPool>,
     pub render_tx: Arc<RenderTx>,
 
@@ -46,9 +48,15 @@ impl AppState {
             input: "".to_string().into(),
             output: "".to_string().into(),
             pixels: Default::default(),
+            pos: Point::ZERO,
             thread_pool: Arc::new(thread_pool),
             render_tx: Arc::new(render_tx),
             window_id,
         }
+    }
+
+    pub fn clear(&mut self) {
+        self.pos = Point::ZERO;
+        self.pixels.clear();
     }
 }
