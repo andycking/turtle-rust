@@ -36,7 +36,11 @@ pub struct AppState {
 
 impl AppState {
     pub fn new(render_tx: RenderTx, window_id: druid::WindowId) -> Self {
-        let thread_pool = ThreadPool::new().expect("Failed to create thread pool");
+        let thread_pool = ThreadPool::builder()
+            .pool_size(1)
+            .name_prefix("render-tx")
+            .create()
+            .expect("Failed to create thread pool");
 
         Self {
             input: "".to_string().into(),
