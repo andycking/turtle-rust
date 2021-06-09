@@ -44,7 +44,9 @@ impl Canvas {
                 RenderCommand::MoveTo(move_to) => {
                     let p = data.pos;
                     let q = move_to.pos;
-                    data.pixels.line(&p, &q, &move_to.color);
+                    if move_to.pen_down {
+                        data.pixels.line(&p, &q, &move_to.color);
+                    }
                     data.pos = q;
                 }
             }

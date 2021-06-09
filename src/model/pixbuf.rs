@@ -62,18 +62,24 @@ impl PixBuf {
         self.read_xy(p.x as usize, p.y as usize)
     }
 
-    pub fn write_xy(&mut self, x: usize, y: usize, color: &Color) {
-        let bytes = Arc::make_mut(&mut self.bytes);
-        let byte_idx = (y * (self.width as usize) + x) * 4;
-        Self::write_inner(bytes, byte_idx, color);
-    }
-
-    fn write_inner(bytes: &mut [u8], byte_idx: usize, color: &Color) {
+    fn write_xy_inner(bytes: &mut [u8], x: usize, y: usize, color: &Color) {
+        let byte_idx = (y * (DIMS.width as usize) + x) * 4;
         let (red, green, blue, alpha) = color.as_rgba8();
         bytes[byte_idx] = red;
         bytes[byte_idx + 1] = green;
         bytes[byte_idx + 2] = blue;
         bytes[byte_idx + 3] = alpha;
+    }
+
+    fn write_xy_inner_clipped(bytes: &mut [u8], x: usize, y: usize, color: &Color) {
+        if Self::contains(x, y) {
+            Self::write_xy_inner(bytes, x, y, color);
+        }
+    }
+
+    pub fn write_xy(&mut self, x: usize, y: usize, color: &Color) {
+        let bytes = Arc::make_mut(&mut self.bytes);
+        Self::write_xy_inner(bytes, x, y, color);
     }
 
     pub fn write(&mut self, p: Point, color: &Color) {
@@ -85,6 +91,10 @@ impl PixBuf {
             (x + ORIGIN.x as i32) as usize,
             (y + ORIGIN.y as i32) as usize,
         )
+    }
+
+    fn contains(x: usize, y: usize) -> bool {
+        x >= 0 && x < DIMS.width as usize && y >= 0 && y < DIMS.height as usize
     }
 
     pub fn line(&mut self, p: &Point, q: &Point, color: &Color) {
@@ -115,9 +125,8 @@ impl PixBuf {
                     break;
                 }
 
-                let screen_p = Self::screen_xy(x, y);
-                let byte_idx = (screen_p.1 * (self.width as usize) + screen_p.0) * 4;
-                Self::write_inner(bytes, byte_idx, color);
+                let (screen_x, screen_y) = Self::screen_xy(x, y);
+                Self::write_xy_inner_clipped(bytes, screen_x, screen_y, color);
 
                 eps += ady;
                 if (eps << 1) >= adx {
@@ -138,9 +147,8 @@ impl PixBuf {
                     break;
                 }
 
-                let screen_p = Self::screen_xy(x, y);
-                let byte_idx = (screen_p.1 * (self.width as usize) + screen_p.0) * 4;
-                Self::write_inner(bytes, byte_idx, color);
+                let (screen_x, screen_y) = Self::screen_xy(x, y);
+                Self::write_xy_inner_clipped(bytes, screen_x, screen_y, color);
 
                 eps += adx;
                 if (eps << 1) >= ady {
