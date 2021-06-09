@@ -46,18 +46,8 @@ impl PixBuf {
         bits::zero(&mut pixels);
     }
 
-    #[inline]
-    fn xy_to_idx(&self, x: usize, y: usize) -> usize {
-        y * (self.width as usize) + x
-    }
-
-    #[inline]
-    fn xy_to_byte_idx(&self, x: usize, y: usize) -> usize {
-        self.xy_to_idx(x, y) * 4
-    }
-
     pub fn read_xy(&self, x: usize, y: usize) -> Color {
-        let byte_idx = self.xy_to_byte_idx(x, y);
+        let byte_idx = (y * (self.width as usize) + x) * 4;
 
         druid::Color::rgba8(
             self.bytes[byte_idx],
@@ -73,14 +63,17 @@ impl PixBuf {
     }
 
     pub fn write_xy(&mut self, x: usize, y: usize, color: &Color) {
-        let byte_idx = self.xy_to_byte_idx(x, y);
-        let (red, green, blue, alpha) = color.as_rgba8();
+        let bytes = Arc::make_mut(&mut self.bytes);
+        let byte_idx = (y * (self.width as usize) + x) * 4;
+        Self::write_inner(bytes, byte_idx, color);
+    }
 
-        let pixels = Arc::make_mut(&mut self.bytes);
-        pixels[byte_idx] = red;
-        pixels[byte_idx + 1] = green;
-        pixels[byte_idx + 2] = blue;
-        pixels[byte_idx + 3] = alpha;
+    fn write_inner(bytes: &mut [u8], byte_idx: usize, color: &Color) {
+        let (red, green, blue, alpha) = color.as_rgba8();
+        bytes[byte_idx] = red;
+        bytes[byte_idx + 1] = green;
+        bytes[byte_idx + 2] = blue;
+        bytes[byte_idx + 3] = alpha;
     }
 
     pub fn write(&mut self, p: Point, color: &Color) {
@@ -95,6 +88,8 @@ impl PixBuf {
     }
 
     pub fn line(&mut self, p: &Point, q: &Point, color: &Color) {
+        let bytes = Arc::make_mut(&mut self.bytes);
+
         let x0 = p.x as i32;
         let y0 = -p.y as i32;
         let x1 = q.x as i32;
@@ -121,7 +116,8 @@ impl PixBuf {
                 }
 
                 let screen_p = Self::screen_xy(x, y);
-                self.write_xy(screen_p.0, screen_p.1, color);
+                let byte_idx = (screen_p.1 * (self.width as usize) + screen_p.0) * 4;
+                Self::write_inner(bytes, byte_idx, color);
 
                 eps += ady;
                 if (eps << 1) >= adx {
@@ -143,7 +139,8 @@ impl PixBuf {
                 }
 
                 let screen_p = Self::screen_xy(x, y);
-                self.write_xy(screen_p.0, screen_p.1, color);
+                let byte_idx = (screen_p.1 * (self.width as usize) + screen_p.0) * 4;
+                Self::write_inner(bytes, byte_idx, color);
 
                 eps += adx;
                 if (eps << 1) >= ady {
