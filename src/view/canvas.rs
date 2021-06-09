@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::Arc;
+use std::time::Duration;
 
 use druid::piet::ImageFormat;
 use druid::piet::InterpolationMode;
@@ -20,32 +20,35 @@ use druid::widget::prelude::*;
 use druid::Color;
 use druid::Point;
 use druid::Rect;
+use druid::TimerToken;
 use druid::Widget;
 
 use crate::common::constants::*;
 use crate::model::app::AppState;
-use crate::model::runtime::DrawCommand;
 use crate::model::runtime::DrawReceiver;
 
 const ORIGIN: (i32, i32) = ((DIMS.width / 2.0) as i32, (DIMS.height / 2.0) as i32);
 
 pub struct Canvas {
+    pos: Point,
     rx: DrawReceiver,
+    timer_id: TimerToken,
 }
 
 impl Canvas {
     pub fn new(rx: DrawReceiver) -> Self {
-        Self { rx }
+        Self {
+            pos: Point::ZERO,
+            rx,
+            timer_id: TimerToken::INVALID,
+        }
     }
 
     fn screen_xy(x: i32, y: i32) -> (usize, usize) {
         ((x + ORIGIN.0) as usize, (y + ORIGIN.1) as usize)
     }
 
-    fn draw_line(&self, data: &mut AppState) {
-        let p = Point::new(0.0, 0.0);
-        let q = Point::new(0.0, 10.0);
-
+    fn draw_line(&self, data: &mut AppState, p: &Point, q: &Point) {
         let x0 = p.x as i32;
         let y0 = -p.y as i32;
         let x1 = q.x as i32;
@@ -105,19 +108,29 @@ impl Canvas {
             }
         }
     }
+
+    pub fn progress(&mut self, data: &mut AppState) {
+        if let Ok(Some(cmd)) = self.rx.try_next() {
+            let p = self.pos;
+            let q = cmd.pos;
+            self.draw_line(data, &p, &q);
+            self.pos = q;
+        }
+    }
 }
 
 impl Widget<AppState> for Canvas {
-    fn event(&mut self, _ctx: &mut EventCtx, event: &Event, data: &mut AppState, _env: &Env) {
-        if let Ok(Some(val)) = self.rx.try_next() {
-            println!("Oh look! {:?}", val);
-        }
-
+    fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut AppState, _env: &Env) {
         match event {
-            Event::MouseDown(e) => {
-                if !e.focus {
-                    self.draw_line(data);
+            Event::Timer(timer_id) => {
+                if self.timer_id == *timer_id {
+                    self.progress(data);
+                    self.timer_id = ctx.request_timer(Duration::from_millis(20));
                 }
+            }
+
+            Event::WindowConnected => {
+                self.timer_id = ctx.request_timer(Duration::from_millis(20));
             }
 
             _ => {}

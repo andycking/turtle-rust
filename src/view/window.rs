@@ -32,7 +32,6 @@ use super::menu;
 
 use crate::common::constants::*;
 use crate::model::app::AppState;
-use crate::model::runtime::DrawCommand;
 use crate::model::runtime::DrawReceiver;
 
 const FONT_SIZE: f64 = 14.0;

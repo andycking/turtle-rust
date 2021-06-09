@@ -14,6 +14,10 @@
 
 use std::fmt;
 
+use futures::channel::mpsc::TrySendError;
+
+use crate::model::runtime::DrawCommand;
+
 #[derive(Debug)]
 pub enum RuntimeError {
     Lexer(String),
@@ -28,6 +32,12 @@ impl fmt::Display for RuntimeError {
             RuntimeError::Parser(msg) => write!(f, "Parser: {}", msg),
             RuntimeError::Interpreter(msg) => write!(f, "Interpreter: {}", msg),
         }
+    }
+}
+
+impl From<TrySendError<DrawCommand>> for RuntimeError {
+    fn from(err: TrySendError<DrawCommand>) -> Self {
+        Self::Interpreter(err.to_string())
     }
 }
 

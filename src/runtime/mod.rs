@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::model::runtime::DrawList;
-use error::*;
+use crate::model::runtime::RuntimeData;
 use interpreter::Interpreter;
 use lexer::Lexer;
 use parser::Parser;
@@ -25,8 +24,24 @@ mod lexer_types;
 mod parser;
 mod parser_types;
 
-pub fn entry(input: &str) -> RuntimeResult<DrawList> {
-    let lexer_out = Lexer::new().go(input)?;
-    let parser_out = Parser::new().go(&lexer_out)?;
-    Interpreter::new().go(&parser_out)
+pub async fn entry(input: String, runtime: RuntimeData) {
+    println!("Runtime starting...");
+    match Lexer::new().go(&input) {
+        Ok(lexer_out) => match Parser::new().go(&lexer_out) {
+            Ok(parser_out) => match Interpreter::new(runtime).go(&parser_out) {
+                Ok(()) => {
+                    println!("Runtime finished.");
+                }
+                Err(err) => {
+                    eprintln!("Runtime: {}", err);
+                }
+            },
+            Err(err) => {
+                eprintln!("Runtime: {}", err);
+            }
+        },
+        Err(err) => {
+            eprintln!("Runtime: {}", err);
+        }
+    }
 }

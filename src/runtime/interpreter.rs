@@ -16,7 +16,6 @@ use std::collections::HashMap;
 
 use druid::Color;
 use druid::Point;
-use futures::channel::mpsc::UnboundedSender;
 
 use super::error::*;
 use super::lexer_types::*;
@@ -66,13 +65,13 @@ impl State {
 
 #[derive(Clone, Debug)]
 pub struct Interpreter {
-    draw_list: DrawList,
     pal: Palette,
+    runtime: RuntimeData,
     state: State,
 }
 
 impl Interpreter {
-    pub fn new() -> Self {
+    pub fn new(runtime: RuntimeData) -> Self {
         let pal = hashmap![
             0 => Color::BLACK,
             1 => Color::BLUE,
@@ -85,16 +84,15 @@ impl Interpreter {
         ];
 
         Self {
-            draw_list: DrawList::new(),
             pal,
+            runtime,
             state: State::new(),
         }
     }
 
-    pub fn go(&mut self, input: &ParserOutput) -> RuntimeResult<DrawList> {
+    pub fn go(&mut self, input: &ParserOutput) -> RuntimeResult {
         let mut vmap = VarMap::new();
-        self.run(&input.fmap, &mut vmap, &input.list)?;
-        Ok(self.draw_list.to_owned())
+        self.run(&input.fmap, &mut vmap, &input.list)
     }
 
     fn run(&mut self, fmap: &FuncMap, vmap: &mut VarMap, list: &[Node]) -> RuntimeResult {
@@ -103,8 +101,8 @@ impl Interpreter {
                 Node::Assign(node) => self.eval_assign(vmap, node)?,
                 Node::Call(node) => self.eval_call(fmap, vmap, node)?,
                 Node::Clean => self.eval_clean(),
-                Node::ClearScreen => self.eval_clear_screen(),
-                Node::Home => self.eval_home(),
+                Node::ClearScreen => self.eval_clear_screen()?,
+                Node::Home => self.eval_home()?,
                 Node::Let(node) => self.eval_let(vmap, node)?,
                 Node::Move(node) => self.eval_move(vmap, node)?,
                 Node::Pen(node) => self.eval_pen(node),
@@ -143,13 +141,14 @@ impl Interpreter {
 
     fn eval_clean(&mut self) {}
 
-    fn eval_clear_screen(&mut self) {
-        self.eval_home();
+    fn eval_clear_screen(&mut self) -> RuntimeResult {
+        self.eval_home()?;
         self.eval_clean();
+        Ok(())
     }
 
-    fn eval_home(&mut self) {
-        self.move_to(Point::ZERO);
+    fn eval_home(&mut self) -> RuntimeResult {
+        self.move_to(Point::ZERO)
     }
 
     fn eval_let(&mut self, vmap: &mut VarMap, node: &LetNode) -> RuntimeResult {
@@ -162,14 +161,8 @@ impl Interpreter {
         let distance = self.eval_expr_num_word_as_number(vmap, node.distance())?;
 
         match node.direction() {
-            Direction::Forward => {
-                self.move_by(distance);
-                Ok(())
-            }
-            Direction::Backward => {
-                self.move_by(-distance);
-                Ok(())
-            }
+            Direction::Forward => self.move_by(distance),
+            Direction::Backward => self.move_by(-distance),
             _ => {
                 let msg = "Movement must be forward or backward".to_string();
                 Err(RuntimeError::Interpreter(msg))
@@ -244,9 +237,7 @@ impl Interpreter {
             self.state.pos.y
         };
 
-        self.move_to(Point::new(new_x, new_y));
-
-        Ok(())
+        self.move_to(Point::new(new_x, new_y))
     }
 
     fn eval_set_screen_color(
@@ -459,30 +450,36 @@ impl Interpreter {
         }
     }
 
-    fn move_to(&mut self, p: Point) {
+    fn move_to(&mut self, p: Point) -> RuntimeResult {
         let angle = angle(&p, &self.state.pos);
-        self.push_cmd(angle, p);
+        self.push_cmd(angle, p)?;
         self.state.pos = p;
+        Ok(())
     }
 
-    fn move_by(&mut self, distance: f64) {
+    fn move_by(&mut self, distance: f64) -> RuntimeResult {
         let angle = (90.0_f64).to_radians() - self.state.angle;
         let p = Point::new(
             (self.state.pos.x + distance * angle.cos()).round(),
             (self.state.pos.y + distance * angle.sin()).round(),
         );
-        self.push_cmd(angle, p);
+        self.push_cmd(angle, p)?;
         self.state.pos = p;
+        Ok(())
     }
 
-    fn push_cmd(&mut self, angle: f64, pos: Point) {
-        self.draw_list.push(DrawCommand::new(
+    fn push_cmd(&mut self, angle: f64, pos: Point) -> RuntimeResult {
+        let cmd = DrawCommand::new(
             angle,
             self.state.color.clone(),
             0.0,
             self.state.pen_down,
             pos,
-        ));
+        );
+
+        self.runtime.tx.unbounded_send(cmd)?;
+
+        Ok(())
     }
 
     fn vlist_expect(list: &[Value], n: usize) -> RuntimeResult {
