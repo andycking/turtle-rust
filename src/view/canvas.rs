@@ -17,15 +17,12 @@ use std::time::Duration;
 use druid::piet::ImageFormat;
 use druid::piet::InterpolationMode;
 use druid::widget::prelude::*;
-use druid::Color;
-use druid::Point;
 use druid::Rect;
 use druid::TimerToken;
 use druid::Widget;
 
 use crate::common::constants::*;
 use crate::model::app::AppState;
-use crate::model::pixbuf::PixBuf;
 use crate::model::render::*;
 
 pub struct Canvas {
