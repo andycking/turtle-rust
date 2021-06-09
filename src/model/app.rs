@@ -19,8 +19,7 @@ use druid::Lens;
 use futures::executor::ThreadPool;
 
 use super::pixbuf::PixBuf;
-use super::runtime::DrawSender;
-use super::runtime::RuntimeData;
+use super::render::RenderTx;
 
 /// Application state.
 #[derive(Clone, Data, Debug, Lens)]
@@ -29,14 +28,14 @@ pub struct AppState {
     pub output: Arc<String>,
     pub pixels: PixBuf,
     pub thread_pool: Arc<ThreadPool>,
-    pub runtime: RuntimeData,
+    pub render_tx: Arc<RenderTx>,
 
     #[data(same_fn = "PartialEq::eq")]
     window_id: druid::WindowId,
 }
 
 impl AppState {
-    pub fn new(tx: DrawSender, window_id: druid::WindowId) -> Self {
+    pub fn new(render_tx: RenderTx, window_id: druid::WindowId) -> Self {
         let thread_pool = ThreadPool::new().expect("Failed to create thread pool");
 
         Self {
@@ -44,8 +43,7 @@ impl AppState {
             output: "".to_string().into(),
             pixels: Default::default(),
             thread_pool: Arc::new(thread_pool),
-            runtime: RuntimeData::new(tx),
-
+            render_tx: Arc::new(render_tx),
             window_id,
         }
     }

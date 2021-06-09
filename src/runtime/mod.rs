@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::model::runtime::RuntimeData;
+use std::sync::Arc;
+
+use crate::model::render::RenderTx;
 use interpreter::Interpreter;
 use lexer::Lexer;
 use parser::Parser;
@@ -24,11 +26,11 @@ mod lexer_types;
 mod parser;
 mod parser_types;
 
-pub async fn entry(input: String, runtime: RuntimeData) {
+pub async fn entry(input: String, render_tx: Arc<RenderTx>) {
     println!("Runtime starting...");
     match Lexer::new().go(&input) {
         Ok(lexer_out) => match Parser::new().go(&lexer_out) {
-            Ok(parser_out) => match Interpreter::new(runtime).go(&parser_out) {
+            Ok(parser_out) => match Interpreter::new(render_tx).go(&parser_out) {
                 Ok(()) => {
                     println!("Runtime finished.");
                 }

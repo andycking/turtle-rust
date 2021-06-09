@@ -25,21 +25,21 @@ use druid::Widget;
 
 use crate::common::constants::*;
 use crate::model::app::AppState;
-use crate::model::runtime::DrawReceiver;
+use crate::model::render::*;
 
 const ORIGIN: (i32, i32) = ((DIMS.width / 2.0) as i32, (DIMS.height / 2.0) as i32);
 
 pub struct Canvas {
     pos: Point,
-    rx: DrawReceiver,
+    render_rx: RenderRx,
     timer_id: TimerToken,
 }
 
 impl Canvas {
-    pub fn new(rx: DrawReceiver) -> Self {
+    pub fn new(render_rx: RenderRx) -> Self {
         Self {
             pos: Point::ZERO,
-            rx,
+            render_rx,
             timer_id: TimerToken::INVALID,
         }
     }
@@ -109,12 +109,16 @@ impl Canvas {
         }
     }
 
-    pub fn progress(&mut self, data: &mut AppState) {
-        if let Ok(Some(cmd)) = self.rx.try_next() {
-            let p = self.pos;
-            let q = cmd.pos;
-            self.draw_line(data, &p, &q);
-            self.pos = q;
+    pub fn render(&mut self, data: &mut AppState) {
+        if let Ok(Some(cmd)) = self.render_rx.try_next() {
+            match cmd {
+                RenderCommand::MoveTo(move_to) => {
+                    let p = self.pos;
+                    let q = move_to.pos;
+                    self.draw_line(data, &p, &q);
+                    self.pos = q;
+                }
+            }
         }
     }
 }
@@ -124,7 +128,7 @@ impl Widget<AppState> for Canvas {
         match event {
             Event::Timer(timer_id) => {
                 if self.timer_id == *timer_id {
-                    self.progress(data);
+                    self.render(data);
                     self.timer_id = ctx.request_timer(Duration::from_millis(20));
                 }
             }

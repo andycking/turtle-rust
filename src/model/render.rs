@@ -12,24 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::Arc;
-
 use druid::Color;
 use druid::Data;
 use druid::Point;
 use futures::channel::mpsc::UnboundedReceiver;
 use futures::channel::mpsc::UnboundedSender;
 
-#[derive(Clone, Data, Debug)]
-pub struct DrawCommand {
+#[derive(Clone, Data, Debug, PartialEq)]
+pub struct MoveTo {
     angle: f64,
-    color: Color,
+    pub color: Color,
     distance: f64,
-    pen_down: bool,
+    pub pen_down: bool,
     pub pos: Point,
 }
 
-impl DrawCommand {
+impl MoveTo {
     pub fn new(angle: f64, color: Color, distance: f64, pen_down: bool, pos: Point) -> Self {
         Self {
             angle,
@@ -41,16 +39,10 @@ impl DrawCommand {
     }
 }
 
-pub type DrawReceiver = UnboundedReceiver<DrawCommand>;
-pub type DrawSender = UnboundedSender<DrawCommand>;
-
-#[derive(Clone, Data, Debug)]
-pub struct RuntimeData {
-    pub tx: Arc<DrawSender>,
+#[derive(Clone, Data, Debug, PartialEq)]
+pub enum RenderCommand {
+    MoveTo(MoveTo),
 }
 
-impl RuntimeData {
-    pub fn new(tx: DrawSender) -> Self {
-        Self { tx: Arc::new(tx) }
-    }
-}
+pub type RenderRx = UnboundedReceiver<RenderCommand>;
+pub type RenderTx = UnboundedSender<RenderCommand>;

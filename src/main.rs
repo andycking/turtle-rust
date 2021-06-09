@@ -23,13 +23,13 @@ mod view;
 
 use controller::delegate::Delegate;
 use model::app::AppState;
-use model::runtime::DrawCommand;
+use model::render::RenderCommand;
 use view::window;
 
 fn main() -> Result<(), PlatformError> {
-    let (tx, rx) = mpsc::unbounded::<DrawCommand>();
-    let window = window::window(rx);
-    let data = AppState::new(tx, window.id);
+    let (render_tx, render_rx) = mpsc::unbounded::<RenderCommand>();
+    let window = window::window(render_rx);
+    let data = AppState::new(render_tx, window.id);
 
     druid::AppLauncher::with_window(window)
         .delegate(Delegate)

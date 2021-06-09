@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use druid::Color;
 use druid::Point;
@@ -20,7 +21,15 @@ use druid::Point;
 use super::error::*;
 use super::lexer_types::*;
 use super::parser_types::*;
-use crate::model::runtime::*;
+use crate::model::render::*;
+
+macro_rules! hashmap {
+    ($( $key: expr => $val: expr ),*) => {{
+         let mut map = ::std::collections::HashMap::new();
+         $( map.insert($key, $val); )*
+         map
+    }}
+}
 
 type ValueList = Vec<Value>;
 
@@ -31,14 +40,6 @@ enum Value {
 }
 
 type VarMap = HashMap<String, Value>;
-
-macro_rules! hashmap {
-    ($( $key: expr => $val: expr ),*) => {{
-         let mut map = ::std::collections::HashMap::new();
-         $( map.insert($key, $val); )*
-         map
-    }}
-}
 
 type Palette = HashMap<u8, Color>;
 
@@ -66,12 +67,12 @@ impl State {
 #[derive(Clone, Debug)]
 pub struct Interpreter {
     pal: Palette,
-    runtime: RuntimeData,
+    render_tx: Arc<RenderTx>,
     state: State,
 }
 
 impl Interpreter {
-    pub fn new(runtime: RuntimeData) -> Self {
+    pub fn new(render_tx: Arc<RenderTx>) -> Self {
         let pal = hashmap![
             0 => Color::BLACK,
             1 => Color::BLUE,
@@ -85,7 +86,7 @@ impl Interpreter {
 
         Self {
             pal,
-            runtime,
+            render_tx,
             state: State::new(),
         }
     }
@@ -450,11 +451,8 @@ impl Interpreter {
         }
     }
 
-    fn move_to(&mut self, p: Point) -> RuntimeResult {
-        let angle = angle(&p, &self.state.pos);
-        self.push_cmd(angle, p)?;
-        self.state.pos = p;
-        Ok(())
+    fn angle(p: &Point, other: &Point) -> f64 {
+        other.y.atan2(other.x) - p.y.atan2(p.x)
     }
 
     fn move_by(&mut self, distance: f64) -> RuntimeResult {
@@ -463,21 +461,23 @@ impl Interpreter {
             (self.state.pos.x + distance * angle.cos()).round(),
             (self.state.pos.y + distance * angle.sin()).round(),
         );
-        self.push_cmd(angle, p)?;
+        self.move_to_inner(angle, p)?;
         self.state.pos = p;
         Ok(())
     }
 
-    fn push_cmd(&mut self, angle: f64, pos: Point) -> RuntimeResult {
-        let cmd = DrawCommand::new(
-            angle,
-            self.state.color.clone(),
-            0.0,
-            self.state.pen_down,
-            pos,
-        );
+    fn move_to(&mut self, p: Point) -> RuntimeResult {
+        let angle = Self::angle(&p, &self.state.pos);
+        self.move_to_inner(angle, p)?;
+        self.state.pos = p;
+        Ok(())
+    }
 
-        self.runtime.tx.unbounded_send(cmd)?;
+    fn move_to_inner(&mut self, angle: f64, p: Point) -> RuntimeResult {
+        let move_to = MoveTo::new(angle, self.state.color.clone(), 0.0, self.state.pen_down, p);
+
+        let cmd = RenderCommand::MoveTo(move_to);
+        self.render_tx.unbounded_send(cmd)?;
 
         Ok(())
     }
@@ -490,8 +490,4 @@ impl Interpreter {
             Ok(())
         }
     }
-}
-
-fn angle(p: &Point, other: &Point) -> f64 {
-    other.y.atan2(other.x) - p.y.atan2(p.x)
 }

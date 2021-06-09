@@ -18,6 +18,6 @@ use crate::model::app::AppState;
 use crate::runtime;
 
 pub fn go(_ctx: &mut DelegateCtx, _cmd: &druid::Command, data: &mut AppState) {
-    let future = runtime::entry(data.input.to_string(), data.runtime.clone());
+    let future = runtime::entry(data.input.to_string(), data.render_tx.clone());
     data.thread_pool.spawn_ok(future);
 }

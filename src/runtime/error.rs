@@ -16,7 +16,7 @@ use std::fmt;
 
 use futures::channel::mpsc::TrySendError;
 
-use crate::model::runtime::DrawCommand;
+use crate::model::render::RenderCommand;
 
 #[derive(Debug)]
 pub enum RuntimeError {
@@ -35,8 +35,8 @@ impl fmt::Display for RuntimeError {
     }
 }
 
-impl From<TrySendError<DrawCommand>> for RuntimeError {
-    fn from(err: TrySendError<DrawCommand>) -> Self {
+impl From<TrySendError<RenderCommand>> for RuntimeError {
+    fn from(err: TrySendError<RenderCommand>) -> Self {
         Self::Interpreter(err.to_string())
     }
 }
