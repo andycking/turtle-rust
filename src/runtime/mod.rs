@@ -15,6 +15,7 @@
 use std::sync::Arc;
 
 use crate::model::render::RenderTx;
+use error::*;
 use interpreter::Interpreter;
 use lexer::Lexer;
 use parser::Parser;
@@ -26,24 +27,27 @@ mod lexer_types;
 mod parser;
 mod parser_types;
 
-pub async fn entry(input: String, render_tx: Arc<RenderTx>) {
+pub fn entry(input: String, render_tx: Arc<RenderTx>) -> RuntimeResult {
     println!("Runtime starting...");
-    match Lexer::new().go(&input) {
-        Ok(lexer_out) => match Parser::new().go(&lexer_out) {
-            Ok(parser_out) => match Interpreter::new(render_tx).go(&parser_out) {
-                Ok(()) => {
-                    println!("Runtime finished.");
-                }
-                Err(err) => {
-                    eprintln!("Runtime: {}", err);
-                }
-            },
-            Err(err) => {
-                eprintln!("Runtime: {}", err);
-            }
-        },
-        Err(err) => {
-            eprintln!("Runtime: {}", err);
-        }
+    let lexer_out = Lexer::new().go(&input)?;
+    let parser_out = Parser::new().go(&lexer_out)?;
+    let intrp_out = Interpreter::new(render_tx).go(&parser_out)?;
+    println!("Runtime finished.");
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use futures::channel::mpsc;
+
+    use super::*;
+    use crate::model::render::RenderCommand;
+
+    #[test]
+    fn it_goes() {
+        let input = "fd".to_string();
+        let (render_tx, render_rx) = mpsc::unbounded::<RenderCommand>();
+        let res = entry(input, Arc::new(render_tx));
+        println!("Result: {:?}", res);
     }
 }

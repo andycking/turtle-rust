@@ -12,13 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::sync::Arc;
+
 use druid::DelegateCtx;
 
 use crate::model::app::AppState;
+use crate::model::render::RenderTx;
 use crate::runtime;
+
+async fn entry_future(input: String, render_tx: Arc<RenderTx>) {
+    runtime::entry(input, render_tx);
+}
 
 pub fn go(_ctx: &mut DelegateCtx, _cmd: &druid::Command, data: &mut AppState) {
     data.clear();
-    let future = runtime::entry(data.input.to_string(), data.render_tx.clone());
+    let future = entry_future(data.input.to_string(), data.render_tx.clone());
     data.thread_pool.spawn_ok(future);
 }
