@@ -192,7 +192,7 @@ impl Lexer {
     }
 
     fn BinExpr(&mut self, iter: &mut Chars) -> RuntimeResult<BinExpr> {
-        fn expr_num_word(item: Option<&AnyItem>, idx: usize) -> RuntimeResult<Expression> {
+        fn expression(item: Option<&AnyItem>, idx: usize) -> RuntimeResult<Expression> {
             match item {
                 Some(AnyItem::BinExpr(bin_expr)) => Ok(Expression::BinExpr(bin_expr.clone())),
                 Some(AnyItem::List(list)) => Ok(Expression::List(list.clone())),
@@ -217,9 +217,9 @@ impl Lexer {
         let expr_list = self.lex(iter)?;
         let mut expr_iter = expr_list.iter();
 
-        let a = expr_num_word(expr_iter.next(), self.idx)?;
+        let a = expression(expr_iter.next(), self.idx)?;
         let op = op_item(expr_iter.next(), self.idx)?;
-        let b = expr_num_word(expr_iter.next(), self.idx)?;
+        let b = expression(expr_iter.next(), self.idx)?;
 
         Ok(BinExpr::new(a, op, b))
     }

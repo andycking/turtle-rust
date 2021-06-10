@@ -72,7 +72,7 @@ impl<'a> ListIter<'a> {
         }
     }
 
-    fn get_expr_num_word(&mut self) -> RuntimeResult<Expression> {
+    fn get_expression(&mut self) -> RuntimeResult<Expression> {
         match self.next() {
             AnyItem::BinExpr(bin_expr) => Ok(Expression::BinExpr(bin_expr)),
             AnyItem::List(list) => Ok(Expression::List(list)),
@@ -275,14 +275,14 @@ impl Parser {
     fn parse_assign(&mut self, iter: &mut ListIter, name: Word) -> RuntimeResult<Node> {
         iter.expect(2)?;
         iter.get_assignment()?;
-        let rhs = iter.get_expr_num_word()?;
+        let rhs = iter.get_expression()?;
         let node = AssignNode::new(name.name().to_string(), rhs);
         Ok(Node::Assign(node))
     }
 
     fn parse_backward(&mut self, iter: &mut ListIter) -> RuntimeResult<Node> {
         iter.expect(1)?;
-        let distance = iter.get_expr_num_word()?;
+        let distance = iter.get_expression()?;
         let move_node = MoveNode::new(distance, Direction::Backward);
         Ok(Node::Move(move_node))
     }
@@ -314,7 +314,7 @@ impl Parser {
 
     fn parse_forward(&mut self, iter: &mut ListIter) -> RuntimeResult<Node> {
         iter.expect(1)?;
-        let distance = iter.get_expr_num_word()?;
+        let distance = iter.get_expression()?;
         let move_node = MoveNode::new(distance, Direction::Forward);
         Ok(Node::Move(move_node))
     }
@@ -328,14 +328,14 @@ impl Parser {
         let var = iter.get_word()?;
         self.check_symbol(var.name(), SymbolTag::Var)?;
         iter.get_assignment()?;
-        let rhs = iter.get_expr_num_word()?;
+        let rhs = iter.get_expression()?;
         let l_node = LetNode::new(var.name().to_string(), rhs);
         Ok(Node::Let(l_node))
     }
 
     fn parse_left(&mut self, iter: &mut ListIter) -> RuntimeResult<Node> {
         iter.expect(1)?;
-        let angle = iter.get_expr_num_word()?;
+        let angle = iter.get_expression()?;
         let rotate_node = RotateNode::new(angle, Direction::Left);
         Ok(Node::Rotate(rotate_node))
     }
@@ -352,7 +352,7 @@ impl Parser {
 
     fn parse_repeat(&mut self, iter: &mut ListIter) -> RuntimeResult<Node> {
         iter.expect(2)?;
-        let count = iter.get_expr_num_word()?;
+        let count = iter.get_expression()?;
         let block = iter.get_block()?;
         let mut block_iter = ListIter::new(&block);
         let node_list = self.parse(&mut block_iter)?;
@@ -362,14 +362,14 @@ impl Parser {
 
     fn parse_right(&mut self, iter: &mut ListIter) -> RuntimeResult<Node> {
         iter.expect(1)?;
-        let angle = iter.get_expr_num_word()?;
+        let angle = iter.get_expression()?;
         let rotate_node = RotateNode::new(angle, Direction::Right);
         Ok(Node::Rotate(rotate_node))
     }
 
     fn parse_set_heading(&mut self, iter: &mut ListIter) -> RuntimeResult<Node> {
         iter.expect(1)?;
-        let angle = iter.get_expr_num_word()?;
+        let angle = iter.get_expression()?;
         let node = SetHeadingNode::new(angle);
         Ok(Node::SetHeading(node))
     }
@@ -397,22 +397,22 @@ impl Parser {
 
     fn parse_setxy(&mut self, iter: &mut ListIter) -> RuntimeResult<Node> {
         iter.expect(2)?;
-        let x = iter.get_expr_num_word()?;
-        let y = iter.get_expr_num_word()?;
+        let x = iter.get_expression()?;
+        let y = iter.get_expression()?;
         let pos_node = SetPositionNode::new(Some(x), Some(y));
         Ok(Node::SetPosition(pos_node))
     }
 
     fn parse_setx(&mut self, iter: &mut ListIter) -> RuntimeResult<Node> {
         iter.expect(1)?;
-        let x = iter.get_expr_num_word()?;
+        let x = iter.get_expression()?;
         let pos_node = SetPositionNode::new(Some(x), None);
         Ok(Node::SetPosition(pos_node))
     }
 
     fn parse_sety(&mut self, iter: &mut ListIter) -> RuntimeResult<Node> {
         iter.expect(1)?;
-        let y = iter.get_expr_num_word()?;
+        let y = iter.get_expression()?;
         let pos_node = SetPositionNode::new(None, Some(y));
         Ok(Node::SetPosition(pos_node))
     }

@@ -139,7 +139,7 @@ impl Interpreter {
     }
 
     fn eval_assign(&mut self, vmap: &mut VarMap, node: &AssignNode) -> RuntimeResult {
-        let value = self.eval_expr_num_word(vmap, node.val())?;
+        let value = self.eval_expr(vmap, node.val())?;
         if let Some(var) = vmap.get_mut(node.name()) {
             *var = value;
             Ok(())
@@ -179,13 +179,13 @@ impl Interpreter {
     }
 
     fn eval_let(&mut self, vmap: &mut VarMap, node: &LetNode) -> RuntimeResult {
-        let val = self.eval_expr_num_word(vmap, node.val())?;
+        let val = self.eval_expr(vmap, node.val())?;
         vmap.insert(node.name().to_string(), val);
         Ok(())
     }
 
     fn eval_move(&mut self, vmap: &mut VarMap, node: &MoveNode) -> RuntimeResult {
-        let distance = self.eval_expr_num_word_as_number(vmap, node.distance())?;
+        let distance = self.eval_expr_as_number(vmap, node.distance())?;
 
         match node.direction() {
             Direction::Forward => self.move_by(distance),
@@ -211,7 +211,7 @@ impl Interpreter {
         vmap: &mut VarMap,
         node: &RepeatNode,
     ) -> RuntimeResult {
-        let count = self.eval_expr_num_word_as_number(vmap, node.count())?;
+        let count = self.eval_expr_as_number(vmap, node.count())?;
         let list = node.list();
         let mut child_frame = Frame::new(0);
 
@@ -224,7 +224,7 @@ impl Interpreter {
     }
 
     fn eval_rotate(&mut self, vmap: &mut VarMap, node: &RotateNode) -> RuntimeResult {
-        let angle = self.eval_expr_num_word_as_number(vmap, node.angle())?;
+        let angle = self.eval_expr_as_number(vmap, node.angle())?;
 
         match node.direction() {
             Direction::Left => {
@@ -243,7 +243,7 @@ impl Interpreter {
     }
 
     fn eval_set_heading(&mut self, vmap: &mut VarMap, node: &SetHeadingNode) -> RuntimeResult {
-        let angle = self.eval_expr_num_word_as_number(vmap, node.angle())?;
+        let angle = self.eval_expr_as_number(vmap, node.angle())?;
         self.state.angle = angle.to_radians();
         Ok(())
     }
@@ -256,13 +256,13 @@ impl Interpreter {
 
     fn eval_set_pos(&mut self, vmap: &mut VarMap, node: &SetPositionNode) -> RuntimeResult {
         let new_x = if let Some(xitem) = node.x() {
-            self.eval_expr_num_word_as_number(vmap, xitem)?
+            self.eval_expr_as_number(vmap, xitem)?
         } else {
             self.state.pos.x
         };
 
         let new_y = if let Some(yitem) = node.y() {
-            self.eval_expr_num_word_as_number(vmap, yitem)?
+            self.eval_expr_as_number(vmap, yitem)?
         } else {
             self.state.pos.y
         };
@@ -282,8 +282,8 @@ impl Interpreter {
 
     fn eval_any_item(&mut self, vmap: &VarMap, item: &AnyItem) -> RuntimeResult<Value> {
         match item {
-            AnyItem::BinExpr(expr) => self.eval_expr(vmap, expr),
-            AnyItem::Expression(enw) => self.eval_expr_num_word(vmap, enw),
+            AnyItem::BinExpr(expr) => self.eval_bin_expr(vmap, expr),
+            AnyItem::Expression(enw) => self.eval_expr(vmap, enw),
             AnyItem::List(list) => self.eval_list(vmap, list),
             AnyItem::ListNumWord(lnw) => self.eval_list_num_word(vmap, lnw),
             AnyItem::Number(num) => Ok(Value::Number(num.val())),
@@ -295,10 +295,10 @@ impl Interpreter {
         }
     }
 
-    fn eval_expr(&mut self, vmap: &VarMap, expr: &BinExpr) -> RuntimeResult<Value> {
-        let a = self.eval_expr_num_word(vmap, &expr.a())?;
+    fn eval_bin_expr(&mut self, vmap: &VarMap, expr: &BinExpr) -> RuntimeResult<Value> {
+        let a = self.eval_expr(vmap, &expr.a())?;
         let op = expr.op();
-        let b = self.eval_expr_num_word(vmap, &expr.b())?;
+        let b = self.eval_expr(vmap, &expr.b())?;
 
         match op {
             Operator::Add => Self::eval_add(&a, &b),
@@ -312,25 +312,17 @@ impl Interpreter {
         }
     }
 
-    fn eval_expr_num_word(
-        &mut self,
-        vmap: &VarMap,
-        expr_num_word: &Expression,
-    ) -> RuntimeResult<Value> {
-        match expr_num_word {
-            Expression::BinExpr(expr) => self.eval_expr(vmap, expr),
+    fn eval_expr(&mut self, vmap: &VarMap, expr: &Expression) -> RuntimeResult<Value> {
+        match expr {
+            Expression::BinExpr(bin_expr) => self.eval_bin_expr(vmap, bin_expr),
             Expression::List(list) => self.eval_list(vmap, list),
             Expression::Number(num) => Ok(Value::Number(num.val())),
             Expression::Word(word) => self.eval_word(vmap, word),
         }
     }
 
-    fn eval_expr_num_word_as_number(
-        &mut self,
-        vmap: &VarMap,
-        expr_num_word: &Expression,
-    ) -> RuntimeResult<f64> {
-        let val = self.eval_expr_num_word(vmap, expr_num_word)?;
+    fn eval_expr_as_number(&mut self, vmap: &VarMap, expr: &Expression) -> RuntimeResult<f64> {
+        let val = self.eval_expr(vmap, expr)?;
         Self::get_number(&val)
     }
 
