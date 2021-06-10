@@ -45,9 +45,11 @@ mod tests {
 
     #[test]
     fn it_goes() {
-        let input = "fd".to_string();
+        let input = "let a = random".to_string();
         let (render_tx, render_rx) = mpsc::unbounded::<RenderCommand>();
         let res = entry(input, Arc::new(render_tx));
-        println!("Result: {:?}", res);
+        if let Err(err) = res {
+            eprintln!("{}", err);
+        }
     }
 }

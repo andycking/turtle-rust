@@ -40,7 +40,7 @@ impl<'a> ListIter<'a> {
 
     fn expect(&self, n: usize) -> RuntimeResult {
         if self.idx + n > self.list.len() {
-            let msg = format!("Expected a list of at least {} items", n);
+            let msg = format!("{} items expected", n);
             Err(RuntimeError::Parser(msg))
         } else {
             Ok(())
@@ -58,7 +58,7 @@ impl<'a> ListIter<'a> {
         if op == Operator::Assign {
             Ok(op)
         } else {
-            let msg = "Expected an assignment".to_string();
+            let msg = "expected an assignment".to_string();
             Err(RuntimeError::Parser(msg))
         }
     }
@@ -67,7 +67,7 @@ impl<'a> ListIter<'a> {
         if let AnyItem::Block(block) = self.next() {
             Ok(block)
         } else {
-            let msg = "Expected a block".to_string();
+            let msg = "expected a block".to_string();
             Err(RuntimeError::Parser(msg))
         }
     }
@@ -78,7 +78,7 @@ impl<'a> ListIter<'a> {
             AnyItem::Number(num) => Ok(ExprNumWord::Number(num)),
             AnyItem::Word(word) => Ok(ExprNumWord::Word(word)),
             _ => {
-                let msg = "Expected an expression, number or word".to_string();
+                let msg = "expected an expression, number or word".to_string();
                 Err(RuntimeError::Parser(msg))
             }
         }
@@ -88,7 +88,7 @@ impl<'a> ListIter<'a> {
         if let AnyItem::List(list) = self.next() {
             Ok(list)
         } else {
-            let msg = "Expected a list".to_string();
+            let msg = "expected a list".to_string();
             Err(RuntimeError::Parser(msg))
         }
     }
@@ -99,7 +99,7 @@ impl<'a> ListIter<'a> {
             AnyItem::Number(num) => Ok(ListNumWord::Number(num)),
             AnyItem::Word(word) => Ok(ListNumWord::Word(word)),
             _ => {
-                let msg = "Expected a list, number or word".to_string();
+                let msg = "expected a list, number or word".to_string();
                 Err(RuntimeError::Parser(msg))
             }
         }
@@ -109,7 +109,7 @@ impl<'a> ListIter<'a> {
         if let AnyItem::Operator(op) = self.next() {
             Ok(op)
         } else {
-            let msg = "Expected an operator".to_string();
+            let msg = "expected an operator".to_string();
             Err(RuntimeError::Parser(msg))
         }
     }
@@ -118,7 +118,7 @@ impl<'a> ListIter<'a> {
         if let AnyItem::Word(word) = self.next() {
             Ok(word)
         } else {
-            let msg = "Expected a word".to_string();
+            let msg = "expected a word".to_string();
             Err(RuntimeError::Parser(msg))
         }
     }
@@ -138,9 +138,13 @@ pub struct Parser {
 
 impl Parser {
     pub fn new() -> Self {
+        let fmap = crate::hashmap![
+            "random".to_string() => FuncDefinition::new(true, 1, NodeList::new())
+        ];
+
         Self {
             symbols: HashMap::new(),
-            fmap: FuncMap::new(),
+            fmap,
         }
     }
 
@@ -257,7 +261,7 @@ impl Parser {
                         list.push(node);
                     }
                     _ => {
-                        let msg = format!("Unrecognized symbol {}", name);
+                        let msg = format!("unrecognized symbol {}", name);
                         return Err(RuntimeError::Parser(msg));
                     }
                 },
@@ -301,7 +305,8 @@ impl Parser {
         self.check_symbol(name.name(), SymbolTag::Func)?;
         let block = iter.get_block()?;
         let mut block_iter = ListIter::new(&block);
-        let func = self.parse(&mut block_iter)?;
+        let list = self.parse(&mut block_iter)?;
+        let func = FuncDefinition::new(false, 0, list);
         self.fmap.insert(name.name().to_string(), func);
         Ok(())
     }
@@ -416,7 +421,7 @@ impl Parser {
             self.symbols.insert(name.to_string(), tag);
             Ok(())
         } else {
-            let msg = format!("Duplicate symbol {}", name);
+            let msg = format!("duplicate symbol {}", name);
             Err(RuntimeError::Parser(msg))
         }
     }

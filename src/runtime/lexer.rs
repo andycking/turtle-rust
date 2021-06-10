@@ -19,9 +19,9 @@ use super::lexer_types::*;
 
 #[derive(Clone, Debug)]
 struct LexerState {
-    pub list: List,
-    pub symbol: String,
-    pub number: bool,
+    list: List,
+    symbol: String,
+    number: bool,
 }
 
 impl LexerState {
@@ -33,14 +33,14 @@ impl LexerState {
         }
     }
 
-    pub fn delimit(&mut self) -> RuntimeResult {
+    pub fn delimit(&mut self, idx: usize) -> RuntimeResult {
         if !self.symbol.is_empty() {
             let item = if self.number {
                 if let Ok(val) = self.symbol.parse::<f64>() {
                     let num = Number::new(val);
                     AnyItem::Number(num)
                 } else {
-                    let msg = format!("Failed to parse number {}", self.symbol);
+                    let msg = format!("{}: failed to parse number {}", idx, self.symbol);
                     return Err(RuntimeError::Lexer(msg));
                 }
             } else {
@@ -58,11 +58,13 @@ impl LexerState {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct Lexer {}
+pub struct Lexer {
+    idx: usize,
+}
 
 impl Lexer {
     pub fn new() -> Self {
-        Self {}
+        Self { idx: 1 }
     }
 
     pub fn go(&mut self, input: &str) -> RuntimeResult<List> {
@@ -76,12 +78,12 @@ impl Lexer {
         while let Some(c) = iter.next() {
             match c {
                 '#' => {
-                    state.delimit()?;
-                    Self::munch(iter);
+                    state.delimit(self.idx)?;
+                    self.idx += Self::munch(iter);
                 }
 
                 '{' => {
-                    state.delimit()?;
+                    state.delimit(self.idx)?;
 
                     let block = self.lex(iter)?;
                     let item = AnyItem::Block(block);
@@ -89,12 +91,12 @@ impl Lexer {
                 }
 
                 '}' => {
-                    state.delimit()?;
+                    state.delimit(self.idx)?;
                     break;
                 }
 
                 '[' => {
-                    state.delimit()?;
+                    state.delimit(self.idx)?;
 
                     let inner = self.lex(iter)?;
                     let item = AnyItem::List(inner);
@@ -102,12 +104,12 @@ impl Lexer {
                 }
 
                 ']' => {
-                    state.delimit()?;
+                    state.delimit(self.idx)?;
                     break;
                 }
 
                 '(' => {
-                    state.delimit()?;
+                    state.delimit(self.idx)?;
 
                     let expr = self.expression(iter)?;
                     let item = AnyItem::Expression(expr);
@@ -115,21 +117,21 @@ impl Lexer {
                 }
 
                 ')' => {
-                    state.delimit()?;
+                    state.delimit(self.idx)?;
                     break;
                 }
 
                 '+' | '-' | '*' | '/' | '=' => {
-                    state.delimit()?;
+                    state.delimit(self.idx)?;
 
-                    let op = Self::operator(c)?;
+                    let op = Self::operator(c, self.idx)?;
                     let item = AnyItem::Operator(op);
                     state.list.push(item);
                 }
 
                 '.' => {
                     if !state.number {
-                        let msg = "Unexpected period".to_string();
+                        let msg = format!("{}: unexpected period", self.idx);
                         return Err(RuntimeError::Lexer(msg));
                     }
 
@@ -138,7 +140,7 @@ impl Lexer {
 
                 _ => {
                     if c.is_whitespace() {
-                        state.delimit()?;
+                        state.delimit(self.idx)?;
                     } else if c.is_digit(10) {
                         if state.symbol.is_empty() {
                             state.number = true;
@@ -148,19 +150,21 @@ impl Lexer {
                         state.symbol.push(c);
                         state.number = false;
                     } else {
-                        let msg = format!("Unrecognized character {}", c);
+                        let msg = format!("{}: unrecognized character {}", self.idx, c);
                         return Err(RuntimeError::Lexer(msg));
                     }
                 }
             }
+
+            self.idx += 1;
         }
 
-        state.delimit()?;
+        state.delimit(self.idx)?;
 
         Ok(state.list)
     }
 
-    fn operator(c: char) -> RuntimeResult<Operator> {
+    fn operator(c: char, idx: usize) -> RuntimeResult<Operator> {
         match c {
             '+' => Ok(Operator::Add),
             '=' => Ok(Operator::Assign),
@@ -168,38 +172,43 @@ impl Lexer {
             '*' => Ok(Operator::Multiply),
             '/' => Ok(Operator::Divide),
             _ => {
-                let msg = format!("Unrecognized operator {}", c);
+                let msg = format!("{}: unrecognized operator {}", idx, c);
                 Err(RuntimeError::Lexer(msg))
             }
         }
     }
 
-    fn munch(iter: &mut Chars) {
+    fn munch(iter: &mut Chars) -> usize {
+        let mut idx = 0;
+
         for c in iter {
             if c == '\n' || c == '\r' {
                 break;
             }
+            idx += 1;
         }
+
+        idx
     }
 
     fn expression(&mut self, iter: &mut Chars) -> RuntimeResult<Expression> {
-        fn expr_num_word(item: Option<&AnyItem>) -> RuntimeResult<ExprNumWord> {
+        fn expr_num_word(item: Option<&AnyItem>, idx: usize) -> RuntimeResult<ExprNumWord> {
             match item {
                 Some(AnyItem::Expression(expr)) => Ok(ExprNumWord::Expression(expr.clone())),
                 Some(AnyItem::Number(num)) => Ok(ExprNumWord::Number(*num)),
                 Some(AnyItem::Word(word)) => Ok(ExprNumWord::Word(word.clone())),
                 _ => {
-                    let msg = "Expected an expression, number or word".to_string();
+                    let msg = format!("{}: expected an expression, number or word", idx);
                     Err(RuntimeError::Lexer(msg))
                 }
             }
         }
 
-        fn op_item(item: Option<&AnyItem>) -> RuntimeResult<Operator> {
+        fn op_item(item: Option<&AnyItem>, idx: usize) -> RuntimeResult<Operator> {
             if let Some(AnyItem::Operator(op)) = item {
                 Ok(*op)
             } else {
-                let msg = "Expected an operator".to_string();
+                let msg = format!("{}: expected an operator", idx);
                 Err(RuntimeError::Lexer(msg))
             }
         }
@@ -207,9 +216,9 @@ impl Lexer {
         let expr_list = self.lex(iter)?;
         let mut expr_iter = expr_list.iter();
 
-        let a = expr_num_word(expr_iter.next())?;
-        let op = op_item(expr_iter.next())?;
-        let b = expr_num_word(expr_iter.next())?;
+        let a = expr_num_word(expr_iter.next(), self.idx)?;
+        let op = op_item(expr_iter.next(), self.idx)?;
+        let b = expr_num_word(expr_iter.next(), self.idx)?;
 
         Ok(Expression::new(a, op, b))
     }

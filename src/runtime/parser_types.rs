@@ -215,7 +215,22 @@ pub enum Node {
 
 pub type NodeList = Vec<Node>;
 
-pub type FuncDefinition = NodeList;
+#[derive(Clone, Debug)]
+pub struct FuncDefinition {
+    builtin: bool,
+    num_args: u8,
+    pub list: NodeList,
+}
+
+impl FuncDefinition {
+    pub fn new(builtin: bool, num_args: u8, list: NodeList) -> Self {
+        Self {
+            builtin,
+            num_args,
+            list,
+        }
+    }
+}
 
 pub type FuncMap = HashMap<String, FuncDefinition>;
 

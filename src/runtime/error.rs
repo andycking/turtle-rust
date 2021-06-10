@@ -28,9 +28,9 @@ pub enum RuntimeError {
 impl fmt::Display for RuntimeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RuntimeError::Lexer(msg) => write!(f, "Lexer: {}", msg),
-            RuntimeError::Parser(msg) => write!(f, "Parser: {}", msg),
-            RuntimeError::Interpreter(msg) => write!(f, "Interpreter: {}", msg),
+            RuntimeError::Lexer(msg) => write!(f, "error: lexer: {}", msg),
+            RuntimeError::Parser(msg) => write!(f, "error: parser: {}", msg),
+            RuntimeError::Interpreter(msg) => write!(f, "error: interpreter: {}", msg),
         }
     }
 }

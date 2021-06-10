@@ -23,14 +23,6 @@ use super::lexer_types::*;
 use super::parser_types::*;
 use crate::model::render::*;
 
-macro_rules! hashmap {
-    ($( $key: expr => $val: expr ),*) => {{
-         let mut map = ::std::collections::HashMap::new();
-         $( map.insert($key, $val); )*
-         map
-    }}
-}
-
 type ValueList = Vec<Value>;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -73,7 +65,7 @@ pub struct Interpreter {
 
 impl Interpreter {
     pub fn new(render_tx: Arc<RenderTx>) -> Self {
-        let pal = hashmap![
+        let pal = crate::hashmap![
             0 => Color::BLACK,
             1 => Color::BLUE,
             2 => Color::GREEN,
@@ -125,7 +117,7 @@ impl Interpreter {
             *var = value;
             Ok(())
         } else {
-            let msg = format!("No such variable {}", node.name());
+            let msg = format!("no such variable {}", node.name());
             Err(RuntimeError::Interpreter(msg))
         }
     }
@@ -133,9 +125,9 @@ impl Interpreter {
     fn eval_call(&mut self, fmap: &FuncMap, vmap: &mut VarMap, node: &CallNode) -> RuntimeResult {
         let name = node.name();
         if let Some(func) = fmap.get(name.name()) {
-            self.run(fmap, vmap, func)
+            self.run(fmap, vmap, &func.list)
         } else {
-            let msg = format!("No such function {}", name.name());
+            let msg = format!("no such function {}", name.name());
             Err(RuntimeError::Interpreter(msg))
         }
     }
@@ -165,7 +157,7 @@ impl Interpreter {
             Direction::Forward => self.move_by(distance),
             Direction::Backward => self.move_by(-distance),
             _ => {
-                let msg = "Movement must be forward or backward".to_string();
+                let msg = "movement must be forward or backward".to_string();
                 Err(RuntimeError::Interpreter(msg))
             }
         }
@@ -207,7 +199,7 @@ impl Interpreter {
                 Ok(())
             }
             _ => {
-                let msg = "Rotation must be right or left".to_string();
+                let msg = "rotation must be right or left".to_string();
                 Err(RuntimeError::Interpreter(msg))
             }
         }
@@ -260,7 +252,7 @@ impl Interpreter {
             AnyItem::Number(num) => Ok(Value::Number(num.val())),
             AnyItem::Word(word) => self.eval_word(vmap, word),
             _ => {
-                let msg = "Can't evaluate item".to_string();
+                let msg = "cannot evaluate item".to_string();
                 Err(RuntimeError::Interpreter(msg))
             }
         }
@@ -277,7 +269,7 @@ impl Interpreter {
             Operator::Multiply => Self::eval_multiply(&a, &b),
             Operator::Subtract => Self::eval_subtract(&a, &b),
             _ => {
-                let msg = "Can't evaluate assignment as part of expression".to_string();
+                let msg = "cannot evaluate assignment as part of expression".to_string();
                 Err(RuntimeError::Interpreter(msg))
             }
         }
@@ -330,7 +322,7 @@ impl Interpreter {
         if let Some(value) = vmap.get(word.name()) {
             Ok(value.clone())
         } else {
-            let msg = format!("No such variable {}", word.name());
+            let msg = format!("no such variable {}", word.name());
             Err(RuntimeError::Interpreter(msg))
         }
     }
@@ -340,7 +332,7 @@ impl Interpreter {
             Value::Number(a_num) => match b {
                 Value::Number(b_num) => Ok(Value::Number(a_num + b_num)),
                 _ => {
-                    let msg = "Can't add a number and a list".to_string();
+                    let msg = "cannot add a number and a list".to_string();
                     Err(RuntimeError::Interpreter(msg))
                 }
             },
@@ -366,12 +358,12 @@ impl Interpreter {
             Value::Number(a_num) => match b {
                 Value::Number(other_num) => Ok(Value::Number(a_num / other_num)),
                 _ => {
-                    let msg = "Can't divide a number and a list".to_string();
+                    let msg = "cannot divide a number and a list".to_string();
                     Err(RuntimeError::Interpreter(msg))
                 }
             },
             Value::List(_) => {
-                let msg = "Can't divide two lists".to_string();
+                let msg = "cannot divide two lists".to_string();
                 Err(RuntimeError::Interpreter(msg))
             }
         }
@@ -382,12 +374,12 @@ impl Interpreter {
             Value::Number(a_num) => match b {
                 Value::Number(b_num) => Ok(Value::Number(a_num * b_num)),
                 _ => {
-                    let msg = "Can't multiply a number and a list".to_string();
+                    let msg = "cannot multiply a number and a list".to_string();
                     Err(RuntimeError::Interpreter(msg))
                 }
             },
             Value::List(_) => {
-                let msg = "Can't multiply two lists".to_string();
+                let msg = "cannot multiply two lists".to_string();
                 Err(RuntimeError::Interpreter(msg))
             }
         }
@@ -398,12 +390,12 @@ impl Interpreter {
             Value::Number(a_num) => match b {
                 Value::Number(b_num) => Ok(Value::Number(a_num - b_num)),
                 _ => {
-                    let msg = "Can't subtract a list from a number".to_string();
+                    let msg = "cannot subtract a list from a number".to_string();
                     Err(RuntimeError::Interpreter(msg))
                 }
             },
             Value::List(_) => {
-                let msg = "Can't subtract two lists".to_string();
+                let msg = "cannot subtract two lists".to_string();
                 Err(RuntimeError::Interpreter(msg))
             }
         }
@@ -414,7 +406,7 @@ impl Interpreter {
         if (0.0..=255.0).contains(&comp) {
             Ok(comp as u8)
         } else {
-            let msg = format!("Color component out of bounds {}", comp);
+            let msg = format!("color component out of bounds {}", comp);
             Err(RuntimeError::Interpreter(msg))
         }
     }
@@ -435,7 +427,7 @@ impl Interpreter {
                 if let Some(color) = pal.get(&idx) {
                     Ok(color.clone())
                 } else {
-                    let msg = format!("Invalid palette index {}", idx);
+                    let msg = format!("invalid palette index {}", idx);
                     Err(RuntimeError::Interpreter(msg))
                 }
             }
@@ -446,7 +438,7 @@ impl Interpreter {
         if let Value::Number(num) = val {
             Ok(*num)
         } else {
-            let msg = "Expected a number".to_string();
+            let msg = "expected a number".to_string();
             Err(RuntimeError::Interpreter(msg))
         }
     }
@@ -484,7 +476,7 @@ impl Interpreter {
 
     fn vlist_expect(list: &[Value], n: usize) -> RuntimeResult {
         if list.len() < n {
-            let msg = format!("Expected a list of at least {} items", n);
+            let msg = format!("{} items expected", n);
             Err(RuntimeError::Interpreter(msg))
         } else {
             Ok(())
