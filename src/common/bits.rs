@@ -24,6 +24,15 @@ macro_rules! hashmap {
     }}
 }
 
+#[macro_export]
+macro_rules! hashset {
+    ($( $key: expr ),*) => {{
+         let mut map = ::std::collections::HashSet::new();
+         $( map.insert($key); )*
+         map
+    }}
+}
+
 #[inline]
 pub fn zero<T>(input: &mut [T]) {
     atomic::fence(atomic::Ordering::SeqCst);
