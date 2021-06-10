@@ -19,11 +19,11 @@ use super::lexer_types::*;
 #[derive(Clone, Debug, PartialEq)]
 pub struct AssignNode {
     name: String,
-    val: ExprNumWord,
+    val: Expression,
 }
 
 impl AssignNode {
-    pub fn new(name: String, val: ExprNumWord) -> Self {
+    pub fn new(name: String, val: Expression) -> Self {
         Self { name, val }
     }
 
@@ -31,7 +31,7 @@ impl AssignNode {
         &self.name
     }
 
-    pub fn val(&self) -> &ExprNumWord {
+    pub fn val(&self) -> &Expression {
         &self.val
     }
 }
@@ -63,19 +63,19 @@ pub type LetNode = AssignNode;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MoveNode {
-    distance: ExprNumWord,
+    distance: Expression,
     direction: Direction,
 }
 
 impl MoveNode {
-    pub fn new(distance: ExprNumWord, direction: Direction) -> Self {
+    pub fn new(distance: Expression, direction: Direction) -> Self {
         Self {
             distance,
             direction,
         }
     }
 
-    pub fn distance(&self) -> &ExprNumWord {
+    pub fn distance(&self) -> &Expression {
         &self.distance
     }
 
@@ -92,16 +92,16 @@ pub enum PenNode {
 
 #[derive(Clone, Debug)]
 pub struct RepeatNode {
-    count: ExprNumWord,
+    count: Expression,
     list: NodeList,
 }
 
 impl RepeatNode {
-    pub fn new(count: ExprNumWord, list: NodeList) -> Self {
+    pub fn new(count: Expression, list: NodeList) -> Self {
         Self { count, list }
     }
 
-    pub fn count(&self) -> &ExprNumWord {
+    pub fn count(&self) -> &Expression {
         &self.count
     }
 
@@ -112,16 +112,16 @@ impl RepeatNode {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RotateNode {
-    angle: ExprNumWord,
+    angle: Expression,
     direction: Direction,
 }
 
 impl RotateNode {
-    pub fn new(angle: ExprNumWord, direction: Direction) -> Self {
+    pub fn new(angle: Expression, direction: Direction) -> Self {
         Self { angle, direction }
     }
 
-    pub fn angle(&self) -> &ExprNumWord {
+    pub fn angle(&self) -> &Expression {
         &self.angle
     }
 
@@ -132,15 +132,15 @@ impl RotateNode {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SetHeadingNode {
-    angle: ExprNumWord,
+    angle: Expression,
 }
 
 impl SetHeadingNode {
-    pub fn new(angle: ExprNumWord) -> Self {
+    pub fn new(angle: Expression) -> Self {
         Self { angle }
     }
 
-    pub fn angle(&self) -> &ExprNumWord {
+    pub fn angle(&self) -> &Expression {
         &self.angle
     }
 }
@@ -162,20 +162,20 @@ impl SetPenColorNode {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SetPositionNode {
-    x: Option<ExprNumWord>,
-    y: Option<ExprNumWord>,
+    x: Option<Expression>,
+    y: Option<Expression>,
 }
 
 impl SetPositionNode {
-    pub fn new(x: Option<ExprNumWord>, y: Option<ExprNumWord>) -> Self {
+    pub fn new(x: Option<Expression>, y: Option<Expression>) -> Self {
         Self { x, y }
     }
 
-    pub fn x(&self) -> Option<&ExprNumWord> {
+    pub fn x(&self) -> Option<&Expression> {
         self.x.as_ref()
     }
 
-    pub fn y(&self) -> Option<&ExprNumWord> {
+    pub fn y(&self) -> Option<&Expression> {
         self.y.as_ref()
     }
 }

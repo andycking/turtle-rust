@@ -282,8 +282,8 @@ impl Interpreter {
 
     fn eval_any_item(&mut self, vmap: &VarMap, item: &AnyItem) -> RuntimeResult<Value> {
         match item {
-            AnyItem::Expression(expr) => self.eval_expr(vmap, expr),
-            AnyItem::ExprNumWord(enw) => self.eval_expr_num_word(vmap, enw),
+            AnyItem::BinExpr(expr) => self.eval_expr(vmap, expr),
+            AnyItem::Expression(enw) => self.eval_expr_num_word(vmap, enw),
             AnyItem::List(list) => self.eval_list(vmap, list),
             AnyItem::ListNumWord(lnw) => self.eval_list_num_word(vmap, lnw),
             AnyItem::Number(num) => Ok(Value::Number(num.val())),
@@ -295,7 +295,7 @@ impl Interpreter {
         }
     }
 
-    fn eval_expr(&mut self, vmap: &VarMap, expr: &Expression) -> RuntimeResult<Value> {
+    fn eval_expr(&mut self, vmap: &VarMap, expr: &BinExpr) -> RuntimeResult<Value> {
         let a = self.eval_expr_num_word(vmap, &expr.a())?;
         let op = expr.op();
         let b = self.eval_expr_num_word(vmap, &expr.b())?;
@@ -306,7 +306,7 @@ impl Interpreter {
             Operator::Multiply => Self::eval_multiply(&a, &b),
             Operator::Subtract => Self::eval_subtract(&a, &b),
             _ => {
-                let msg = "cannot evaluate assignment as part of expression".to_string();
+                let msg = "cannot evaluate assignment as part of BinExpr".to_string();
                 Err(RuntimeError::Interpreter(msg))
             }
         }
@@ -315,20 +315,20 @@ impl Interpreter {
     fn eval_expr_num_word(
         &mut self,
         vmap: &VarMap,
-        expr_num_word: &ExprNumWord,
+        expr_num_word: &Expression,
     ) -> RuntimeResult<Value> {
         match expr_num_word {
-            ExprNumWord::Expression(expr) => self.eval_expr(vmap, expr),
-            ExprNumWord::List(list) => self.eval_list(vmap, list),
-            ExprNumWord::Number(num) => Ok(Value::Number(num.val())),
-            ExprNumWord::Word(word) => self.eval_word(vmap, word),
+            Expression::BinExpr(expr) => self.eval_expr(vmap, expr),
+            Expression::List(list) => self.eval_list(vmap, list),
+            Expression::Number(num) => Ok(Value::Number(num.val())),
+            Expression::Word(word) => self.eval_word(vmap, word),
         }
     }
 
     fn eval_expr_num_word_as_number(
         &mut self,
         vmap: &VarMap,
-        expr_num_word: &ExprNumWord,
+        expr_num_word: &Expression,
     ) -> RuntimeResult<f64> {
         let val = self.eval_expr_num_word(vmap, expr_num_word)?;
         Self::get_number(&val)

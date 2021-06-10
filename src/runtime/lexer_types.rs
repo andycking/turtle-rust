@@ -54,14 +54,14 @@ pub enum Operator {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Expression {
-    a: Box<ExprNumWord>,
+pub struct BinExpr {
+    a: Box<Expression>,
     op: Operator,
-    b: Box<ExprNumWord>,
+    b: Box<Expression>,
 }
 
-impl Expression {
-    pub fn new(a: ExprNumWord, op: Operator, b: ExprNumWord) -> Self {
+impl BinExpr {
+    pub fn new(a: Expression, op: Operator, b: Expression) -> Self {
         Self {
             a: Box::new(a),
             op,
@@ -69,7 +69,7 @@ impl Expression {
         }
     }
 
-    pub fn a(&self) -> &ExprNumWord {
+    pub fn a(&self) -> &Expression {
         &self.a
     }
 
@@ -77,7 +77,7 @@ impl Expression {
         self.op
     }
 
-    pub fn b(&self) -> &ExprNumWord {
+    pub fn b(&self) -> &Expression {
         &self.b
     }
 }
@@ -87,8 +87,8 @@ pub type List = Vec<AnyItem>;
 pub type Block = List;
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum ExprNumWord {
-    Expression(Expression),
+pub enum Expression {
+    BinExpr(BinExpr),
     List(List),
     Number(Number),
     Word(Word),
@@ -104,8 +104,8 @@ pub enum ListNumWord {
 #[derive(Clone, Debug, PartialEq)]
 pub enum AnyItem {
     Block(Block),
+    BinExpr(BinExpr),
     Expression(Expression),
-    ExprNumWord(ExprNumWord),
     List(List),
     ListNumWord(ListNumWord),
     Number(Number),

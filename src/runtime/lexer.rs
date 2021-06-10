@@ -111,8 +111,8 @@ impl Lexer {
                 '(' => {
                     state.delimit(self.idx)?;
 
-                    let expr = self.expression(iter)?;
-                    let item = AnyItem::Expression(expr);
+                    let bin_expr = self.BinExpr(iter)?;
+                    let item = AnyItem::BinExpr(bin_expr);
                     state.list.push(item);
                 }
 
@@ -191,15 +191,15 @@ impl Lexer {
         idx
     }
 
-    fn expression(&mut self, iter: &mut Chars) -> RuntimeResult<Expression> {
-        fn expr_num_word(item: Option<&AnyItem>, idx: usize) -> RuntimeResult<ExprNumWord> {
+    fn BinExpr(&mut self, iter: &mut Chars) -> RuntimeResult<BinExpr> {
+        fn expr_num_word(item: Option<&AnyItem>, idx: usize) -> RuntimeResult<Expression> {
             match item {
-                Some(AnyItem::Expression(expr)) => Ok(ExprNumWord::Expression(expr.clone())),
-                Some(AnyItem::List(list)) => Ok(ExprNumWord::List(list.clone())),
-                Some(AnyItem::Number(num)) => Ok(ExprNumWord::Number(*num)),
-                Some(AnyItem::Word(word)) => Ok(ExprNumWord::Word(word.clone())),
+                Some(AnyItem::BinExpr(bin_expr)) => Ok(Expression::BinExpr(bin_expr.clone())),
+                Some(AnyItem::List(list)) => Ok(Expression::List(list.clone())),
+                Some(AnyItem::Number(num)) => Ok(Expression::Number(*num)),
+                Some(AnyItem::Word(word)) => Ok(Expression::Word(word.clone())),
                 _ => {
-                    let msg = format!("{}: expected an expression, number or word", idx);
+                    let msg = format!("{}: expected an BinExpr, number or word", idx);
                     Err(RuntimeError::Lexer(msg))
                 }
             }
@@ -221,6 +221,6 @@ impl Lexer {
         let op = op_item(expr_iter.next(), self.idx)?;
         let b = expr_num_word(expr_iter.next(), self.idx)?;
 
-        Ok(Expression::new(a, op, b))
+        Ok(BinExpr::new(a, op, b))
     }
 }

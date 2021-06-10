@@ -72,14 +72,14 @@ impl<'a> ListIter<'a> {
         }
     }
 
-    fn get_expr_num_word(&mut self) -> RuntimeResult<ExprNumWord> {
+    fn get_expr_num_word(&mut self) -> RuntimeResult<Expression> {
         match self.next() {
-            AnyItem::Expression(expr) => Ok(ExprNumWord::Expression(expr)),
-            AnyItem::List(list) => Ok(ExprNumWord::List(list)),
-            AnyItem::Number(num) => Ok(ExprNumWord::Number(num)),
-            AnyItem::Word(word) => Ok(ExprNumWord::Word(word)),
+            AnyItem::BinExpr(bin_expr) => Ok(Expression::BinExpr(bin_expr)),
+            AnyItem::List(list) => Ok(Expression::List(list)),
+            AnyItem::Number(num) => Ok(Expression::Number(num)),
+            AnyItem::Word(word) => Ok(Expression::Word(word)),
             _ => {
-                let msg = "expected an expression, number or word".to_string();
+                let msg = "expected an BinExpr, number or word".to_string();
                 Err(RuntimeError::Parser(msg))
             }
         }
