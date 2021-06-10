@@ -68,12 +68,20 @@ impl Interpreter {
         let pal = crate::hashmap![
             0 => Color::BLACK,
             1 => Color::BLUE,
-            2 => Color::GREEN,
-            3 => Color::AQUA,
+            2 => Color::rgb8(0,255,0),        // lime
+            3 => Color::AQUA,                 // cyan
             4 => Color::RED,
-            5 => Color::MAROON,
+            5 => Color::FUCHSIA,              // magenta
             6 => Color::YELLOW,
-            7 => Color::WHITE
+            7 => Color::WHITE,
+            8 => Color::rgb8(165, 42, 42),    // brown
+            9 => Color::rgb8(210, 180, 140),  // tan
+            10 => Color::GREEN,
+            11 => Color::rgb8(127, 255, 212), // aqua
+            12 => Color::rgb8(250, 128, 114), // salmon
+            13 => Color::rgb8(128, 0, 128),   // purple
+            14 => Color::rgb8(255, 165, 0),   // orange
+            15 => Color::rgb8(128, 128, 128)  // gray
         ];
 
         Self {
