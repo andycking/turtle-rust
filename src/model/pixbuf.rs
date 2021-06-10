@@ -71,9 +71,9 @@ impl PixBuf {
         bytes[byte_idx + 3] = alpha;
     }
 
-    fn write_xy_inner_clipped(bytes: &mut [u8], x: usize, y: usize, color: &Color) {
+    fn write_xy_inner_clipped(bytes: &mut [u8], x: i32, y: i32, color: &Color) {
         if Self::contains(x, y) {
-            Self::write_xy_inner(bytes, x, y, color);
+            Self::write_xy_inner(bytes, x as usize, y as usize, color);
         }
     }
 
@@ -86,16 +86,12 @@ impl PixBuf {
         self.write_xy(p.x as usize, p.y as usize, color);
     }
 
-    fn screen_xy(x: i32, y: i32) -> (usize, usize) {
-        // TODO: needs a negative check before casting
-        (
-            (x + ORIGIN.x as i32) as usize,
-            (y + ORIGIN.y as i32) as usize,
-        )
+    fn screen_xy(x: i32, y: i32) -> (i32, i32) {
+        (x + ORIGIN.x as i32, y + ORIGIN.y as i32)
     }
 
-    fn contains(x: usize, y: usize) -> bool {
-        x >= 0 && x < DIMS.width as usize && y >= 0 && y < DIMS.height as usize
+    fn contains(x: i32, y: i32) -> bool {
+        x >= 0 && x < DIMS.width as i32 && y >= 0 && y < DIMS.height as i32
     }
 
     pub fn line(&mut self, p: &Point, q: &Point, color: &Color) {
