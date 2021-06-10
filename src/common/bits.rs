@@ -15,6 +15,15 @@
 use std::ptr;
 use std::sync::atomic;
 
+#[macro_export]
+macro_rules! hashmap {
+    ($( $key: expr => $val: expr ),*) => {{
+         let mut map = ::std::collections::HashMap::new();
+         $( map.insert($key, $val); )*
+         map
+    }}
+}
+
 #[inline]
 pub fn zero<T>(input: &mut [T]) {
     atomic::fence(atomic::Ordering::SeqCst);

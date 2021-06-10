@@ -87,6 +87,7 @@ impl PixBuf {
     }
 
     fn screen_xy(x: i32, y: i32) -> (usize, usize) {
+        // TODO: needs a negative check before casting
         (
             (x + ORIGIN.x as i32) as usize,
             (y + ORIGIN.y as i32) as usize,
