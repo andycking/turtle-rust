@@ -195,6 +195,7 @@ impl Lexer {
         fn expr_num_word(item: Option<&AnyItem>, idx: usize) -> RuntimeResult<ExprNumWord> {
             match item {
                 Some(AnyItem::Expression(expr)) => Ok(ExprNumWord::Expression(expr.clone())),
+                Some(AnyItem::List(list)) => Ok(ExprNumWord::List(list.clone())),
                 Some(AnyItem::Number(num)) => Ok(ExprNumWord::Number(*num)),
                 Some(AnyItem::Word(word)) => Ok(ExprNumWord::Word(word.clone())),
                 _ => {

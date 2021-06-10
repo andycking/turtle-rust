@@ -75,6 +75,7 @@ impl<'a> ListIter<'a> {
     fn get_expr_num_word(&mut self) -> RuntimeResult<ExprNumWord> {
         match self.next() {
             AnyItem::Expression(expr) => Ok(ExprNumWord::Expression(expr)),
+            AnyItem::List(list) => Ok(ExprNumWord::List(list)),
             AnyItem::Number(num) => Ok(ExprNumWord::Number(num)),
             AnyItem::Word(word) => Ok(ExprNumWord::Word(word)),
             _ => {

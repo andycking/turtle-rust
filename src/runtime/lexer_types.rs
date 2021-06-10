@@ -89,6 +89,7 @@ pub type Block = List;
 #[derive(Clone, Debug, PartialEq)]
 pub enum ExprNumWord {
     Expression(Expression),
+    List(List),
     Number(Number),
     Word(Word),
 }

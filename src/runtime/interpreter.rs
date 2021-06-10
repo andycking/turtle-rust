@@ -319,6 +319,7 @@ impl Interpreter {
     ) -> RuntimeResult<Value> {
         match expr_num_word {
             ExprNumWord::Expression(expr) => self.eval_expr(vmap, expr),
+            ExprNumWord::List(list) => self.eval_list(vmap, list),
             ExprNumWord::Number(num) => Ok(Value::Number(num.val())),
             ExprNumWord::Word(word) => self.eval_word(vmap, word),
         }
