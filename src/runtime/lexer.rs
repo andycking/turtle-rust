@@ -111,7 +111,7 @@ impl Lexer {
                 '(' => {
                     state.delimit(self.idx)?;
 
-                    let bin_expr = self.BinExpr(iter)?;
+                    let bin_expr = self.bin_expr(iter)?;
                     let item = AnyItem::BinExpr(bin_expr);
                     state.list.push(item);
                 }
@@ -191,7 +191,7 @@ impl Lexer {
         idx
     }
 
-    fn BinExpr(&mut self, iter: &mut Chars) -> RuntimeResult<BinExpr> {
+    fn bin_expr(&mut self, iter: &mut Chars) -> RuntimeResult<BinExpr> {
         fn expression(item: Option<&AnyItem>, idx: usize) -> RuntimeResult<Expression> {
             match item {
                 Some(AnyItem::BinExpr(bin_expr)) => Ok(Expression::BinExpr(bin_expr.clone())),
