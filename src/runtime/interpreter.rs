@@ -206,7 +206,7 @@ impl Interpreter {
 
     fn eval_repeat(
         &mut self,
-        frame: &mut Frame,
+        _frame: &mut Frame,
         fmap: &FuncMap,
         vmap: &mut VarMap,
         node: &RepeatNode,
@@ -215,7 +215,7 @@ impl Interpreter {
         let list = node.list();
         let mut child_frame = Frame::new(0);
 
-        for i in 0..count as usize {
+        for _ in 0..count as usize {
             child_frame.repcount += 1;
             self.run(&mut child_frame, fmap, vmap, list)?;
         }
