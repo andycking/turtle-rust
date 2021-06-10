@@ -36,7 +36,7 @@ type VarMap = HashMap<String, Value>;
 type Palette = HashMap<u8, Color>;
 
 #[derive(Clone, Debug)]
-pub struct State {
+struct State {
     angle: f64,
     color: Color,
     pen_down: bool,
@@ -53,6 +53,17 @@ impl State {
             pos: Point::ZERO,
             screen_color: Color::BLACK,
         }
+    }
+}
+
+#[derive(Clone, Debug)]
+struct Frame {
+    pub repcount: usize,
+}
+
+impl Frame {
+    pub fn new(repcount: usize) -> Self {
+        Self { repcount }
     }
 }
 
@@ -92,22 +103,30 @@ impl Interpreter {
     }
 
     pub fn go(&mut self, input: &ParserOutput) -> RuntimeResult {
+        let mut frame = Frame::new(0);
         let mut vmap = VarMap::new();
-        self.run(&input.fmap, &mut vmap, &input.list)
+        self.run(&mut frame, &input.fmap, &mut vmap, &input.list)
     }
 
-    fn run(&mut self, fmap: &FuncMap, vmap: &mut VarMap, list: &[Node]) -> RuntimeResult {
+    fn run(
+        &mut self,
+        frame: &mut Frame,
+        fmap: &FuncMap,
+        vmap: &mut VarMap,
+        list: &[Node],
+    ) -> RuntimeResult {
+        println!("repcount {}", frame.repcount);
         for node in list.iter() {
             match node {
                 Node::Assign(node) => self.eval_assign(vmap, node)?,
-                Node::Call(node) => self.eval_call(fmap, vmap, node)?,
+                Node::Call(node) => self.eval_call(frame, fmap, vmap, node)?,
                 Node::Clean => self.eval_clean(),
                 Node::ClearScreen => self.eval_clear_screen()?,
                 Node::Home => self.eval_home()?,
                 Node::Let(node) => self.eval_let(vmap, node)?,
                 Node::Move(node) => self.eval_move(vmap, node)?,
                 Node::Pen(node) => self.eval_pen(node),
-                Node::Repeat(node) => self.eval_repeat(fmap, vmap, node)?,
+                Node::Repeat(node) => self.eval_repeat(frame, fmap, vmap, node)?,
                 Node::Rotate(node) => self.eval_rotate(vmap, node)?,
                 Node::SetHeading(node) => self.eval_set_heading(vmap, node)?,
                 Node::SetPenColor(node) => self.eval_set_pen_color(vmap, node)?,
@@ -130,10 +149,17 @@ impl Interpreter {
         }
     }
 
-    fn eval_call(&mut self, fmap: &FuncMap, vmap: &mut VarMap, node: &CallNode) -> RuntimeResult {
+    fn eval_call(
+        &mut self,
+        frame: &mut Frame,
+        fmap: &FuncMap,
+        vmap: &mut VarMap,
+        node: &CallNode,
+    ) -> RuntimeResult {
         let name = node.name();
         if let Some(func) = fmap.get(name.name()) {
-            self.run(fmap, vmap, &func.list)
+            let mut child_frame = Frame::new(frame.repcount);
+            self.run(&mut child_frame, fmap, vmap, &func.list)
         } else {
             let msg = format!("no such function {}", name.name());
             Err(RuntimeError::Interpreter(msg))
@@ -180,15 +206,18 @@ impl Interpreter {
 
     fn eval_repeat(
         &mut self,
+        frame: &mut Frame,
         fmap: &FuncMap,
         vmap: &mut VarMap,
         node: &RepeatNode,
     ) -> RuntimeResult {
         let count = self.eval_expr_num_word_as_number(vmap, node.count())?;
         let list = node.list();
+        let mut child_frame = Frame::new(0);
 
-        for _ in 0..count as usize {
-            self.run(fmap, vmap, list)?;
+        for i in 0..count as usize {
+            child_frame.repcount += 1;
+            self.run(&mut child_frame, fmap, vmap, list)?;
         }
 
         Ok(())
