@@ -27,8 +27,8 @@ type ValueList = Vec<Value>;
 
 #[derive(Clone, Debug, PartialEq)]
 enum Value {
-    List(ValueList),
-    Number(f64),
+    LexerList(ValueList),
+    LexerNumber(f64),
 }
 
 type VarMap = HashMap<String, Value>;
@@ -249,7 +249,7 @@ impl Interpreter {
     }
 
     fn eval_set_pen_color(&mut self, vmap: &mut VarMap, node: &SetPenColorNode) -> RuntimeResult {
-        let val = self.eval_list_num_word(vmap, node.color())?;
+        let val = self.eval_expr(vmap, node.color())?;
         self.state.color = Self::get_color(&self.pal, &val)?;
         Ok(())
     }
@@ -275,19 +275,18 @@ impl Interpreter {
         vmap: &mut VarMap,
         node: &SetScreenColorNode,
     ) -> RuntimeResult {
-        let val = self.eval_list_num_word(vmap, node.color())?;
+        let val = self.eval_expr(vmap, node.color())?;
         self.state.screen_color = Self::get_color(&self.pal, &val)?;
         Ok(())
     }
 
-    fn eval_any_item(&mut self, vmap: &VarMap, item: &AnyItem) -> RuntimeResult<Value> {
+    fn eval_any_item(&mut self, vmap: &VarMap, item: &LexerAny) -> RuntimeResult<Value> {
         match item {
-            AnyItem::BinExpr(expr) => self.eval_bin_expr(vmap, expr),
-            AnyItem::Expression(enw) => self.eval_expr(vmap, enw),
-            AnyItem::List(list) => self.eval_list(vmap, list),
-            AnyItem::ListNumWord(lnw) => self.eval_list_num_word(vmap, lnw),
-            AnyItem::Number(num) => Ok(Value::Number(num.val())),
-            AnyItem::Word(word) => self.eval_word(vmap, word),
+            LexerAny::LexerBinExpr(expr) => self.eval_bin_expr(vmap, expr),
+            LexerAny::LexerExpr(enw) => self.eval_expr(vmap, enw),
+            LexerAny::LexerList(list) => self.eval_list(vmap, list),
+            LexerAny::LexerNumber(num) => Ok(Value::LexerNumber(num.val())),
+            LexerAny::LexerWord(word) => self.eval_word(vmap, word),
             _ => {
                 let msg = "cannot evaluate item".to_string();
                 Err(RuntimeError::Interpreter(msg))
@@ -295,60 +294,48 @@ impl Interpreter {
         }
     }
 
-    fn eval_bin_expr(&mut self, vmap: &VarMap, expr: &BinExpr) -> RuntimeResult<Value> {
+    fn eval_bin_expr(&mut self, vmap: &VarMap, expr: &LexerBinExpr) -> RuntimeResult<Value> {
         let a = self.eval_expr(vmap, &expr.a())?;
         let op = expr.op();
         let b = self.eval_expr(vmap, &expr.b())?;
 
         match op {
-            Operator::Add => Self::eval_add(&a, &b),
-            Operator::Divide => Self::eval_divide(&a, &b),
-            Operator::Multiply => Self::eval_multiply(&a, &b),
-            Operator::Subtract => Self::eval_subtract(&a, &b),
+            LexerOperator::Add => Self::eval_add(&a, &b),
+            LexerOperator::Divide => Self::eval_divide(&a, &b),
+            LexerOperator::Multiply => Self::eval_multiply(&a, &b),
+            LexerOperator::Subtract => Self::eval_subtract(&a, &b),
             _ => {
-                let msg = "cannot evaluate assignment as part of BinExpr".to_string();
+                let msg = "cannot evaluate assignment as part of LexerBinExpr".to_string();
                 Err(RuntimeError::Interpreter(msg))
             }
         }
     }
 
-    fn eval_expr(&mut self, vmap: &VarMap, expr: &Expression) -> RuntimeResult<Value> {
+    fn eval_expr(&mut self, vmap: &VarMap, expr: &LexerExpr) -> RuntimeResult<Value> {
         match expr {
-            Expression::BinExpr(bin_expr) => self.eval_bin_expr(vmap, bin_expr),
-            Expression::List(list) => self.eval_list(vmap, list),
-            Expression::Number(num) => Ok(Value::Number(num.val())),
-            Expression::Word(word) => self.eval_word(vmap, word),
+            LexerExpr::LexerBinExpr(bin_expr) => self.eval_bin_expr(vmap, bin_expr),
+            LexerExpr::LexerList(list) => self.eval_list(vmap, list),
+            LexerExpr::LexerNumber(num) => Ok(Value::LexerNumber(num.val())),
+            LexerExpr::LexerWord(word) => self.eval_word(vmap, word),
         }
     }
 
-    fn eval_expr_as_number(&mut self, vmap: &VarMap, expr: &Expression) -> RuntimeResult<f64> {
+    fn eval_expr_as_number(&mut self, vmap: &VarMap, expr: &LexerExpr) -> RuntimeResult<f64> {
         let val = self.eval_expr(vmap, expr)?;
         Self::get_number(&val)
     }
 
-    fn eval_list(&mut self, vmap: &VarMap, list: &[AnyItem]) -> RuntimeResult<Value> {
+    fn eval_list(&mut self, vmap: &VarMap, list: &[LexerAny]) -> RuntimeResult<Value> {
         let mut out = ValueList::new();
         for item in list.iter() {
             let v = self.eval_any_item(vmap, item)?;
             out.push(v);
         }
 
-        Ok(Value::List(out))
+        Ok(Value::LexerList(out))
     }
 
-    fn eval_list_num_word(
-        &mut self,
-        vmap: &VarMap,
-        list_num_word: &ListNumWord,
-    ) -> RuntimeResult<Value> {
-        match list_num_word {
-            ListNumWord::List(list) => self.eval_list(vmap, list),
-            ListNumWord::Number(num) => Ok(Value::Number(num.val())),
-            ListNumWord::Word(word) => self.eval_word(vmap, word),
-        }
-    }
-
-    fn eval_word(&mut self, vmap: &VarMap, word: &Word) -> RuntimeResult<Value> {
+    fn eval_word(&mut self, vmap: &VarMap, word: &LexerWord) -> RuntimeResult<Value> {
         if let Some(value) = vmap.get(word.name()) {
             Ok(value.clone())
         } else {
@@ -359,25 +346,25 @@ impl Interpreter {
 
     fn eval_add(a: &Value, b: &Value) -> RuntimeResult<Value> {
         match a {
-            Value::Number(a_num) => match b {
-                Value::Number(b_num) => Ok(Value::Number(a_num + b_num)),
+            Value::LexerNumber(a_num) => match b {
+                Value::LexerNumber(b_num) => Ok(Value::LexerNumber(a_num + b_num)),
                 _ => {
                     let msg = "cannot add a number and a list".to_string();
                     Err(RuntimeError::Interpreter(msg))
                 }
             },
-            Value::List(a_list) => match b {
-                Value::List(b_list) => {
+            Value::LexerList(a_list) => match b {
+                Value::LexerList(b_list) => {
                     let mut merged = ValueList::new();
                     merged.extend_from_slice(&a_list);
                     merged.extend_from_slice(&b_list);
-                    Ok(Value::List(merged))
+                    Ok(Value::LexerList(merged))
                 }
-                Value::Number(b_num) => {
+                Value::LexerNumber(b_num) => {
                     let mut merged = ValueList::new();
                     merged.extend_from_slice(&a_list);
-                    merged.push(Value::Number(*b_num));
-                    Ok(Value::List(merged))
+                    merged.push(Value::LexerNumber(*b_num));
+                    Ok(Value::LexerList(merged))
                 }
             },
         }
@@ -385,14 +372,14 @@ impl Interpreter {
 
     fn eval_divide(a: &Value, b: &Value) -> RuntimeResult<Value> {
         match a {
-            Value::Number(a_num) => match b {
-                Value::Number(other_num) => Ok(Value::Number(a_num / other_num)),
+            Value::LexerNumber(a_num) => match b {
+                Value::LexerNumber(other_num) => Ok(Value::LexerNumber(a_num / other_num)),
                 _ => {
                     let msg = "cannot divide a number and a list".to_string();
                     Err(RuntimeError::Interpreter(msg))
                 }
             },
-            Value::List(_) => {
+            Value::LexerList(_) => {
                 let msg = "cannot divide two lists".to_string();
                 Err(RuntimeError::Interpreter(msg))
             }
@@ -401,14 +388,14 @@ impl Interpreter {
 
     fn eval_multiply(a: &Value, b: &Value) -> RuntimeResult<Value> {
         match a {
-            Value::Number(a_num) => match b {
-                Value::Number(b_num) => Ok(Value::Number(a_num * b_num)),
+            Value::LexerNumber(a_num) => match b {
+                Value::LexerNumber(b_num) => Ok(Value::LexerNumber(a_num * b_num)),
                 _ => {
                     let msg = "cannot multiply a number and a list".to_string();
                     Err(RuntimeError::Interpreter(msg))
                 }
             },
-            Value::List(_) => {
+            Value::LexerList(_) => {
                 let msg = "cannot multiply two lists".to_string();
                 Err(RuntimeError::Interpreter(msg))
             }
@@ -417,14 +404,14 @@ impl Interpreter {
 
     fn eval_subtract(a: &Value, b: &Value) -> RuntimeResult<Value> {
         match a {
-            Value::Number(a_num) => match b {
-                Value::Number(b_num) => Ok(Value::Number(a_num - b_num)),
+            Value::LexerNumber(a_num) => match b {
+                Value::LexerNumber(b_num) => Ok(Value::LexerNumber(a_num - b_num)),
                 _ => {
                     let msg = "cannot subtract a list from a number".to_string();
                     Err(RuntimeError::Interpreter(msg))
                 }
             },
-            Value::List(_) => {
+            Value::LexerList(_) => {
                 let msg = "cannot subtract two lists".to_string();
                 Err(RuntimeError::Interpreter(msg))
             }
@@ -443,7 +430,7 @@ impl Interpreter {
 
     fn get_color(pal: &Palette, val: &Value) -> RuntimeResult<Color> {
         match val {
-            Value::List(list) => {
+            Value::LexerList(list) => {
                 Self::vlist_expect(&list, 3)?;
                 let red = Self::get_color_component(&list[0])?;
                 let green = Self::get_color_component(&list[1])?;
@@ -452,7 +439,7 @@ impl Interpreter {
                 Ok(Color::rgb8(red as u8, green as u8, blue as u8))
             }
 
-            Value::Number(num) => {
+            Value::LexerNumber(num) => {
                 let idx = *num as u8;
                 if let Some(color) = pal.get(&idx) {
                     Ok(color.clone())
@@ -465,7 +452,7 @@ impl Interpreter {
     }
 
     fn get_number(val: &Value) -> RuntimeResult<f64> {
-        if let Value::Number(num) = val {
+        if let Value::LexerNumber(num) = val {
             Ok(*num)
         } else {
             let msg = "expected a number".to_string();

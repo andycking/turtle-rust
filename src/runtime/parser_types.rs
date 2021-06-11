@@ -19,11 +19,11 @@ use super::lexer_types::*;
 #[derive(Clone, Debug, PartialEq)]
 pub struct AssignNode {
     name: String,
-    val: Expression,
+    val: LexerExpr,
 }
 
 impl AssignNode {
-    pub fn new(name: String, val: Expression) -> Self {
+    pub fn new(name: String, val: LexerExpr) -> Self {
         Self { name, val }
     }
 
@@ -31,22 +31,22 @@ impl AssignNode {
         &self.name
     }
 
-    pub fn val(&self) -> &Expression {
+    pub fn val(&self) -> &LexerExpr {
         &self.val
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CallNode {
-    name: Word,
+    name: LexerWord,
 }
 
 impl CallNode {
-    pub fn new(name: Word) -> Self {
+    pub fn new(name: LexerWord) -> Self {
         Self { name }
     }
 
-    pub fn name(&self) -> &Word {
+    pub fn name(&self) -> &LexerWord {
         &self.name
     }
 }
@@ -63,19 +63,19 @@ pub type LetNode = AssignNode;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MoveNode {
-    distance: Expression,
+    distance: LexerExpr,
     direction: Direction,
 }
 
 impl MoveNode {
-    pub fn new(distance: Expression, direction: Direction) -> Self {
+    pub fn new(distance: LexerExpr, direction: Direction) -> Self {
         Self {
             distance,
             direction,
         }
     }
 
-    pub fn distance(&self) -> &Expression {
+    pub fn distance(&self) -> &LexerExpr {
         &self.distance
     }
 
@@ -92,16 +92,16 @@ pub enum PenNode {
 
 #[derive(Clone, Debug)]
 pub struct RepeatNode {
-    count: Expression,
+    count: LexerExpr,
     list: NodeList,
 }
 
 impl RepeatNode {
-    pub fn new(count: Expression, list: NodeList) -> Self {
+    pub fn new(count: LexerExpr, list: NodeList) -> Self {
         Self { count, list }
     }
 
-    pub fn count(&self) -> &Expression {
+    pub fn count(&self) -> &LexerExpr {
         &self.count
     }
 
@@ -112,16 +112,16 @@ impl RepeatNode {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RotateNode {
-    angle: Expression,
+    angle: LexerExpr,
     direction: Direction,
 }
 
 impl RotateNode {
-    pub fn new(angle: Expression, direction: Direction) -> Self {
+    pub fn new(angle: LexerExpr, direction: Direction) -> Self {
         Self { angle, direction }
     }
 
-    pub fn angle(&self) -> &Expression {
+    pub fn angle(&self) -> &LexerExpr {
         &self.angle
     }
 
@@ -132,65 +132,65 @@ impl RotateNode {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SetHeadingNode {
-    angle: Expression,
+    angle: LexerExpr,
 }
 
 impl SetHeadingNode {
-    pub fn new(angle: Expression) -> Self {
+    pub fn new(angle: LexerExpr) -> Self {
         Self { angle }
     }
 
-    pub fn angle(&self) -> &Expression {
+    pub fn angle(&self) -> &LexerExpr {
         &self.angle
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SetPenColorNode {
-    color: ListNumWord,
+    color: LexerExpr,
 }
 
 impl SetPenColorNode {
-    pub fn new(color: ListNumWord) -> Self {
+    pub fn new(color: LexerExpr) -> Self {
         Self { color }
     }
 
-    pub fn color(&self) -> &ListNumWord {
+    pub fn color(&self) -> &LexerExpr {
         &self.color
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SetPositionNode {
-    x: Option<Expression>,
-    y: Option<Expression>,
+    x: Option<LexerExpr>,
+    y: Option<LexerExpr>,
 }
 
 impl SetPositionNode {
-    pub fn new(x: Option<Expression>, y: Option<Expression>) -> Self {
+    pub fn new(x: Option<LexerExpr>, y: Option<LexerExpr>) -> Self {
         Self { x, y }
     }
 
-    pub fn x(&self) -> Option<&Expression> {
+    pub fn x(&self) -> Option<&LexerExpr> {
         self.x.as_ref()
     }
 
-    pub fn y(&self) -> Option<&Expression> {
+    pub fn y(&self) -> Option<&LexerExpr> {
         self.y.as_ref()
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SetScreenColorNode {
-    color: ListNumWord,
+    color: LexerExpr,
 }
 
 impl SetScreenColorNode {
-    pub fn new(color: ListNumWord) -> Self {
+    pub fn new(color: LexerExpr) -> Self {
         Self { color }
     }
 
-    pub fn color(&self) -> &ListNumWord {
+    pub fn color(&self) -> &LexerExpr {
         &self.color
     }
 }

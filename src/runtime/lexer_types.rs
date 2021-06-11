@@ -13,11 +13,11 @@
 // limitations under the License.
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Word {
+pub struct LexerWord {
     name: String,
 }
 
-impl Word {
+impl LexerWord {
     pub fn new(name: &str) -> Self {
         Self {
             name: String::from(name),
@@ -30,11 +30,11 @@ impl Word {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Number {
+pub struct LexerNumber {
     val: f64,
 }
 
-impl Number {
+impl LexerNumber {
     pub fn new(val: f64) -> Self {
         Self { val }
     }
@@ -45,7 +45,7 @@ impl Number {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Operator {
+pub enum LexerOperator {
     Add,
     Assign,
     Divide,
@@ -54,14 +54,14 @@ pub enum Operator {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct BinExpr {
-    a: Box<Expression>,
-    op: Operator,
-    b: Box<Expression>,
+pub struct LexerBinExpr {
+    a: Box<LexerExpr>,
+    op: LexerOperator,
+    b: Box<LexerExpr>,
 }
 
-impl BinExpr {
-    pub fn new(a: Expression, op: Operator, b: Expression) -> Self {
+impl LexerBinExpr {
+    pub fn new(a: LexerExpr, op: LexerOperator, b: LexerExpr) -> Self {
         Self {
             a: Box::new(a),
             op,
@@ -69,46 +69,38 @@ impl BinExpr {
         }
     }
 
-    pub fn a(&self) -> &Expression {
+    pub fn a(&self) -> &LexerExpr {
         &self.a
     }
 
-    pub fn op(&self) -> Operator {
+    pub fn op(&self) -> LexerOperator {
         self.op
     }
 
-    pub fn b(&self) -> &Expression {
+    pub fn b(&self) -> &LexerExpr {
         &self.b
     }
 }
 
-pub type List = Vec<AnyItem>;
+pub type LexerList = Vec<LexerAny>;
 
-pub type Block = List;
+pub type LexerBlock = LexerList;
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Expression {
-    BinExpr(BinExpr),
-    List(List),
-    Number(Number),
-    Word(Word),
+pub enum LexerExpr {
+    LexerBinExpr(LexerBinExpr),
+    LexerList(LexerList),
+    LexerNumber(LexerNumber),
+    LexerWord(LexerWord),
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum ListNumWord {
-    List(List),
-    Number(Number),
-    Word(Word),
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum AnyItem {
-    Block(Block),
-    BinExpr(BinExpr),
-    Expression(Expression),
-    List(List),
-    ListNumWord(ListNumWord),
-    Number(Number),
-    Operator(Operator),
-    Word(Word),
+pub enum LexerAny {
+    LexerBlock(LexerBlock),
+    LexerBinExpr(LexerBinExpr),
+    LexerExpr(LexerExpr),
+    LexerList(LexerList),
+    LexerNumber(LexerNumber),
+    LexerOperator(LexerOperator),
+    LexerWord(LexerWord),
 }

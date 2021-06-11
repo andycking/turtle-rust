@@ -19,7 +19,7 @@ use super::lexer_types::*;
 
 #[derive(Clone, Debug)]
 struct LexerState {
-    list: List,
+    list: LexerList,
     symbol: String,
     number: bool,
 }
@@ -27,7 +27,7 @@ struct LexerState {
 impl LexerState {
     pub fn new() -> Self {
         Self {
-            list: List::new(),
+            list: LexerList::new(),
             symbol: String::new(),
             number: false,
         }
@@ -37,15 +37,15 @@ impl LexerState {
         if !self.symbol.is_empty() {
             let item = if self.number {
                 if let Ok(val) = self.symbol.parse::<f64>() {
-                    let num = Number::new(val);
-                    AnyItem::Number(num)
+                    let num = LexerNumber::new(val);
+                    LexerAny::LexerNumber(num)
                 } else {
                     let msg = format!("{}: failed to parse number {}", idx, self.symbol);
                     return Err(RuntimeError::Lexer(msg));
                 }
             } else {
-                let word = Word::new(&self.symbol);
-                AnyItem::Word(word)
+                let word = LexerWord::new(&self.symbol);
+                LexerAny::LexerWord(word)
             };
             self.list.push(item);
         }
@@ -67,12 +67,12 @@ impl Lexer {
         Self { idx: 1 }
     }
 
-    pub fn go(&mut self, input: &str) -> RuntimeResult<List> {
+    pub fn go(&mut self, input: &str) -> RuntimeResult<LexerList> {
         let mut iter = input.chars();
         self.lex(&mut iter)
     }
 
-    fn lex(&mut self, iter: &mut Chars) -> RuntimeResult<List> {
+    fn lex(&mut self, iter: &mut Chars) -> RuntimeResult<LexerList> {
         let mut state = LexerState::new();
 
         while let Some(c) = iter.next() {
@@ -86,7 +86,7 @@ impl Lexer {
                     state.delimit(self.idx)?;
 
                     let block = self.lex(iter)?;
-                    let item = AnyItem::Block(block);
+                    let item = LexerAny::LexerBlock(block);
                     state.list.push(item);
                 }
 
@@ -99,7 +99,7 @@ impl Lexer {
                     state.delimit(self.idx)?;
 
                     let inner = self.lex(iter)?;
-                    let item = AnyItem::List(inner);
+                    let item = LexerAny::LexerList(inner);
                     state.list.push(item);
                 }
 
@@ -112,7 +112,7 @@ impl Lexer {
                     state.delimit(self.idx)?;
 
                     let bin_expr = self.get_bin_expr(iter)?;
-                    let item = AnyItem::BinExpr(bin_expr);
+                    let item = LexerAny::LexerBinExpr(bin_expr);
                     state.list.push(item);
                 }
 
@@ -125,7 +125,7 @@ impl Lexer {
                     state.delimit(self.idx)?;
 
                     let op = Self::operator(c, self.idx)?;
-                    let item = AnyItem::Operator(op);
+                    let item = LexerAny::LexerOperator(op);
                     state.list.push(item);
                 }
 
@@ -164,13 +164,13 @@ impl Lexer {
         Ok(state.list)
     }
 
-    fn operator(c: char, idx: usize) -> RuntimeResult<Operator> {
+    fn operator(c: char, idx: usize) -> RuntimeResult<LexerOperator> {
         match c {
-            '+' => Ok(Operator::Add),
-            '=' => Ok(Operator::Assign),
-            '-' => Ok(Operator::Subtract),
-            '*' => Ok(Operator::Multiply),
-            '/' => Ok(Operator::Divide),
+            '+' => Ok(LexerOperator::Add),
+            '=' => Ok(LexerOperator::Assign),
+            '-' => Ok(LexerOperator::Subtract),
+            '*' => Ok(LexerOperator::Multiply),
+            '/' => Ok(LexerOperator::Divide),
             _ => {
                 let msg = format!("{}: unrecognized operator {}", idx, c);
                 Err(RuntimeError::Lexer(msg))
@@ -191,7 +191,7 @@ impl Lexer {
         idx
     }
 
-    fn get_bin_expr(&mut self, iter: &mut Chars) -> RuntimeResult<BinExpr> {
+    fn get_bin_expr(&mut self, iter: &mut Chars) -> RuntimeResult<LexerBinExpr> {
         let expr_list = self.lex(iter)?;
         let mut expr_iter = expr_list.iter();
 
@@ -199,15 +199,15 @@ impl Lexer {
         let op = Self::get_op_item(expr_iter.next(), self.idx)?;
         let b = Self::get_expression(expr_iter.next(), self.idx)?;
 
-        Ok(BinExpr::new(a, op, b))
+        Ok(LexerBinExpr::new(a, op, b))
     }
 
-    fn get_expression(item: Option<&AnyItem>, idx: usize) -> RuntimeResult<Expression> {
+    fn get_expression(item: Option<&LexerAny>, idx: usize) -> RuntimeResult<LexerExpr> {
         match item {
-            Some(AnyItem::BinExpr(bin_expr)) => Ok(Expression::BinExpr(bin_expr.clone())),
-            Some(AnyItem::List(list)) => Ok(Expression::List(list.clone())),
-            Some(AnyItem::Number(num)) => Ok(Expression::Number(*num)),
-            Some(AnyItem::Word(word)) => Ok(Expression::Word(word.clone())),
+            Some(LexerAny::LexerBinExpr(bin_expr)) => Ok(LexerExpr::LexerBinExpr(bin_expr.clone())),
+            Some(LexerAny::LexerList(list)) => Ok(LexerExpr::LexerList(list.clone())),
+            Some(LexerAny::LexerNumber(num)) => Ok(LexerExpr::LexerNumber(*num)),
+            Some(LexerAny::LexerWord(word)) => Ok(LexerExpr::LexerWord(word.clone())),
             _ => {
                 let msg = format!("{}: expected an expression", idx);
                 Err(RuntimeError::Lexer(msg))
@@ -215,8 +215,8 @@ impl Lexer {
         }
     }
 
-    fn get_op_item(item: Option<&AnyItem>, idx: usize) -> RuntimeResult<Operator> {
-        if let Some(AnyItem::Operator(op)) = item {
+    fn get_op_item(item: Option<&LexerAny>, idx: usize) -> RuntimeResult<LexerOperator> {
+        if let Some(LexerAny::LexerOperator(op)) = item {
             Ok(*op)
         } else {
             let msg = format!("{}: expected an operator", idx);

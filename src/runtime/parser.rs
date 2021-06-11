@@ -20,13 +20,13 @@ use super::parser_types::*;
 
 #[derive(Clone, Debug)]
 struct ListIter<'a> {
-    list: &'a [AnyItem],
+    list: &'a [LexerAny],
     idx: usize,
     depth: usize,
 }
 
 impl<'a> ListIter<'a> {
-    pub fn new(list: &'a [AnyItem]) -> Self {
+    pub fn new(list: &'a [LexerAny]) -> Self {
         Self {
             list,
             idx: 0,
@@ -47,15 +47,15 @@ impl<'a> ListIter<'a> {
         }
     }
 
-    fn next(&mut self) -> AnyItem {
+    fn next(&mut self) -> LexerAny {
         let temp = self.idx;
         self.idx += 1;
         self.list[temp].clone()
     }
 
-    fn get_assignment(&mut self) -> RuntimeResult<Operator> {
+    fn get_assignment(&mut self) -> RuntimeResult<LexerOperator> {
         let op = self.get_operator()?;
-        if op == Operator::Assign {
+        if op == LexerOperator::Assign {
             Ok(op)
         } else {
             let msg = "expected an assignment".to_string();
@@ -63,8 +63,8 @@ impl<'a> ListIter<'a> {
         }
     }
 
-    fn get_block(&mut self) -> RuntimeResult<Block> {
-        if let AnyItem::Block(block) = self.next() {
+    fn get_block(&mut self) -> RuntimeResult<LexerBlock> {
+        if let LexerAny::LexerBlock(block) = self.next() {
             Ok(block)
         } else {
             let msg = "expected a block".to_string();
@@ -72,12 +72,12 @@ impl<'a> ListIter<'a> {
         }
     }
 
-    fn get_expression(&mut self) -> RuntimeResult<Expression> {
+    fn get_expression(&mut self) -> RuntimeResult<LexerExpr> {
         match self.next() {
-            AnyItem::BinExpr(bin_expr) => Ok(Expression::BinExpr(bin_expr)),
-            AnyItem::List(list) => Ok(Expression::List(list)),
-            AnyItem::Number(num) => Ok(Expression::Number(num)),
-            AnyItem::Word(word) => Ok(Expression::Word(word)),
+            LexerAny::LexerBinExpr(bin_expr) => Ok(LexerExpr::LexerBinExpr(bin_expr)),
+            LexerAny::LexerList(list) => Ok(LexerExpr::LexerList(list)),
+            LexerAny::LexerNumber(num) => Ok(LexerExpr::LexerNumber(num)),
+            LexerAny::LexerWord(word) => Ok(LexerExpr::LexerWord(word)),
             _ => {
                 let msg = "expected an expression".to_string();
                 Err(RuntimeError::Parser(msg))
@@ -85,8 +85,8 @@ impl<'a> ListIter<'a> {
         }
     }
 
-    fn get_list(&mut self) -> RuntimeResult<List> {
-        if let AnyItem::List(list) = self.next() {
+    fn get_list(&mut self) -> RuntimeResult<LexerList> {
+        if let LexerAny::LexerList(list) = self.next() {
             Ok(list)
         } else {
             let msg = "expected a list".to_string();
@@ -94,20 +94,8 @@ impl<'a> ListIter<'a> {
         }
     }
 
-    fn get_list_num_word(&mut self) -> RuntimeResult<ListNumWord> {
-        match self.next() {
-            AnyItem::List(list) => Ok(ListNumWord::List(list)),
-            AnyItem::Number(num) => Ok(ListNumWord::Number(num)),
-            AnyItem::Word(word) => Ok(ListNumWord::Word(word)),
-            _ => {
-                let msg = "expected a list, number or word".to_string();
-                Err(RuntimeError::Parser(msg))
-            }
-        }
-    }
-
-    fn get_operator(&mut self) -> RuntimeResult<Operator> {
-        if let AnyItem::Operator(op) = self.next() {
+    fn get_operator(&mut self) -> RuntimeResult<LexerOperator> {
+        if let LexerAny::LexerOperator(op) = self.next() {
             Ok(op)
         } else {
             let msg = "expected an operator".to_string();
@@ -115,8 +103,8 @@ impl<'a> ListIter<'a> {
         }
     }
 
-    fn get_word(&mut self) -> RuntimeResult<Word> {
-        if let AnyItem::Word(word) = self.next() {
+    fn get_word(&mut self) -> RuntimeResult<LexerWord> {
+        if let LexerAny::LexerWord(word) = self.next() {
             Ok(word)
         } else {
             let msg = "expected a word".to_string();
@@ -149,7 +137,7 @@ impl Parser {
         }
     }
 
-    pub fn go(&mut self, input: &[AnyItem]) -> RuntimeResult<ParserOutput> {
+    pub fn go(&mut self, input: &[LexerAny]) -> RuntimeResult<ParserOutput> {
         let mut iter = ListIter::new(input);
         let list = self.parse(&mut iter)?;
         Ok(ParserOutput::new(list, self.fmap.to_owned()))
@@ -272,7 +260,7 @@ impl Parser {
         Ok(list)
     }
 
-    fn parse_assign(&mut self, iter: &mut ListIter, name: Word) -> RuntimeResult<Node> {
+    fn parse_assign(&mut self, iter: &mut ListIter, name: LexerWord) -> RuntimeResult<Node> {
         iter.expect(2)?;
         iter.get_assignment()?;
         let rhs = iter.get_expression()?;
@@ -287,7 +275,7 @@ impl Parser {
         Ok(Node::Move(move_node))
     }
 
-    fn parse_call(&mut self, _: &mut ListIter, name: Word) -> Node {
+    fn parse_call(&mut self, _: &mut ListIter, name: LexerWord) -> Node {
         let call_node = CallNode::new(name);
         Node::Call(call_node)
     }
@@ -376,7 +364,7 @@ impl Parser {
 
     fn parse_set_pen_color(&mut self, iter: &mut ListIter) -> RuntimeResult<Node> {
         iter.expect(1)?;
-        let color = iter.get_list_num_word()?;
+        let color = iter.get_expression()?;
         let pen_color_node = SetPenColorNode::new(color);
         Ok(Node::SetPenColor(pen_color_node))
     }
@@ -390,7 +378,7 @@ impl Parser {
 
     fn parse_set_screen_color(&mut self, iter: &mut ListIter) -> RuntimeResult<Node> {
         iter.expect(1)?;
-        let color = iter.get_list_num_word()?;
+        let color = iter.get_expression()?;
         let pen_color_node = SetScreenColorNode::new(color);
         Ok(Node::SetScreenColor(pen_color_node))
     }
