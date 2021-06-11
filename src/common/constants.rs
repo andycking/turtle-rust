@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use druid::Point;
 use druid::Size;
 
 pub const DIMS: Size = Size::new(800.0, 600.0);
+
+pub const ORIGIN: Point = Point::new(DIMS.width / 2.0, DIMS.height / 2.0);

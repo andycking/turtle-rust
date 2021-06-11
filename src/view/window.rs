@@ -32,12 +32,13 @@ use super::menu;
 
 use crate::common::constants::*;
 use crate::model::app::AppState;
+use crate::model::render::RenderRx;
 
 const FONT_SIZE: f64 = 14.0;
 const INPUT_WIDTH: f64 = 300.0;
 
-pub fn window() -> WindowDesc<AppState> {
-    let ui = build_ui();
+pub fn window(render_rx: RenderRx) -> WindowDesc<AppState> {
+    let ui = build_ui(render_rx);
 
     WindowDesc::new(ui)
         .title("Turtle")
@@ -45,17 +46,17 @@ pub fn window() -> WindowDesc<AppState> {
         .window_size(window_size())
 }
 
-fn build_ui() -> impl Widget<AppState> {
+fn build_ui(render_rx: RenderRx) -> impl Widget<AppState> {
     Flex::row()
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .with_child(build_input())
-        .with_child(build_canvas())
+        .with_child(build_canvas(render_rx))
         .background(Color::WHITE)
         .controller(WindowController {})
 }
 
-fn build_canvas() -> impl Widget<AppState> {
-    Canvas::new().background(Color::BLACK)
+fn build_canvas(render_rx: RenderRx) -> impl Widget<AppState> {
+    Canvas::new(render_rx).background(Color::BLACK)
 }
 
 fn build_input() -> impl Widget<AppState> {

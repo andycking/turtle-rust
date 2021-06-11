@@ -13,19 +13,17 @@
 // limitations under the License.
 
 use std::collections::HashMap;
-use std::ops::Deref;
-use std::ops::DerefMut;
 
 use super::lexer_types::*;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct AssignNode {
     name: String,
-    val: ExprNumWord,
+    val: LexerExpr,
 }
 
 impl AssignNode {
-    pub fn new(name: String, val: ExprNumWord) -> Self {
+    pub fn new(name: String, val: LexerExpr) -> Self {
         Self { name, val }
     }
 
@@ -33,22 +31,22 @@ impl AssignNode {
         &self.name
     }
 
-    pub fn val(&self) -> &ExprNumWord {
+    pub fn val(&self) -> &LexerExpr {
         &self.val
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CallNode {
-    name: Word,
+    name: LexerWord,
 }
 
 impl CallNode {
-    pub fn new(name: Word) -> Self {
+    pub fn new(name: LexerWord) -> Self {
         Self { name }
     }
 
-    pub fn name(&self) -> &Word {
+    pub fn name(&self) -> &LexerWord {
         &self.name
     }
 }
@@ -65,19 +63,19 @@ pub type LetNode = AssignNode;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MoveNode {
-    distance: ExprNumWord,
+    distance: LexerExpr,
     direction: Direction,
 }
 
 impl MoveNode {
-    pub fn new(distance: ExprNumWord, direction: Direction) -> Self {
+    pub fn new(distance: LexerExpr, direction: Direction) -> Self {
         Self {
             distance,
             direction,
         }
     }
 
-    pub fn distance(&self) -> &ExprNumWord {
+    pub fn distance(&self) -> &LexerExpr {
         &self.distance
     }
 
@@ -94,36 +92,36 @@ pub enum PenNode {
 
 #[derive(Clone, Debug)]
 pub struct RepeatNode {
-    count: ExprNumWord,
-    list: NodeList,
+    count: LexerExpr,
+    list: ParserNodeList,
 }
 
 impl RepeatNode {
-    pub fn new(count: ExprNumWord, list: NodeList) -> Self {
+    pub fn new(count: LexerExpr, list: ParserNodeList) -> Self {
         Self { count, list }
     }
 
-    pub fn count(&self) -> &ExprNumWord {
+    pub fn count(&self) -> &LexerExpr {
         &self.count
     }
 
-    pub fn list(&self) -> &NodeList {
+    pub fn list(&self) -> &ParserNodeList {
         &self.list
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RotateNode {
-    angle: ExprNumWord,
+    angle: LexerExpr,
     direction: Direction,
 }
 
 impl RotateNode {
-    pub fn new(angle: ExprNumWord, direction: Direction) -> Self {
+    pub fn new(angle: LexerExpr, direction: Direction) -> Self {
         Self { angle, direction }
     }
 
-    pub fn angle(&self) -> &ExprNumWord {
+    pub fn angle(&self) -> &LexerExpr {
         &self.angle
     }
 
@@ -134,71 +132,71 @@ impl RotateNode {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SetHeadingNode {
-    angle: ExprNumWord,
+    angle: LexerExpr,
 }
 
 impl SetHeadingNode {
-    pub fn new(angle: ExprNumWord) -> Self {
+    pub fn new(angle: LexerExpr) -> Self {
         Self { angle }
     }
 
-    pub fn angle(&self) -> &ExprNumWord {
+    pub fn angle(&self) -> &LexerExpr {
         &self.angle
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SetPenColorNode {
-    color: ListNumWord,
+    color: LexerExpr,
 }
 
 impl SetPenColorNode {
-    pub fn new(color: ListNumWord) -> Self {
+    pub fn new(color: LexerExpr) -> Self {
         Self { color }
     }
 
-    pub fn color(&self) -> &ListNumWord {
+    pub fn color(&self) -> &LexerExpr {
         &self.color
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SetPositionNode {
-    x: Option<ExprNumWord>,
-    y: Option<ExprNumWord>,
+    x: Option<LexerExpr>,
+    y: Option<LexerExpr>,
 }
 
 impl SetPositionNode {
-    pub fn new(x: Option<ExprNumWord>, y: Option<ExprNumWord>) -> Self {
+    pub fn new(x: Option<LexerExpr>, y: Option<LexerExpr>) -> Self {
         Self { x, y }
     }
 
-    pub fn x(&self) -> Option<&ExprNumWord> {
+    pub fn x(&self) -> Option<&LexerExpr> {
         self.x.as_ref()
     }
 
-    pub fn y(&self) -> Option<&ExprNumWord> {
+    pub fn y(&self) -> Option<&LexerExpr> {
         self.y.as_ref()
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SetScreenColorNode {
-    color: ListNumWord,
+    color: LexerExpr,
 }
 
 impl SetScreenColorNode {
-    pub fn new(color: ListNumWord) -> Self {
+    pub fn new(color: LexerExpr) -> Self {
         Self { color }
     }
 
-    pub fn color(&self) -> &ListNumWord {
+    pub fn color(&self) -> &LexerExpr {
         &self.color
     }
 }
 
 #[derive(Clone, Debug)]
-pub enum Node {
+pub enum ParserNode {
     Assign(AssignNode),
     Call(CallNode),
     Clean,
@@ -215,43 +213,35 @@ pub enum Node {
     SetScreenColor(SetScreenColorNode),
 }
 
+pub type ParserNodeList = Vec<ParserNode>;
+
 #[derive(Clone, Debug)]
-pub struct NodeList {
-    list: Vec<Node>,
+pub struct ParserFuncDef {
+    builtin: bool,
+    num_args: u8,
+    pub list: ParserNodeList,
 }
 
-impl Deref for NodeList {
-    type Target = Vec<Node>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.list
+impl ParserFuncDef {
+    pub fn new(builtin: bool, num_args: u8, list: ParserNodeList) -> Self {
+        Self {
+            builtin,
+            num_args,
+            list,
+        }
     }
 }
 
-impl DerefMut for NodeList {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.list
-    }
-}
-
-impl NodeList {
-    pub fn new() -> Self {
-        Self { list: Vec::new() }
-    }
-}
-
-pub type FuncDefinition = NodeList;
-
-pub type FuncMap = HashMap<String, FuncDefinition>;
+pub type ParserFuncMap = HashMap<String, ParserFuncDef>;
 
 #[derive(Clone, Debug)]
 pub struct ParserOutput {
-    pub list: NodeList,
-    pub fmap: FuncMap,
+    pub list: ParserNodeList,
+    pub fmap: ParserFuncMap,
 }
 
 impl ParserOutput {
-    pub fn new(list: NodeList, fmap: FuncMap) -> Self {
+    pub fn new(list: ParserNodeList, fmap: ParserFuncMap) -> Self {
         Self { list, fmap }
     }
 }

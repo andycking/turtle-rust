@@ -12,20 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::Arc;
+use std::ptr;
+use std::sync::atomic;
 
-use druid::DelegateCtx;
-
-use crate::model::app::AppState;
-use crate::model::render::RenderTx;
-use crate::runtime;
-
-async fn entry_future(input: String, render_tx: Arc<RenderTx>) {
-    runtime::entry(input, render_tx);
+#[macro_export]
+macro_rules! hashmap {
+    ($( $key: expr => $val: expr ),*) => {{
+         let mut map = ::std::collections::HashMap::new();
+         $( map.insert($key, $val); )*
+         map
+    }}
 }
 
-pub fn go(_ctx: &mut DelegateCtx, _cmd: &druid::Command, data: &mut AppState) {
-    data.clear();
-    let future = entry_future(data.input.to_string(), data.render_tx.clone());
-    data.thread_pool.spawn_ok(future);
+#[macro_export]
+macro_rules! hashset {
+    ($( $key: expr ),*) => {{
+         let mut map = ::std::collections::HashSet::new();
+         $( map.insert($key); )*
+         map
+    }}
+}
+
+#[inline]
+pub fn zero<T>(input: &mut [T]) {
+    atomic::fence(atomic::Ordering::SeqCst);
+    unsafe {
+        ptr::write_bytes(input.as_mut_ptr(), 0, input.len());
+    }
 }

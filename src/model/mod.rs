@@ -14,3 +14,4 @@
 
 pub mod app;
 pub mod pixbuf;
+pub mod render;

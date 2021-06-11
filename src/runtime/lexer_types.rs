@@ -12,15 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::ops::Deref;
-use std::ops::DerefMut;
-
 #[derive(Clone, Debug, PartialEq)]
-pub struct Word {
+pub struct LexerWord {
     name: String,
 }
 
-impl Word {
+impl LexerWord {
     pub fn new(name: &str) -> Self {
         Self {
             name: String::from(name),
@@ -33,11 +30,11 @@ impl Word {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Number {
+pub struct LexerNumber {
     val: f64,
 }
 
-impl Number {
+impl LexerNumber {
     pub fn new(val: f64) -> Self {
         Self { val }
     }
@@ -48,7 +45,7 @@ impl Number {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Operator {
+pub enum LexerOperator {
     Add,
     Assign,
     Divide,
@@ -57,14 +54,14 @@ pub enum Operator {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Expression {
-    a: Box<ExprNumWord>,
-    op: Operator,
-    b: Box<ExprNumWord>,
+pub struct LexerBinExpr {
+    a: Box<LexerExpr>,
+    op: LexerOperator,
+    b: Box<LexerExpr>,
 }
 
-impl Expression {
-    pub fn new(a: ExprNumWord, op: Operator, b: ExprNumWord) -> Self {
+impl LexerBinExpr {
+    pub fn new(a: LexerExpr, op: LexerOperator, b: LexerExpr) -> Self {
         Self {
             a: Box::new(a),
             op,
@@ -72,68 +69,38 @@ impl Expression {
         }
     }
 
-    pub fn a(&self) -> &ExprNumWord {
+    pub fn a(&self) -> &LexerExpr {
         &self.a
     }
 
-    pub fn op(&self) -> Operator {
+    pub fn op(&self) -> LexerOperator {
         self.op
     }
 
-    pub fn b(&self) -> &ExprNumWord {
+    pub fn b(&self) -> &LexerExpr {
         &self.b
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct List {
-    items: Vec<AnyItem>,
-}
+pub type LexerList = Vec<LexerAny>;
 
-impl List {
-    pub fn new() -> Self {
-        Self { items: Vec::new() }
-    }
-}
-
-impl Deref for List {
-    type Target = Vec<AnyItem>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.items
-    }
-}
-
-impl DerefMut for List {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.items
-    }
-}
-
-pub type Block = List;
+pub type LexerBlock = LexerList;
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum ExprNumWord {
-    Expression(Expression),
-    Number(Number),
-    Word(Word),
+pub enum LexerExpr {
+    LexerBinExpr(LexerBinExpr),
+    LexerList(LexerList),
+    LexerNumber(LexerNumber),
+    LexerWord(LexerWord),
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum ListNumWord {
-    List(List),
-    Number(Number),
-    Word(Word),
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum AnyItem {
-    Block(Block),
-    Expression(Expression),
-    ExprNumWord(ExprNumWord),
-    List(List),
-    ListNumWord(ListNumWord),
-    Number(Number),
-    Operator(Operator),
-    Word(Word),
+pub enum LexerAny {
+    LexerBlock(LexerBlock),
+    LexerBinExpr(LexerBinExpr),
+    LexerExpr(LexerExpr),
+    LexerList(LexerList),
+    LexerNumber(LexerNumber),
+    LexerOperator(LexerOperator),
+    LexerWord(LexerWord),
 }
