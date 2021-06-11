@@ -53,6 +53,16 @@ impl<'a> ListIter<'a> {
         self.list[temp].clone()
     }
 
+    fn get_args(&mut self, num_args: usize) -> RuntimeResult<LexerExprList> {
+        let mut args = LexerExprList::with_capacity(num_args as usize);
+        for _ in 0..num_args {
+            let arg = self.get_expression()?;
+            args.push(arg);
+        }
+
+        Ok(args)
+    }
+
     fn get_assignment(&mut self) -> RuntimeResult<LexerOperator> {
         let op = self.get_operator()?;
         if op == LexerOperator::Assign {
@@ -121,7 +131,7 @@ enum SymbolTag {
 
 #[derive(Clone, Debug)]
 pub struct Parser {
-    symbols: HashMap<String, SymbolTag>,
+    smap: HashMap<String, SymbolTag>,
     fmap: ParserFuncMap,
 }
 
@@ -130,11 +140,11 @@ impl Parser {
         let fmap = crate::hashmap![
             "random".to_string() => ParserFuncDef::new(true, 1, ParserNodeList::new())
         ];
+        let smap = crate::hashmap![
+            "random".to_string() => SymbolTag::Func
+        ];
 
-        Self {
-            symbols: HashMap::new(),
-            fmap,
-        }
+        Self { smap, fmap }
     }
 
     pub fn go(&mut self, input: &[LexerAny]) -> RuntimeResult<ParserOutput> {
@@ -240,9 +250,9 @@ impl Parser {
                     list.push(node);
                 }
 
-                _ => match self.symbols.get(name) {
+                _ => match self.smap.get(name) {
                     Some(SymbolTag::Func) => {
-                        let node = self.parse_call(iter, word);
+                        let node = self.parse_call(iter, word)?;
                         list.push(node);
                     }
                     Some(SymbolTag::Var) => {
@@ -275,9 +285,13 @@ impl Parser {
         Ok(ParserNode::Move(move_node))
     }
 
-    fn parse_call(&mut self, _: &mut ListIter, name: LexerWord) -> ParserNode {
-        let call_node = CallNode::new(name);
-        ParserNode::Call(call_node)
+    fn parse_call(&mut self, iter: &mut ListIter, name: LexerWord) -> RuntimeResult<ParserNode> {
+        let func_def = self.fmap.get(name.name()).unwrap();
+        let num_args = func_def.num_args();
+        iter.expect(num_args)?;
+        let args = iter.get_args(num_args)?;
+        let call = LexerCall::new(name.name(), args);
+        Ok(ParserNode::Call(call))
     }
 
     fn parse_clean(&mut self) -> ParserNode {
@@ -406,8 +420,8 @@ impl Parser {
     }
 
     fn check_symbol(&mut self, name: &str, tag: SymbolTag) -> RuntimeResult {
-        if !self.symbols.contains_key(name) {
-            self.symbols.insert(name.to_string(), tag);
+        if !self.smap.contains_key(name) {
+            self.smap.insert(name.to_string(), tag);
             Ok(())
         } else {
             let msg = format!("duplicate symbol {}", name);

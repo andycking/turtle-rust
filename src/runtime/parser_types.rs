@@ -36,20 +36,7 @@ impl AssignNode {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct CallNode {
-    name: LexerWord,
-}
-
-impl CallNode {
-    pub fn new(name: LexerWord) -> Self {
-        Self { name }
-    }
-
-    pub fn name(&self) -> &LexerWord {
-        &self.name
-    }
-}
+pub type CallNode = LexerCall;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Direction {
@@ -218,17 +205,21 @@ pub type ParserNodeList = Vec<ParserNode>;
 #[derive(Clone, Debug)]
 pub struct ParserFuncDef {
     builtin: bool,
-    num_args: u8,
+    num_args: usize,
     pub list: ParserNodeList,
 }
 
 impl ParserFuncDef {
-    pub fn new(builtin: bool, num_args: u8, list: ParserNodeList) -> Self {
+    pub fn new(builtin: bool, num_args: usize, list: ParserNodeList) -> Self {
         Self {
             builtin,
             num_args,
             list,
         }
+    }
+
+    pub fn num_args(&self) -> usize {
+        self.num_args
     }
 }
 

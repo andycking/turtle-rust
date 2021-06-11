@@ -27,6 +27,7 @@ type ValueList = Vec<Value>;
 
 #[derive(Clone, Debug, PartialEq)]
 enum Value {
+    Void,
     List(ValueList),
     Number(f64),
 }
@@ -115,7 +116,6 @@ impl Interpreter {
         vmap: &mut VarMap,
         list: &[ParserNode],
     ) -> RuntimeResult {
-        println!("repcount {}", frame.repcount);
         for node in list.iter() {
             match node {
                 ParserNode::Assign(node) => self.eval_assign(vmap, node)?,
@@ -157,11 +157,11 @@ impl Interpreter {
         node: &CallNode,
     ) -> RuntimeResult {
         let name = node.name();
-        if let Some(func) = fmap.get(name.name()) {
+        if let Some(func) = fmap.get(name) {
             let mut child_frame = Frame::new(frame.repcount);
             self.run(&mut child_frame, fmap, vmap, &func.list)
         } else {
-            let msg = format!("no such function {}", name.name());
+            let msg = format!("no such function {}", name);
             Err(RuntimeError::Interpreter(msg))
         }
     }
@@ -288,7 +288,7 @@ impl Interpreter {
             LexerAny::LexerNumber(num) => Ok(Value::Number(num.val())),
             LexerAny::LexerWord(word) => self.eval_word(vmap, word),
             _ => {
-                let msg = "cannot evaluate item".to_string();
+                let msg = format!("cannot evaluate {:?}", item);
                 Err(RuntimeError::Interpreter(msg))
             }
         }
@@ -305,7 +305,7 @@ impl Interpreter {
             LexerOperator::Multiply => Self::eval_multiply(&a, &b),
             LexerOperator::Subtract => Self::eval_subtract(&a, &b),
             _ => {
-                let msg = "cannot evaluate assignment as part of LexerBinExpr".to_string();
+                let msg = "cannot evaluate assignment in binary expression".to_string();
                 Err(RuntimeError::Interpreter(msg))
             }
         }
@@ -345,14 +345,16 @@ impl Interpreter {
         }
     }
 
+    fn err_eval_bin_expr(a: &Value, b: &Value) -> RuntimeResult<Value> {
+        let msg = format!("cannot evaluate {:?} {:?}", a, b);
+        Err(RuntimeError::Interpreter(msg))
+    }
+
     fn eval_add(a: &Value, b: &Value) -> RuntimeResult<Value> {
         match a {
             Value::Number(a_num) => match b {
                 Value::Number(b_num) => Ok(Value::Number(a_num + b_num)),
-                _ => {
-                    let msg = "cannot add a number and a list".to_string();
-                    Err(RuntimeError::Interpreter(msg))
-                }
+                _ => Self::err_eval_bin_expr(a, b),
             },
             Value::List(a_list) => match b {
                 Value::List(b_list) => {
@@ -367,7 +369,9 @@ impl Interpreter {
                     merged.push(Value::Number(*b_num));
                     Ok(Value::List(merged))
                 }
+                _ => Self::err_eval_bin_expr(a, b),
             },
+            _ => Self::err_eval_bin_expr(a, b),
         }
     }
 
@@ -375,15 +379,9 @@ impl Interpreter {
         match a {
             Value::Number(a_num) => match b {
                 Value::Number(other_num) => Ok(Value::Number(a_num / other_num)),
-                _ => {
-                    let msg = "cannot divide a number and a list".to_string();
-                    Err(RuntimeError::Interpreter(msg))
-                }
+                _ => Self::err_eval_bin_expr(a, b),
             },
-            Value::List(_) => {
-                let msg = "cannot divide two lists".to_string();
-                Err(RuntimeError::Interpreter(msg))
-            }
+            _ => Self::err_eval_bin_expr(a, b),
         }
     }
 
@@ -391,15 +389,9 @@ impl Interpreter {
         match a {
             Value::Number(a_num) => match b {
                 Value::Number(b_num) => Ok(Value::Number(a_num * b_num)),
-                _ => {
-                    let msg = "cannot multiply a number and a list".to_string();
-                    Err(RuntimeError::Interpreter(msg))
-                }
+                _ => Self::err_eval_bin_expr(a, b),
             },
-            Value::List(_) => {
-                let msg = "cannot multiply two lists".to_string();
-                Err(RuntimeError::Interpreter(msg))
-            }
+            _ => Self::err_eval_bin_expr(a, b),
         }
     }
 
@@ -407,15 +399,9 @@ impl Interpreter {
         match a {
             Value::Number(a_num) => match b {
                 Value::Number(b_num) => Ok(Value::Number(a_num - b_num)),
-                _ => {
-                    let msg = "cannot subtract a list from a number".to_string();
-                    Err(RuntimeError::Interpreter(msg))
-                }
+                _ => Self::err_eval_bin_expr(a, b),
             },
-            Value::List(_) => {
-                let msg = "cannot subtract two lists".to_string();
-                Err(RuntimeError::Interpreter(msg))
-            }
+            _ => Self::err_eval_bin_expr(a, b),
         }
     }
 
@@ -448,6 +434,11 @@ impl Interpreter {
                     let msg = format!("invalid palette index {}", idx);
                     Err(RuntimeError::Interpreter(msg))
                 }
+            }
+
+            _ => {
+                let msg = format!("color cannot be void");
+                Err(RuntimeError::Interpreter(msg))
             }
         }
     }
