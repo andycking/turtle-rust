@@ -17,6 +17,7 @@ use std::sync::Arc;
 
 use druid::Color;
 use druid::Point;
+use rand::Rng;
 
 use super::error::*;
 use super::lexer_types::*;
@@ -126,6 +127,7 @@ impl Interpreter {
                 ParserNode::Let(node) => self.eval_let(vmap, node)?,
                 ParserNode::Move(node) => self.eval_move(vmap, node)?,
                 ParserNode::Pen(node) => self.eval_pen(node),
+                ParserNode::Random(node) => self.eval_random(vmap, node)?,
                 ParserNode::Repeat(node) => self.eval_repeat(frame, fmap, vmap, node)?,
                 ParserNode::Rotate(node) => self.eval_rotate(vmap, node)?,
                 ParserNode::SetHeading(node) => self.eval_set_heading(vmap, node)?,
@@ -202,6 +204,13 @@ impl Interpreter {
             PenNode::Down => self.state.pen_down = true,
             PenNode::Up => self.state.pen_down = false,
         }
+    }
+
+    fn eval_random(&mut self, vmap: &mut VarMap, expr: &LexerExpr) -> RuntimeResult {
+        let max = self.eval_expr_as_number(vmap, expr)?;
+        let int = max.round() as u32;
+        let num = rand::thread_rng().gen_range(0..=int);
+        Ok(())
     }
 
     fn eval_repeat(

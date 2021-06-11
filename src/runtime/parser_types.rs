@@ -192,6 +192,7 @@ pub enum ParserNode {
     Let(LetNode),
     Move(MoveNode),
     Pen(PenNode),
+    Random(LexerExpr),
     Repeat(RepeatNode),
     Rotate(RotateNode),
     SetHeading(SetHeadingNode),

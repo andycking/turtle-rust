@@ -178,6 +178,7 @@ impl Parser {
             "lt" | "left" => Some(self.parse_left(iter)?),
             "pd" | "pendown" => Some(self.parse_pen_down()),
             "pu" | "penup" => Some(self.parse_pen_up()),
+            "random" => Some(self.parse_random(iter)?),
             "repeat" => Some(self.parse_repeat(iter)?),
             "rt" | "right" => Some(self.parse_right(iter)?),
             "seth" | "setheading" => Some(self.parse_set_heading(iter)?),
@@ -244,7 +245,7 @@ impl Parser {
         let mut block_iter = ListIter::new(&block);
         let list = self.parse(&mut block_iter)?;
         let func = ParserFuncDef::new(false, 0, list);
-        self.fmap.insert(name.to_string(), func);
+        self.fmap.insert(name, func);
         Ok(())
     }
 
@@ -265,7 +266,7 @@ impl Parser {
         self.check_symbol(&var, SymbolTag::Var)?;
         iter.get_assignment()?;
         let rhs = iter.get_expression()?;
-        let l_node = LetNode::new(var.to_string(), rhs);
+        let l_node = LetNode::new(var, rhs);
         Ok(ParserNode::Let(l_node))
     }
 
@@ -284,6 +285,12 @@ impl Parser {
     fn parse_pen_up(&mut self) -> ParserNode {
         let pen_node = PenNode::Up;
         ParserNode::Pen(pen_node)
+    }
+
+    fn parse_random(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
+        iter.expect(1)?;
+        let max = iter.get_expression()?;
+        Ok(ParserNode::Random(max))
     }
 
     fn parse_repeat(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
