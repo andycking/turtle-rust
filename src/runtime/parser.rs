@@ -79,7 +79,7 @@ impl<'a> ListIter<'a> {
             AnyItem::Number(num) => Ok(Expression::Number(num)),
             AnyItem::Word(word) => Ok(Expression::Word(word)),
             _ => {
-                let msg = "expected an BinExpr, number or word".to_string();
+                let msg = "expected an expression".to_string();
                 Err(RuntimeError::Parser(msg))
             }
         }

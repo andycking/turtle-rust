@@ -111,7 +111,7 @@ impl Lexer {
                 '(' => {
                     state.delimit(self.idx)?;
 
-                    let bin_expr = self.bin_expr(iter)?;
+                    let bin_expr = self.get_bin_expr(iter)?;
                     let item = AnyItem::BinExpr(bin_expr);
                     state.list.push(item);
                 }
@@ -191,36 +191,36 @@ impl Lexer {
         idx
     }
 
-    fn bin_expr(&mut self, iter: &mut Chars) -> RuntimeResult<BinExpr> {
-        fn expression(item: Option<&AnyItem>, idx: usize) -> RuntimeResult<Expression> {
-            match item {
-                Some(AnyItem::BinExpr(bin_expr)) => Ok(Expression::BinExpr(bin_expr.clone())),
-                Some(AnyItem::List(list)) => Ok(Expression::List(list.clone())),
-                Some(AnyItem::Number(num)) => Ok(Expression::Number(*num)),
-                Some(AnyItem::Word(word)) => Ok(Expression::Word(word.clone())),
-                _ => {
-                    let msg = format!("{}: expected an BinExpr, number or word", idx);
-                    Err(RuntimeError::Lexer(msg))
-                }
-            }
-        }
-
-        fn op_item(item: Option<&AnyItem>, idx: usize) -> RuntimeResult<Operator> {
-            if let Some(AnyItem::Operator(op)) = item {
-                Ok(*op)
-            } else {
-                let msg = format!("{}: expected an operator", idx);
-                Err(RuntimeError::Lexer(msg))
-            }
-        }
-
+    fn get_bin_expr(&mut self, iter: &mut Chars) -> RuntimeResult<BinExpr> {
         let expr_list = self.lex(iter)?;
         let mut expr_iter = expr_list.iter();
 
-        let a = expression(expr_iter.next(), self.idx)?;
-        let op = op_item(expr_iter.next(), self.idx)?;
-        let b = expression(expr_iter.next(), self.idx)?;
+        let a = Self::get_expression(expr_iter.next(), self.idx)?;
+        let op = Self::get_op_item(expr_iter.next(), self.idx)?;
+        let b = Self::get_expression(expr_iter.next(), self.idx)?;
 
         Ok(BinExpr::new(a, op, b))
+    }
+
+    fn get_expression(item: Option<&AnyItem>, idx: usize) -> RuntimeResult<Expression> {
+        match item {
+            Some(AnyItem::BinExpr(bin_expr)) => Ok(Expression::BinExpr(bin_expr.clone())),
+            Some(AnyItem::List(list)) => Ok(Expression::List(list.clone())),
+            Some(AnyItem::Number(num)) => Ok(Expression::Number(*num)),
+            Some(AnyItem::Word(word)) => Ok(Expression::Word(word.clone())),
+            _ => {
+                let msg = format!("{}: expected an expression", idx);
+                Err(RuntimeError::Lexer(msg))
+            }
+        }
+    }
+
+    fn get_op_item(item: Option<&AnyItem>, idx: usize) -> RuntimeResult<Operator> {
+        if let Some(AnyItem::Operator(op)) = item {
+            Ok(*op)
+        } else {
+            let msg = format!("{}: expected an operator", idx);
+            Err(RuntimeError::Lexer(msg))
+        }
     }
 }
