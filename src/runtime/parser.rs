@@ -122,13 +122,13 @@ enum SymbolTag {
 #[derive(Clone, Debug)]
 pub struct Parser {
     symbols: HashMap<String, SymbolTag>,
-    fmap: FuncMap,
+    fmap: ParserFuncMap,
 }
 
 impl Parser {
     pub fn new() -> Self {
         let fmap = crate::hashmap![
-            "random".to_string() => FuncDefinition::new(true, 1, NodeList::new())
+            "random".to_string() => ParserFuncDef::new(true, 1, ParserNodeList::new())
         ];
 
         Self {
@@ -143,8 +143,8 @@ impl Parser {
         Ok(ParserOutput::new(list, self.fmap.to_owned()))
     }
 
-    fn parse(&mut self, iter: &mut ListIter) -> RuntimeResult<NodeList> {
-        let mut list = NodeList::new();
+    fn parse(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNodeList> {
+        let mut list = ParserNodeList::new();
 
         while !iter.is_empty() {
             let word = iter.get_word()?;
@@ -260,32 +260,32 @@ impl Parser {
         Ok(list)
     }
 
-    fn parse_assign(&mut self, iter: &mut ListIter, name: LexerWord) -> RuntimeResult<Node> {
+    fn parse_assign(&mut self, iter: &mut ListIter, name: LexerWord) -> RuntimeResult<ParserNode> {
         iter.expect(2)?;
         iter.get_assignment()?;
         let rhs = iter.get_expression()?;
         let node = AssignNode::new(name.name().to_string(), rhs);
-        Ok(Node::Assign(node))
+        Ok(ParserNode::Assign(node))
     }
 
-    fn parse_backward(&mut self, iter: &mut ListIter) -> RuntimeResult<Node> {
+    fn parse_backward(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
         let distance = iter.get_expression()?;
         let move_node = MoveNode::new(distance, Direction::Backward);
-        Ok(Node::Move(move_node))
+        Ok(ParserNode::Move(move_node))
     }
 
-    fn parse_call(&mut self, _: &mut ListIter, name: LexerWord) -> Node {
+    fn parse_call(&mut self, _: &mut ListIter, name: LexerWord) -> ParserNode {
         let call_node = CallNode::new(name);
-        Node::Call(call_node)
+        ParserNode::Call(call_node)
     }
 
-    fn parse_clean(&mut self) -> Node {
-        Node::Clean
+    fn parse_clean(&mut self) -> ParserNode {
+        ParserNode::Clean
     }
 
-    fn parse_clear_screen(&mut self) -> Node {
-        Node::ClearScreen
+    fn parse_clear_screen(&mut self) -> ParserNode {
+        ParserNode::ClearScreen
     }
 
     fn parse_fn(&mut self, iter: &mut ListIter) -> RuntimeResult {
@@ -295,114 +295,114 @@ impl Parser {
         let block = iter.get_block()?;
         let mut block_iter = ListIter::new(&block);
         let list = self.parse(&mut block_iter)?;
-        let func = FuncDefinition::new(false, 0, list);
+        let func = ParserFuncDef::new(false, 0, list);
         self.fmap.insert(name.name().to_string(), func);
         Ok(())
     }
 
-    fn parse_forward(&mut self, iter: &mut ListIter) -> RuntimeResult<Node> {
+    fn parse_forward(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
         let distance = iter.get_expression()?;
         let move_node = MoveNode::new(distance, Direction::Forward);
-        Ok(Node::Move(move_node))
+        Ok(ParserNode::Move(move_node))
     }
 
-    fn parse_home(&mut self) -> Node {
-        Node::Home
+    fn parse_home(&mut self) -> ParserNode {
+        ParserNode::Home
     }
 
-    fn parse_let(&mut self, iter: &mut ListIter) -> RuntimeResult<Node> {
+    fn parse_let(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(3)?;
         let var = iter.get_word()?;
         self.check_symbol(var.name(), SymbolTag::Var)?;
         iter.get_assignment()?;
         let rhs = iter.get_expression()?;
         let l_node = LetNode::new(var.name().to_string(), rhs);
-        Ok(Node::Let(l_node))
+        Ok(ParserNode::Let(l_node))
     }
 
-    fn parse_left(&mut self, iter: &mut ListIter) -> RuntimeResult<Node> {
+    fn parse_left(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
         let angle = iter.get_expression()?;
         let rotate_node = RotateNode::new(angle, Direction::Left);
-        Ok(Node::Rotate(rotate_node))
+        Ok(ParserNode::Rotate(rotate_node))
     }
 
-    fn parse_pen_down(&mut self) -> Node {
+    fn parse_pen_down(&mut self) -> ParserNode {
         let pen_node = PenNode::Down;
-        Node::Pen(pen_node)
+        ParserNode::Pen(pen_node)
     }
 
-    fn parse_pen_up(&mut self) -> Node {
+    fn parse_pen_up(&mut self) -> ParserNode {
         let pen_node = PenNode::Up;
-        Node::Pen(pen_node)
+        ParserNode::Pen(pen_node)
     }
 
-    fn parse_repeat(&mut self, iter: &mut ListIter) -> RuntimeResult<Node> {
+    fn parse_repeat(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(2)?;
         let count = iter.get_expression()?;
         let block = iter.get_block()?;
         let mut block_iter = ListIter::new(&block);
         let node_list = self.parse(&mut block_iter)?;
         let repeat_node = RepeatNode::new(count, node_list);
-        Ok(Node::Repeat(repeat_node))
+        Ok(ParserNode::Repeat(repeat_node))
     }
 
-    fn parse_right(&mut self, iter: &mut ListIter) -> RuntimeResult<Node> {
+    fn parse_right(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
         let angle = iter.get_expression()?;
         let rotate_node = RotateNode::new(angle, Direction::Right);
-        Ok(Node::Rotate(rotate_node))
+        Ok(ParserNode::Rotate(rotate_node))
     }
 
-    fn parse_set_heading(&mut self, iter: &mut ListIter) -> RuntimeResult<Node> {
+    fn parse_set_heading(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
         let angle = iter.get_expression()?;
         let node = SetHeadingNode::new(angle);
-        Ok(Node::SetHeading(node))
+        Ok(ParserNode::SetHeading(node))
     }
 
-    fn parse_set_pen_color(&mut self, iter: &mut ListIter) -> RuntimeResult<Node> {
+    fn parse_set_pen_color(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
         let color = iter.get_expression()?;
         let pen_color_node = SetPenColorNode::new(color);
-        Ok(Node::SetPenColor(pen_color_node))
+        Ok(ParserNode::SetPenColor(pen_color_node))
     }
 
-    fn parse_set_pos(&mut self, iter: &mut ListIter) -> RuntimeResult<Node> {
+    fn parse_set_pos(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
         let pos = iter.get_list()?;
         let mut pos_iter = ListIter::new(&pos);
         self.parse_setxy(&mut pos_iter)
     }
 
-    fn parse_set_screen_color(&mut self, iter: &mut ListIter) -> RuntimeResult<Node> {
+    fn parse_set_screen_color(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
         let color = iter.get_expression()?;
         let pen_color_node = SetScreenColorNode::new(color);
-        Ok(Node::SetScreenColor(pen_color_node))
+        Ok(ParserNode::SetScreenColor(pen_color_node))
     }
 
-    fn parse_setxy(&mut self, iter: &mut ListIter) -> RuntimeResult<Node> {
+    fn parse_setxy(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(2)?;
         let x = iter.get_expression()?;
         let y = iter.get_expression()?;
         let pos_node = SetPositionNode::new(Some(x), Some(y));
-        Ok(Node::SetPosition(pos_node))
+        Ok(ParserNode::SetPosition(pos_node))
     }
 
-    fn parse_setx(&mut self, iter: &mut ListIter) -> RuntimeResult<Node> {
+    fn parse_setx(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
         let x = iter.get_expression()?;
         let pos_node = SetPositionNode::new(Some(x), None);
-        Ok(Node::SetPosition(pos_node))
+        Ok(ParserNode::SetPosition(pos_node))
     }
 
-    fn parse_sety(&mut self, iter: &mut ListIter) -> RuntimeResult<Node> {
+    fn parse_sety(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
         let y = iter.get_expression()?;
         let pos_node = SetPositionNode::new(None, Some(y));
-        Ok(Node::SetPosition(pos_node))
+        Ok(ParserNode::SetPosition(pos_node))
     }
 
     fn check_symbol(&mut self, name: &str, tag: SymbolTag) -> RuntimeResult {

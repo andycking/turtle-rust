@@ -93,11 +93,11 @@ pub enum PenNode {
 #[derive(Clone, Debug)]
 pub struct RepeatNode {
     count: LexerExpr,
-    list: NodeList,
+    list: ParserNodeList,
 }
 
 impl RepeatNode {
-    pub fn new(count: LexerExpr, list: NodeList) -> Self {
+    pub fn new(count: LexerExpr, list: ParserNodeList) -> Self {
         Self { count, list }
     }
 
@@ -105,7 +105,7 @@ impl RepeatNode {
         &self.count
     }
 
-    pub fn list(&self) -> &NodeList {
+    pub fn list(&self) -> &ParserNodeList {
         &self.list
     }
 }
@@ -196,7 +196,7 @@ impl SetScreenColorNode {
 }
 
 #[derive(Clone, Debug)]
-pub enum Node {
+pub enum ParserNode {
     Assign(AssignNode),
     Call(CallNode),
     Clean,
@@ -213,17 +213,17 @@ pub enum Node {
     SetScreenColor(SetScreenColorNode),
 }
 
-pub type NodeList = Vec<Node>;
+pub type ParserNodeList = Vec<ParserNode>;
 
 #[derive(Clone, Debug)]
-pub struct FuncDefinition {
+pub struct ParserFuncDef {
     builtin: bool,
     num_args: u8,
-    pub list: NodeList,
+    pub list: ParserNodeList,
 }
 
-impl FuncDefinition {
-    pub fn new(builtin: bool, num_args: u8, list: NodeList) -> Self {
+impl ParserFuncDef {
+    pub fn new(builtin: bool, num_args: u8, list: ParserNodeList) -> Self {
         Self {
             builtin,
             num_args,
@@ -232,16 +232,16 @@ impl FuncDefinition {
     }
 }
 
-pub type FuncMap = HashMap<String, FuncDefinition>;
+pub type ParserFuncMap = HashMap<String, ParserFuncDef>;
 
 #[derive(Clone, Debug)]
 pub struct ParserOutput {
-    pub list: NodeList,
-    pub fmap: FuncMap,
+    pub list: ParserNodeList,
+    pub fmap: ParserFuncMap,
 }
 
 impl ParserOutput {
-    pub fn new(list: NodeList, fmap: FuncMap) -> Self {
+    pub fn new(list: ParserNodeList, fmap: ParserFuncMap) -> Self {
         Self { list, fmap }
     }
 }
