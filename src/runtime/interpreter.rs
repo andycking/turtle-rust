@@ -285,7 +285,7 @@ impl Interpreter {
             LexerAny::LexerBinExpr(expr) => self.eval_bin_expr(vmap, expr),
             LexerAny::LexerExpr(enw) => self.eval_expr(vmap, enw),
             LexerAny::LexerList(list) => self.eval_list(vmap, list),
-            LexerAny::LexerNumber(num) => Ok(Value::Number(num.val())),
+            LexerAny::LexerNumber(num) => Ok(Value::Number(*num)),
             LexerAny::LexerWord(word) => self.eval_word(vmap, word),
             _ => {
                 let msg = format!("cannot evaluate {:?}", item);
@@ -316,7 +316,7 @@ impl Interpreter {
             LexerExpr::LexerBinExpr(bin_expr) => self.eval_bin_expr(vmap, bin_expr),
             LexerExpr::LexerCall(call) => Ok(Value::Number(0.0)),
             LexerExpr::LexerList(list) => self.eval_list(vmap, list),
-            LexerExpr::LexerNumber(num) => Ok(Value::Number(num.val())),
+            LexerExpr::LexerNumber(num) => Ok(Value::Number(*num)),
             LexerExpr::LexerWord(word) => self.eval_word(vmap, word),
         }
     }
@@ -336,11 +336,11 @@ impl Interpreter {
         Ok(Value::List(out))
     }
 
-    fn eval_word(&mut self, vmap: &VarMap, word: &LexerWord) -> RuntimeResult<Value> {
-        if let Some(value) = vmap.get(word.name()) {
+    fn eval_word(&mut self, vmap: &VarMap, word: &str) -> RuntimeResult<Value> {
+        if let Some(value) = vmap.get(word) {
             Ok(value.clone())
         } else {
-            let msg = format!("no such variable {}", word.name());
+            let msg = format!("no such variable {}", word);
             Err(RuntimeError::Interpreter(msg))
         }
     }

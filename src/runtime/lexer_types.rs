@@ -12,38 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct LexerWord {
-    name: String,
-}
-
-impl LexerWord {
-    pub fn new(name: &str) -> Self {
-        Self {
-            name: String::from(name),
-        }
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct LexerNumber {
-    val: f64,
-}
-
-impl LexerNumber {
-    pub fn new(val: f64) -> Self {
-        Self { val }
-    }
-
-    pub fn val(&self) -> f64 {
-        self.val
-    }
-}
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum LexerOperator {
     Add,
@@ -110,8 +78,8 @@ pub enum LexerExpr {
     LexerBinExpr(LexerBinExpr),
     LexerCall(LexerCall),
     LexerList(LexerList),
-    LexerNumber(LexerNumber),
-    LexerWord(LexerWord),
+    LexerNumber(f64),
+    LexerWord(String),
 }
 
 pub type LexerExprList = Vec<LexerExpr>;
@@ -123,7 +91,7 @@ pub enum LexerAny {
     LexerCall(LexerCall),
     LexerExpr(LexerExpr),
     LexerList(LexerList),
-    LexerNumber(LexerNumber),
+    LexerNumber(f64),
     LexerOperator(LexerOperator),
-    LexerWord(LexerWord),
+    LexerWord(String),
 }

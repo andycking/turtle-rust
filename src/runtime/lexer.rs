@@ -37,15 +37,13 @@ impl LexerState {
         if !self.symbol.is_empty() {
             let item = if self.number {
                 if let Ok(val) = self.symbol.parse::<f64>() {
-                    let num = LexerNumber::new(val);
-                    LexerAny::LexerNumber(num)
+                    LexerAny::LexerNumber(val)
                 } else {
                     let msg = format!("{}: failed to parse number {}", idx, self.symbol);
                     return Err(RuntimeError::Lexer(msg));
                 }
             } else {
-                let word = LexerWord::new(&self.symbol);
-                LexerAny::LexerWord(word)
+                LexerAny::LexerWord(self.symbol.to_string())
             };
             self.list.push(item);
         }

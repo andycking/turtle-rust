@@ -113,7 +113,7 @@ impl<'a> ListIter<'a> {
         }
     }
 
-    fn get_word(&mut self) -> RuntimeResult<LexerWord> {
+    fn get_word(&mut self) -> RuntimeResult<String> {
         if let LexerAny::LexerWord(word) = self.next() {
             Ok(word)
         } else {
@@ -158,9 +158,8 @@ impl Parser {
 
         while !iter.is_empty() {
             let word = iter.get_word()?;
-            let name = word.name();
 
-            match name.to_lowercase().as_str() {
+            match word.to_lowercase().as_str() {
                 "bk" | "backward" => {
                     let node = self.parse_backward(iter)?;
                     list.push(node);
@@ -250,17 +249,17 @@ impl Parser {
                     list.push(node);
                 }
 
-                _ => match self.smap.get(name) {
+                _ => match self.smap.get(&word) {
                     Some(SymbolTag::Func) => {
-                        let node = self.parse_call(iter, word)?;
+                        let node = self.parse_call(iter, &word)?;
                         list.push(node);
                     }
                     Some(SymbolTag::Var) => {
-                        let node = self.parse_assign(iter, word)?;
+                        let node = self.parse_assign(iter, &word)?;
                         list.push(node);
                     }
                     _ => {
-                        let msg = format!("unrecognized symbol {}", name);
+                        let msg = format!("unrecognized symbol {}", word);
                         return Err(RuntimeError::Parser(msg));
                     }
                 },
@@ -270,11 +269,11 @@ impl Parser {
         Ok(list)
     }
 
-    fn parse_assign(&mut self, iter: &mut ListIter, name: LexerWord) -> RuntimeResult<ParserNode> {
+    fn parse_assign(&mut self, iter: &mut ListIter, name: &str) -> RuntimeResult<ParserNode> {
         iter.expect(2)?;
         iter.get_assignment()?;
         let rhs = iter.get_expression()?;
-        let node = AssignNode::new(name.name().to_string(), rhs);
+        let node = AssignNode::new(name.to_string(), rhs);
         Ok(ParserNode::Assign(node))
     }
 
@@ -285,12 +284,12 @@ impl Parser {
         Ok(ParserNode::Move(move_node))
     }
 
-    fn parse_call(&mut self, iter: &mut ListIter, name: LexerWord) -> RuntimeResult<ParserNode> {
-        let func_def = self.fmap.get(name.name()).unwrap();
+    fn parse_call(&mut self, iter: &mut ListIter, name: &str) -> RuntimeResult<ParserNode> {
+        let func_def = self.fmap.get(name).unwrap();
         let num_args = func_def.num_args();
         iter.expect(num_args)?;
         let args = iter.get_args(num_args)?;
-        let call = LexerCall::new(name.name(), args);
+        let call = LexerCall::new(name, args);
         Ok(ParserNode::Call(call))
     }
 
@@ -305,12 +304,12 @@ impl Parser {
     fn parse_fn(&mut self, iter: &mut ListIter) -> RuntimeResult {
         iter.expect(2)?;
         let name = iter.get_word()?;
-        self.check_symbol(name.name(), SymbolTag::Func)?;
+        self.check_symbol(&name, SymbolTag::Func)?;
         let block = iter.get_block()?;
         let mut block_iter = ListIter::new(&block);
         let list = self.parse(&mut block_iter)?;
         let func = ParserFuncDef::new(false, 0, list);
-        self.fmap.insert(name.name().to_string(), func);
+        self.fmap.insert(name.to_string(), func);
         Ok(())
     }
 
@@ -328,10 +327,10 @@ impl Parser {
     fn parse_let(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(3)?;
         let var = iter.get_word()?;
-        self.check_symbol(var.name(), SymbolTag::Var)?;
+        self.check_symbol(&var, SymbolTag::Var)?;
         iter.get_assignment()?;
         let rhs = iter.get_expression()?;
-        let l_node = LetNode::new(var.name().to_string(), rhs);
+        let l_node = LetNode::new(var.to_string(), rhs);
         Ok(ParserNode::Let(l_node))
     }
 
