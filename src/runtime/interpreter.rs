@@ -118,26 +118,36 @@ impl Interpreter {
         list: &[ParserNode],
     ) -> RuntimeResult {
         for node in list.iter() {
-            match node {
-                ParserNode::Assign(node) => self.eval_assign(vmap, node)?,
-                ParserNode::Call(node) => self.eval_call(frame, fmap, vmap, node)?,
-                ParserNode::Clean => self.eval_clean(),
-                ParserNode::ClearScreen => self.eval_clear_screen()?,
-                ParserNode::Home => self.eval_home()?,
-                ParserNode::Let(node) => self.eval_let(vmap, node)?,
-                ParserNode::Move(node) => self.eval_move(vmap, node)?,
-                ParserNode::Pen(node) => self.eval_pen(node),
-                ParserNode::Random(node) => self.eval_random(vmap, node)?,
-                ParserNode::Repeat(node) => self.eval_repeat(frame, fmap, vmap, node)?,
-                ParserNode::Rotate(node) => self.eval_rotate(vmap, node)?,
-                ParserNode::SetHeading(node) => self.eval_set_heading(vmap, node)?,
-                ParserNode::SetPenColor(node) => self.eval_set_pen_color(vmap, node)?,
-                ParserNode::SetPosition(node) => self.eval_set_pos(vmap, node)?,
-                ParserNode::SetScreenColor(node) => self.eval_set_screen_color(vmap, node)?,
-            }
+            self.eval_node(frame, fmap, vmap, node)?;
         }
 
         Ok(())
+    }
+
+    fn eval_node(
+        &mut self,
+        frame: &mut Frame,
+        fmap: &ParserFuncMap,
+        vmap: &mut VarMap,
+        node: &ParserNode,
+    ) -> RuntimeResult {
+        match node {
+            ParserNode::Assign(node) => self.eval_assign(vmap, node),
+            ParserNode::Call(node) => self.eval_call(frame, fmap, vmap, node),
+            ParserNode::Clean => Ok(self.eval_clean()),
+            ParserNode::ClearScreen => self.eval_clear_screen(),
+            ParserNode::Home => self.eval_home(),
+            ParserNode::Let(node) => self.eval_let(vmap, node),
+            ParserNode::Move(node) => self.eval_move(vmap, node),
+            ParserNode::Pen(node) => Ok(self.eval_pen(node)),
+            ParserNode::Random(node) => self.eval_random(vmap, node),
+            ParserNode::Repeat(node) => self.eval_repeat(frame, fmap, vmap, node),
+            ParserNode::Rotate(node) => self.eval_rotate(vmap, node),
+            ParserNode::SetHeading(node) => self.eval_set_heading(vmap, node),
+            ParserNode::SetPenColor(node) => self.eval_set_pen_color(vmap, node),
+            ParserNode::SetPosition(node) => self.eval_set_pos(vmap, node),
+            ParserNode::SetScreenColor(node) => self.eval_set_screen_color(vmap, node),
+        }
     }
 
     fn eval_assign(&mut self, vmap: &mut VarMap, node: &AssignNode) -> RuntimeResult {
