@@ -137,14 +137,10 @@ pub struct Parser {
 
 impl Parser {
     pub fn new() -> Self {
-        let fmap = crate::hashmap![
-            "random".to_string() => ParserFuncDef::new(true, 1, ParserNodeList::new())
-        ];
-        let smap = crate::hashmap![
-            "random".to_string() => SymbolTag::Func
-        ];
-
-        Self { smap, fmap }
+        Self {
+            smap: HashMap::new(),
+            fmap: ParserFuncMap::new(),
+        }
     }
 
     pub fn go(&mut self, input: &[LexerAny]) -> RuntimeResult<ParserOutput> {
@@ -158,115 +154,54 @@ impl Parser {
 
         while !iter.is_empty() {
             let word = iter.get_word()?;
-
-            match word.to_lowercase().as_str() {
-                "bk" | "backward" => {
-                    let node = self.parse_backward(iter)?;
-                    list.push(node);
-                }
-
-                "clean" => {
-                    list.push(self.parse_clean());
-                }
-
-                "cs" | "clearscreen" => {
-                    list.push(self.parse_clear_screen());
-                }
-
-                "fd" | "forward" => {
-                    let node = self.parse_forward(iter)?;
-                    list.push(node);
-                }
-
-                "fn" => {
-                    self.parse_fn(iter)?;
-                }
-
-                "home" => {
-                    list.push(self.parse_home());
-                }
-
-                "let" => {
-                    let node = self.parse_let(iter)?;
-                    list.push(node);
-                }
-
-                "lt" | "left" => {
-                    let node = self.parse_left(iter)?;
-                    list.push(node);
-                }
-
-                "pd" | "pendown" => {
-                    list.push(self.parse_pen_down());
-                }
-
-                "pu" | "penup" => {
-                    list.push(self.parse_pen_up());
-                }
-
-                "repeat" => {
-                    let node = self.parse_repeat(iter)?;
-                    list.push(node);
-                }
-
-                "rt" | "right" => {
-                    let node = self.parse_right(iter)?;
-                    list.push(node);
-                }
-
-                "seth" | "setheading" => {
-                    let node = self.parse_set_heading(iter)?;
-                    list.push(node);
-                }
-
-                "setpc" | "setpencolor" => {
-                    let node = self.parse_set_pen_color(iter)?;
-                    list.push(node);
-                }
-
-                "setpos" => {
-                    let node = self.parse_set_pos(iter)?;
-                    list.push(node);
-                }
-
-                "setsc" | "setscreencolor" => {
-                    let node = self.parse_set_screen_color(iter)?;
-                    list.push(node);
-                }
-
-                "setxy" => {
-                    let node = self.parse_setxy(iter)?;
-                    list.push(node);
-                }
-
-                "setx" => {
-                    let node = self.parse_setx(iter)?;
-                    list.push(node);
-                }
-
-                "sety" => {
-                    let node = self.parse_sety(iter)?;
-                    list.push(node);
-                }
-
-                _ => match self.smap.get(&word) {
-                    Some(SymbolTag::Func) => {
-                        let node = self.parse_call(iter, &word)?;
-                        list.push(node);
-                    }
-                    Some(SymbolTag::Var) => {
-                        let node = self.parse_assign(iter, &word)?;
-                        list.push(node);
-                    }
-                    _ => {
-                        let msg = format!("unrecognized symbol {}", word);
-                        return Err(RuntimeError::Parser(msg));
-                    }
-                },
+            let res = self.parse_word(iter, &word)?;
+            if let Some(node) = res {
+                list.push(node);
             }
         }
 
         Ok(list)
+    }
+
+    fn parse_word(&mut self, iter: &mut ListIter, word: &str) -> RuntimeResult<Option<ParserNode>> {
+        let res = match word.to_lowercase().as_str() {
+            "bk" | "backward" => Some(self.parse_backward(iter)?),
+            "clean" => Some(self.parse_clean()),
+            "cs" | "clearscreen" => Some(self.parse_clear_screen()),
+            "fd" | "forward" => Some(self.parse_forward(iter)?),
+            "fn" => {
+                self.parse_fn(iter)?;
+                None
+            }
+            "home" => Some(self.parse_home()),
+            "let" => Some(self.parse_let(iter)?),
+            "lt" | "left" => Some(self.parse_left(iter)?),
+            "pd" | "pendown" => Some(self.parse_pen_down()),
+            "pu" | "penup" => Some(self.parse_pen_up()),
+            "repeat" => Some(self.parse_repeat(iter)?),
+            "rt" | "right" => Some(self.parse_right(iter)?),
+            "seth" | "setheading" => Some(self.parse_set_heading(iter)?),
+            "setpc" | "setpencolor" => Some(self.parse_set_pen_color(iter)?),
+            "setpos" => Some(self.parse_set_pos(iter)?),
+            "setsc" | "setscreencolor" => Some(self.parse_set_screen_color(iter)?),
+            "setxy" => Some(self.parse_setxy(iter)?),
+            "setx" => Some(self.parse_setx(iter)?),
+            "sety" => Some(self.parse_sety(iter)?),
+            _ => Some(self.parse_other(iter, word)?),
+        };
+
+        Ok(res)
+    }
+
+    fn parse_other(&mut self, iter: &mut ListIter, word: &str) -> RuntimeResult<ParserNode> {
+        match self.smap.get(word) {
+            Some(SymbolTag::Func) => self.parse_call(iter, word),
+            Some(SymbolTag::Var) => self.parse_assign(iter, word),
+            _ => {
+                let msg = format!("unrecognized symbol {}", word);
+                Err(RuntimeError::Parser(msg))
+            }
+        }
     }
 
     fn parse_assign(&mut self, iter: &mut ListIter, name: &str) -> RuntimeResult<ParserNode> {
