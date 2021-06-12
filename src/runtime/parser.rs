@@ -283,14 +283,16 @@ impl Parser {
     fn parse_set_heading(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
         let angle = self.get_expr(iter)?;
-        let node = SetHeadingNode::new(angle);
+        let angle_node = self.parse_expr(iter, &angle)?;
+        let node = SetHeadingNode::new(angle_node);
         Ok(ParserNode::SetHeading(node))
     }
 
     fn parse_set_pen_color(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
         let color = self.get_expr(iter)?;
-        let pen_color_node = SetPenColorNode::new(color);
+        let color_node = self.parse_expr(iter, &color)?;
+        let pen_color_node = SetPenColorNode::new(color_node);
         Ok(ParserNode::SetPenColor(pen_color_node))
     }
 
@@ -304,29 +306,34 @@ impl Parser {
     fn parse_set_screen_color(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
         let color = self.get_expr(iter)?;
-        let pen_color_node = SetScreenColorNode::new(color);
+        let color_node = self.parse_expr(iter, &color)?;
+        let pen_color_node = SetScreenColorNode::new(color_node);
         Ok(ParserNode::SetScreenColor(pen_color_node))
     }
 
     fn parse_setxy(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(2)?;
         let x = self.get_expr(iter)?;
+        let x_node = self.parse_expr(iter, &x)?;
         let y = self.get_expr(iter)?;
-        let pos_node = SetPositionNode::new(Some(x), Some(y));
+        let y_node = self.parse_expr(iter, &y)?;
+        let pos_node = SetPositionNode::new(Some(Box::new(x_node)), Some(Box::new(y_node)));
         Ok(ParserNode::SetPosition(pos_node))
     }
 
     fn parse_setx(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
         let x = self.get_expr(iter)?;
-        let pos_node = SetPositionNode::new(Some(x), None);
+        let x_node = self.parse_expr(iter, &x)?;
+        let pos_node = SetPositionNode::new(Some(Box::new(x_node)), None);
         Ok(ParserNode::SetPosition(pos_node))
     }
 
     fn parse_sety(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
         let y = self.get_expr(iter)?;
-        let pos_node = SetPositionNode::new(None, Some(y));
+        let y_node = self.parse_expr(iter, &y)?;
+        let pos_node = SetPositionNode::new(None, Some(Box::new(y_node)));
         Ok(ParserNode::SetPosition(pos_node))
     }
 

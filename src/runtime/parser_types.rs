@@ -168,65 +168,71 @@ impl RotateNode {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SetHeadingNode {
-    angle: LexerAny,
+    angle: Box<ParserNode>,
 }
 
 impl SetHeadingNode {
-    pub fn new(angle: LexerAny) -> Self {
-        Self { angle }
+    pub fn new(angle: ParserNode) -> Self {
+        Self {
+            angle: Box::new(angle),
+        }
     }
 
-    pub fn angle(&self) -> &LexerAny {
+    pub fn angle(&self) -> &ParserNode {
         &self.angle
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SetPenColorNode {
-    color: LexerAny,
+    color: Box<ParserNode>,
 }
 
 impl SetPenColorNode {
-    pub fn new(color: LexerAny) -> Self {
-        Self { color }
+    pub fn new(color: ParserNode) -> Self {
+        Self {
+            color: Box::new(color),
+        }
     }
 
-    pub fn color(&self) -> &LexerAny {
+    pub fn color(&self) -> &ParserNode {
         &self.color
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SetPositionNode {
-    x: Option<LexerAny>,
-    y: Option<LexerAny>,
+    x: Option<Box<ParserNode>>,
+    y: Option<Box<ParserNode>>,
 }
 
 impl SetPositionNode {
-    pub fn new(x: Option<LexerAny>, y: Option<LexerAny>) -> Self {
+    pub fn new(x: Option<Box<ParserNode>>, y: Option<Box<ParserNode>>) -> Self {
         Self { x, y }
     }
 
-    pub fn x(&self) -> Option<&LexerAny> {
+    pub fn x(&self) -> Option<&Box<ParserNode>> {
         self.x.as_ref()
     }
 
-    pub fn y(&self) -> Option<&LexerAny> {
+    pub fn y(&self) -> Option<&Box<ParserNode>> {
         self.y.as_ref()
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SetScreenColorNode {
-    color: LexerAny,
+    color: Box<ParserNode>,
 }
 
 impl SetScreenColorNode {
-    pub fn new(color: LexerAny) -> Self {
-        Self { color }
+    pub fn new(color: ParserNode) -> Self {
+        Self {
+            color: Box::new(color),
+        }
     }
 
-    pub fn color(&self) -> &LexerAny {
+    pub fn color(&self) -> &ParserNode {
         &self.color
     }
 }

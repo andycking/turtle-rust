@@ -47,7 +47,7 @@ mod tests {
 
     #[test]
     fn it_goes() {
-        let input = "repeat random 10 { fd 10 }".to_string();
+        let input = "repeat random 10 { setpos [(1 + 2) random 3] }".to_string();
         let (render_tx, render_rx) = mpsc::unbounded::<RenderCommand>();
         let res = entry(input, Arc::new(render_tx));
         if let Err(err) = res {
