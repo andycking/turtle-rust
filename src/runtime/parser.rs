@@ -145,16 +145,30 @@ impl Parser {
     /*fn parse_assign(&mut self, iter: &mut ListIter, name: &str) -> RuntimeResult<ParserNode> {
         iter.expect(2)?;
         iter.expect_assign()?;
-        let rhs = self.get_expression(iter)?;
+        let rhs = self.get_expr(iter)?;
         let node = AssignNode::new(name.to_string(), rhs);
         Ok(ParserNode::Assign(node))
     }*/
 
     fn parse_backward(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let distance = self.get_expression(iter)?;
-        let move_node = MoveNode::new(distance, Direction::Backward);
+        let distance = self.get_expr(iter)?;
+        let distance_node = self.parse_expr(iter, &distance)?;
+        let move_node = MoveNode::new(distance_node, Direction::Backward);
         Ok(ParserNode::Move(move_node))
+    }
+
+    fn parse_bin_expr(
+        &mut self,
+        iter: &mut ListIter,
+        bin_expr: &LexerBinExpr,
+    ) -> RuntimeResult<ParserNode> {
+        let a = bin_expr.a();
+        let b = bin_expr.b();
+        let anode = self.parse_expr(iter, a)?;
+        let bnode = self.parse_expr(iter, b)?;
+        let node = BinExprNode::new(anode, bin_expr.op(), bnode);
+        Ok(ParserNode::BinExpr(node))
     }
 
     fn parse_call(&mut self, iter: &mut ListIter, name: &str) -> RuntimeResult<ParserNode> {
@@ -174,6 +188,18 @@ impl Parser {
         ParserNode::ClearScreen
     }
 
+    fn parse_expr(&mut self, iter: &mut ListIter, expr: &LexerAny) -> RuntimeResult<ParserNode> {
+        match expr {
+            LexerAny::LexerBinExpr(bin_expr) => self.parse_bin_expr(iter, &bin_expr),
+            LexerAny::LexerNumber(num) => Ok(ParserNode::Number(*num)),
+            LexerAny::LexerWord(word) => self.parse_word(iter, &word),
+            _ => {
+                let msg = "failed to parse expression".to_string();
+                Err(RuntimeError::Parser(msg))
+            }
+        }
+    }
+
     fn parse_fn(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(2)?;
         let name = self.get_word(iter)?;
@@ -188,8 +214,9 @@ impl Parser {
 
     fn parse_forward(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let distance = self.get_expression(iter)?;
-        let move_node = MoveNode::new(distance, Direction::Forward);
+        let distance = self.get_expr(iter)?;
+        let distance_node = self.parse_expr(iter, &distance)?;
+        let move_node = MoveNode::new(distance_node, Direction::Forward);
         Ok(ParserNode::Move(move_node))
     }
 
@@ -202,15 +229,17 @@ impl Parser {
         let var = self.get_word(iter)?;
         self.check_symbol(&var, SymbolTag::Var)?;
         iter.expect_assign()?;
-        let rhs = self.get_expr(iter)?;
-        let l_node = LetNode::new(var, rhs);
+        let rhs = iter.next();
+        let rhs_node = self.parse_expr(iter, &rhs)?;
+        let l_node = LetNode::new(var, rhs_node);
         Ok(ParserNode::Let(l_node))
     }
 
     fn parse_left(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let angle = self.get_expression(iter)?;
-        let rotate_node = RotateNode::new(angle, Direction::Left);
+        let angle = self.get_expr(iter)?;
+        let angle_node = self.parse_expr(iter, &angle)?;
+        let rotate_node = RotateNode::new(angle_node, Direction::Left);
         Ok(ParserNode::Rotate(rotate_node))
     }
 
@@ -226,38 +255,41 @@ impl Parser {
 
     fn parse_random(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let max = self.get_expr(iter)?;
-        let random_node = RandomNode::new(max);
+        let max = iter.next();
+        let max_node = self.parse_expr(iter, &max)?;
+        let random_node = RandomNode::new(max_node);
         Ok(ParserNode::Random(random_node))
     }
 
     fn parse_repeat(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(2)?;
-        let count = self.get_expression(iter)?;
+        let count = self.get_expr(iter)?;
+        let count_node = self.parse_expr(iter, &count)?;
         let block = self.get_block(iter)?;
         let mut block_iter = ListIter::new(&block);
         let node_list = self.parse(&mut block_iter)?;
-        let repeat_node = RepeatNode::new(count, node_list);
+        let repeat_node = RepeatNode::new(count_node, node_list);
         Ok(ParserNode::Repeat(repeat_node))
     }
 
     fn parse_right(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let angle = self.get_expression(iter)?;
-        let rotate_node = RotateNode::new(angle, Direction::Right);
+        let angle = self.get_expr(iter)?;
+        let angle_node = self.parse_expr(iter, &angle)?;
+        let rotate_node = RotateNode::new(angle_node, Direction::Right);
         Ok(ParserNode::Rotate(rotate_node))
     }
 
     fn parse_set_heading(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let angle = self.get_expression(iter)?;
+        let angle = self.get_expr(iter)?;
         let node = SetHeadingNode::new(angle);
         Ok(ParserNode::SetHeading(node))
     }
 
     fn parse_set_pen_color(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let color = self.get_expression(iter)?;
+        let color = self.get_expr(iter)?;
         let pen_color_node = SetPenColorNode::new(color);
         Ok(ParserNode::SetPenColor(pen_color_node))
     }
@@ -271,29 +303,29 @@ impl Parser {
 
     fn parse_set_screen_color(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let color = self.get_expression(iter)?;
+        let color = self.get_expr(iter)?;
         let pen_color_node = SetScreenColorNode::new(color);
         Ok(ParserNode::SetScreenColor(pen_color_node))
     }
 
     fn parse_setxy(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(2)?;
-        let x = self.get_expression(iter)?;
-        let y = self.get_expression(iter)?;
+        let x = self.get_expr(iter)?;
+        let y = self.get_expr(iter)?;
         let pos_node = SetPositionNode::new(Some(x), Some(y));
         Ok(ParserNode::SetPosition(pos_node))
     }
 
     fn parse_setx(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let x = self.get_expression(iter)?;
+        let x = self.get_expr(iter)?;
         let pos_node = SetPositionNode::new(Some(x), None);
         Ok(ParserNode::SetPosition(pos_node))
     }
 
     fn parse_sety(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let y = self.get_expression(iter)?;
+        let y = self.get_expr(iter)?;
         let pos_node = SetPositionNode::new(None, Some(y));
         Ok(ParserNode::SetPosition(pos_node))
     }
@@ -301,7 +333,7 @@ impl Parser {
     fn get_args(&mut self, iter: &mut ListIter, num_args: usize) -> RuntimeResult<LexerList> {
         let mut args = LexerList::with_capacity(num_args as usize);
         for _ in 0..num_args {
-            let arg = self.get_expression(iter)?;
+            let arg = self.get_expr(iter)?;
             args.push(arg);
         }
 
@@ -317,23 +349,7 @@ impl Parser {
         }
     }
 
-    fn parse_expr(&mut self, iter: &mut ListIter, expr: LexerAny) -> RuntimeResult<ParserNode> {
-        match expr {
-            LexerAny::LexerNumber(num) => Ok(ParserNode::Number(num)),
-            LexerAny::LexerWord(word) => self.parse_word(iter, &word),
-            _ => {
-                let msg = "failed to parse expression".to_string();
-                Err(RuntimeError::Parser(msg))
-            }
-        }
-    }
-
-    fn get_expr(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
-        let expr = iter.next();
-        self.parse_expr(iter, expr)
-    }
-
-    fn get_expression(&mut self, iter: &mut ListIter) -> RuntimeResult<LexerAny> {
+    fn get_expr(&mut self, iter: &mut ListIter) -> RuntimeResult<LexerAny> {
         match iter.next() {
             LexerAny::LexerBinExpr(bin_expr) => Ok(LexerAny::LexerBinExpr(bin_expr)),
             LexerAny::LexerList(list) => Ok(LexerAny::LexerList(list)),

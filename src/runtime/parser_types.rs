@@ -82,19 +82,19 @@ pub type LetNode = AssignNode;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MoveNode {
-    distance: LexerAny,
+    distance: Box<ParserNode>,
     direction: Direction,
 }
 
 impl MoveNode {
-    pub fn new(distance: LexerAny, direction: Direction) -> Self {
+    pub fn new(distance: ParserNode, direction: Direction) -> Self {
         Self {
-            distance,
+            distance: Box::new(distance),
             direction,
         }
     }
 
-    pub fn distance(&self) -> &LexerAny {
+    pub fn distance(&self) -> &ParserNode {
         &self.distance
     }
 
@@ -122,16 +122,19 @@ impl RandomNode {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RepeatNode {
-    count: LexerAny,
+    count: Box<ParserNode>,
     list: ParserNodeList,
 }
 
 impl RepeatNode {
-    pub fn new(count: LexerAny, list: ParserNodeList) -> Self {
-        Self { count, list }
+    pub fn new(count: ParserNode, list: ParserNodeList) -> Self {
+        Self {
+            count: Box::new(count),
+            list,
+        }
     }
 
-    pub fn count(&self) -> &LexerAny {
+    pub fn count(&self) -> &ParserNode {
         &self.count
     }
 
@@ -142,16 +145,19 @@ impl RepeatNode {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RotateNode {
-    angle: LexerAny,
+    angle: Box<ParserNode>,
     direction: Direction,
 }
 
 impl RotateNode {
-    pub fn new(angle: LexerAny, direction: Direction) -> Self {
-        Self { angle, direction }
+    pub fn new(angle: ParserNode, direction: Direction) -> Self {
+        Self {
+            angle: Box::new(angle),
+            direction,
+        }
     }
 
-    pub fn angle(&self) -> &LexerAny {
+    pub fn angle(&self) -> &ParserNode {
         &self.angle
     }
 
