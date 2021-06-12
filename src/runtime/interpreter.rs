@@ -118,7 +118,6 @@ impl Interpreter {
 
     fn eval_node(&mut self, frame: &mut Frame, node: &ParserNode) -> RuntimeResult<Value> {
         match node {
-            //ParserNode::Assign(node) => self.eval_assign(vmap, node),
             ParserNode::BinExpr(bin_expr) => self.eval_bin_expr(frame, bin_expr),
             ParserNode::Call(node) => self.eval_call(frame, node),
             ParserNode::Clean => Ok(self.eval_clean()),
@@ -144,17 +143,6 @@ impl Interpreter {
         let val = self.eval_node(frame, expr)?;
         Self::get_number(&val)
     }
-
-    /*fn eval_assign(&mut self, vmap: &mut VarMap, node: &AssignNode) -> RuntimeResult {
-        let value = self.eval_expr(vmap, node.val())?;
-        if let Some(var) = vmap.get_mut(node.name()) {
-            *var = value;
-            Ok(())
-        } else {
-            let msg = format!("no such variable {}", node.name());
-            Err(RuntimeError::Interpreter(msg))
-        }
-    }*/
 
     fn eval_bin_expr(&mut self, frame: &mut Frame, bin_expr: &BinExprNode) -> RuntimeResult<Value> {
         let a = self.eval_node(frame, &bin_expr.a())?;

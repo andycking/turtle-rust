@@ -134,21 +134,13 @@ impl Parser {
     fn parse_other(&mut self, iter: &mut ListIter, word: &str) -> RuntimeResult<ParserNode> {
         match self.smap.get(word) {
             Some(SymbolTag::Func) => self.parse_call(iter, word),
-            //Some(SymbolTag::Var) => self.parse_assign(iter, word),
+            Some(SymbolTag::Var) => Ok(ParserNode::Word(word.to_string())),
             _ => {
                 let msg = format!("unrecognized symbol {}", word);
                 Err(RuntimeError::Parser(msg))
             }
         }
     }
-
-    /*fn parse_assign(&mut self, iter: &mut ListIter, name: &str) -> RuntimeResult<ParserNode> {
-        iter.expect(2)?;
-        iter.expect_assign()?;
-        let rhs = self.get_expr(iter)?;
-        let node = AssignNode::new(name.to_string(), rhs);
-        Ok(ParserNode::Assign(node))
-    }*/
 
     fn parse_backward(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
