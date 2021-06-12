@@ -20,18 +20,10 @@ use druid::Point;
 use rand::Rng;
 
 use super::error::*;
+use super::interpreter_types::*;
 use super::lexer_types::*;
 use super::parser_types::*;
 use crate::model::render::*;
-
-type ValueList = Vec<Value>;
-
-#[derive(Clone, Debug, PartialEq)]
-enum Value {
-    Void,
-    List(ValueList),
-    Number(f64),
-}
 
 type VarMap = HashMap<String, Value>;
 
@@ -104,7 +96,7 @@ impl Interpreter {
         }
     }
 
-    pub fn go(&mut self, input: &ParserOutput) -> RuntimeResult {
+    pub fn go(&mut self, input: &ParserOutput) -> RuntimeResult<Value> {
         let mut frame = Frame::new(0);
         let mut vmap = VarMap::new();
         self.run(&mut frame, &input.fmap, &mut vmap, &input.list)
@@ -116,12 +108,12 @@ impl Interpreter {
         fmap: &ParserFuncMap,
         vmap: &mut VarMap,
         list: &[ParserNode],
-    ) -> RuntimeResult {
+    ) -> RuntimeResult<Value> {
+        let mut val = Value::Void;
         for node in list.iter() {
-            self.eval_node(frame, fmap, vmap, node)?;
+            val = self.eval_node(frame, fmap, vmap, node)?;
         }
-
-        Ok(())
+        Ok(val)
     }
 
     fn eval_node(
@@ -130,24 +122,24 @@ impl Interpreter {
         fmap: &ParserFuncMap,
         vmap: &mut VarMap,
         node: &ParserNode,
-    ) -> RuntimeResult {
+    ) -> RuntimeResult<Value> {
         match node {
             //ParserNode::Assign(node) => self.eval_assign(vmap, node),
-            //ParserNode::Call(node) => self.eval_call(frame, fmap, vmap, node),
-            //ParserNode::Clean => Ok(self.eval_clean()),
-            //ParserNode::ClearScreen => self.eval_clear_screen(),
-            //ParserNode::Home => self.eval_home(),
-            //ParserNode::Let(node) => self.eval_let(vmap, node),
-            //ParserNode::Move(node) => self.eval_move(vmap, node),
-            //ParserNode::Pen(node) => Ok(self.eval_pen(node)),
+            ParserNode::Call(node) => self.eval_call(frame, fmap, vmap, node),
+            ParserNode::Clean => Ok(self.eval_clean()),
+            ParserNode::ClearScreen => self.eval_clear_screen(),
+            ParserNode::Home => self.eval_home(),
+            ParserNode::Let(node) => self.eval_let(vmap, node),
+            ParserNode::Move(node) => self.eval_move(vmap, node),
+            ParserNode::Pen(node) => Ok(self.eval_pen(node)),
             ParserNode::Random(node) => self.eval_random(vmap, node),
-            //ParserNode::Repeat(node) => self.eval_repeat(frame, fmap, vmap, node),
-            //ParserNode::Rotate(node) => self.eval_rotate(vmap, node),
-            //ParserNode::SetHeading(node) => self.eval_set_heading(vmap, node),
-            //ParserNode::SetPenColor(node) => self.eval_set_pen_color(vmap, node),
-            //ParserNode::SetPosition(node) => self.eval_set_pos(vmap, node),
-            //ParserNode::SetScreenColor(node) => self.eval_set_screen_color(vmap, node),
-            _ => Ok(()),
+            ParserNode::Repeat(node) => self.eval_repeat(frame, fmap, vmap, node),
+            ParserNode::Rotate(node) => self.eval_rotate(vmap, node),
+            ParserNode::SetHeading(node) => self.eval_set_heading(vmap, node),
+            ParserNode::SetPenColor(node) => self.eval_set_pen_color(vmap, node),
+            ParserNode::SetPosition(node) => self.eval_set_pos(vmap, node),
+            ParserNode::SetScreenColor(node) => self.eval_set_screen_color(vmap, node),
+            _ => Ok(Value::Void),
         }
     }
 
@@ -160,7 +152,7 @@ impl Interpreter {
             let msg = format!("no such variable {}", node.name());
             Err(RuntimeError::Interpreter(msg))
         }
-    }
+    }*/
 
     fn eval_call(
         &mut self,
@@ -168,7 +160,7 @@ impl Interpreter {
         fmap: &ParserFuncMap,
         vmap: &mut VarMap,
         node: &CallNode,
-    ) -> RuntimeResult {
+    ) -> RuntimeResult<Value> {
         let name = node.name();
         if let Some(func) = fmap.get(name) {
             let mut child_frame = Frame::new(frame.repcount);
@@ -179,30 +171,38 @@ impl Interpreter {
         }
     }
 
-    fn eval_clean(&mut self) {}
+    fn eval_clean(&mut self) -> Value {
+        Value::Void
+    }
 
-    fn eval_clear_screen(&mut self) -> RuntimeResult {
+    fn eval_clear_screen(&mut self) -> RuntimeResult<Value> {
         self.eval_home()?;
-        self.eval_clean();
-        Ok(())
+        Ok(self.eval_clean())
     }
 
-    fn eval_home(&mut self) -> RuntimeResult {
-        self.move_to(Point::ZERO)
+    fn eval_home(&mut self) -> RuntimeResult<Value> {
+        self.move_to(Point::ZERO)?;
+        Ok(Value::Void)
     }
 
-    fn eval_let(&mut self, vmap: &mut VarMap, node: &LetNode) -> RuntimeResult {
+    fn eval_let(&mut self, vmap: &mut VarMap, node: &LetNode) -> RuntimeResult<Value> {
         let val = self.eval_expr(vmap, node.val())?;
         vmap.insert(node.name().to_string(), val);
-        Ok(())
+        Ok(Value::Void)
     }
 
-    fn eval_move(&mut self, vmap: &mut VarMap, node: &MoveNode) -> RuntimeResult {
+    fn eval_move(&mut self, vmap: &mut VarMap, node: &MoveNode) -> RuntimeResult<Value> {
         let distance = self.eval_expr_as_number(vmap, node.distance())?;
 
         match node.direction() {
-            Direction::Forward => self.move_by(distance),
-            Direction::Backward => self.move_by(-distance),
+            Direction::Forward => {
+                self.move_by(distance)?;
+                Ok(Value::Void)
+            }
+            Direction::Backward => {
+                self.move_by(-distance)?;
+                Ok(Value::Void)
+            }
             _ => {
                 let msg = "movement must be forward or backward".to_string();
                 Err(RuntimeError::Interpreter(msg))
@@ -210,28 +210,28 @@ impl Interpreter {
         }
     }
 
-    fn eval_pen(&mut self, node: &PenNode) {
+    fn eval_pen(&mut self, node: &PenNode) -> Value {
         match node {
             PenNode::Down => self.state.pen_down = true,
             PenNode::Up => self.state.pen_down = false,
         }
-    }*/
-
-    fn eval_random(&mut self, vmap: &mut VarMap, node: &RandomNode) -> RuntimeResult {
-        let max = self.eval_expr_as_number(vmap, node.max())?;
-        println!("max {}", max);
-        let int = max.round() as u32;
-        let num = rand::thread_rng().gen_range(0..=int);
-        Ok(())
+        Value::Void
     }
 
-    /*fn eval_repeat(
+    fn eval_random(&mut self, vmap: &mut VarMap, node: &RandomNode) -> RuntimeResult<Value> {
+        let max = self.eval_expr_as_number(vmap, node.max())?;
+        let intmax = max.round() as u32;
+        let num = rand::thread_rng().gen_range(0..=intmax);
+        Ok(Value::Number(num as f64))
+    }
+
+    fn eval_repeat(
         &mut self,
         _frame: &mut Frame,
         fmap: &ParserFuncMap,
         vmap: &mut VarMap,
         node: &RepeatNode,
-    ) -> RuntimeResult {
+    ) -> RuntimeResult<Value> {
         let count = self.eval_expr_as_number(vmap, node.count())?;
         let list = node.list();
         let mut child_frame = Frame::new(0);
@@ -241,20 +241,20 @@ impl Interpreter {
             self.run(&mut child_frame, fmap, vmap, list)?;
         }
 
-        Ok(())
+        Ok(Value::Void)
     }
 
-    fn eval_rotate(&mut self, vmap: &mut VarMap, node: &RotateNode) -> RuntimeResult {
+    fn eval_rotate(&mut self, vmap: &mut VarMap, node: &RotateNode) -> RuntimeResult<Value> {
         let angle = self.eval_expr_as_number(vmap, node.angle())?;
 
         match node.direction() {
             Direction::Left => {
                 self.state.angle -= angle.to_radians();
-                Ok(())
+                Ok(Value::Void)
             }
             Direction::Right => {
                 self.state.angle += angle.to_radians();
-                Ok(())
+                Ok(Value::Void)
             }
             _ => {
                 let msg = "rotation must be right or left".to_string();
@@ -263,19 +263,27 @@ impl Interpreter {
         }
     }
 
-    fn eval_set_heading(&mut self, vmap: &mut VarMap, node: &SetHeadingNode) -> RuntimeResult {
+    fn eval_set_heading(
+        &mut self,
+        vmap: &mut VarMap,
+        node: &SetHeadingNode,
+    ) -> RuntimeResult<Value> {
         let angle = self.eval_expr_as_number(vmap, node.angle())?;
         self.state.angle = angle.to_radians();
-        Ok(())
+        Ok(Value::Void)
     }
 
-    fn eval_set_pen_color(&mut self, vmap: &mut VarMap, node: &SetPenColorNode) -> RuntimeResult {
+    fn eval_set_pen_color(
+        &mut self,
+        vmap: &mut VarMap,
+        node: &SetPenColorNode,
+    ) -> RuntimeResult<Value> {
         let val = self.eval_expr(vmap, node.color())?;
         self.state.color = Self::get_color(&self.pal, &val)?;
-        Ok(())
+        Ok(Value::Void)
     }
 
-    fn eval_set_pos(&mut self, vmap: &mut VarMap, node: &SetPositionNode) -> RuntimeResult {
+    fn eval_set_pos(&mut self, vmap: &mut VarMap, node: &SetPositionNode) -> RuntimeResult<Value> {
         let new_x = if let Some(xitem) = node.x() {
             self.eval_expr_as_number(vmap, xitem)?
         } else {
@@ -288,18 +296,20 @@ impl Interpreter {
             self.state.pos.y
         };
 
-        self.move_to(Point::new(new_x, new_y))
+        self.move_to(Point::new(new_x, new_y))?;
+
+        Ok(Value::Void)
     }
 
     fn eval_set_screen_color(
         &mut self,
         vmap: &mut VarMap,
         node: &SetScreenColorNode,
-    ) -> RuntimeResult {
+    ) -> RuntimeResult<Value> {
         let val = self.eval_expr(vmap, node.color())?;
         self.state.screen_color = Self::get_color(&self.pal, &val)?;
-        Ok(())
-    }*/
+        Ok(Value::Void)
+    }
 
     fn eval_bin_expr(&mut self, vmap: &VarMap, bin_expr: &BinExprNode) -> RuntimeResult<Value> {
         let a = self.eval_expr(vmap, &bin_expr.a())?;
@@ -445,7 +455,7 @@ impl Interpreter {
             }
 
             _ => {
-                let msg = format!("color cannot be void");
+                let msg = "color cannot be void".to_string();
                 Err(RuntimeError::Interpreter(msg))
             }
         }
