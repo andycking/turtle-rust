@@ -21,7 +21,10 @@ use crate::model::render::RenderTx;
 use crate::runtime;
 
 async fn entry_future(input: String, render_tx: Arc<RenderTx>) {
-    runtime::entry(input, render_tx);
+    let res = runtime::entry(input, render_tx);
+    if let Err(err) = res {
+        eprintln!("{}", err);
+    }
 }
 
 pub fn go(_ctx: &mut DelegateCtx, _cmd: &druid::Command, data: &mut AppState) {
