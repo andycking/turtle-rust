@@ -132,25 +132,26 @@ impl Interpreter {
         node: &ParserNode,
     ) -> RuntimeResult {
         match node {
-            ParserNode::Assign(node) => self.eval_assign(vmap, node),
-            ParserNode::Call(node) => self.eval_call(frame, fmap, vmap, node),
-            ParserNode::Clean => Ok(self.eval_clean()),
-            ParserNode::ClearScreen => self.eval_clear_screen(),
-            ParserNode::Home => self.eval_home(),
-            ParserNode::Let(node) => self.eval_let(vmap, node),
-            ParserNode::Move(node) => self.eval_move(vmap, node),
-            ParserNode::Pen(node) => Ok(self.eval_pen(node)),
+            //ParserNode::Assign(node) => self.eval_assign(vmap, node),
+            //ParserNode::Call(node) => self.eval_call(frame, fmap, vmap, node),
+            //ParserNode::Clean => Ok(self.eval_clean()),
+            //ParserNode::ClearScreen => self.eval_clear_screen(),
+            //ParserNode::Home => self.eval_home(),
+            //ParserNode::Let(node) => self.eval_let(vmap, node),
+            //ParserNode::Move(node) => self.eval_move(vmap, node),
+            //ParserNode::Pen(node) => Ok(self.eval_pen(node)),
             ParserNode::Random(node) => self.eval_random(vmap, node),
-            ParserNode::Repeat(node) => self.eval_repeat(frame, fmap, vmap, node),
-            ParserNode::Rotate(node) => self.eval_rotate(vmap, node),
-            ParserNode::SetHeading(node) => self.eval_set_heading(vmap, node),
-            ParserNode::SetPenColor(node) => self.eval_set_pen_color(vmap, node),
-            ParserNode::SetPosition(node) => self.eval_set_pos(vmap, node),
-            ParserNode::SetScreenColor(node) => self.eval_set_screen_color(vmap, node),
+            //ParserNode::Repeat(node) => self.eval_repeat(frame, fmap, vmap, node),
+            //ParserNode::Rotate(node) => self.eval_rotate(vmap, node),
+            //ParserNode::SetHeading(node) => self.eval_set_heading(vmap, node),
+            //ParserNode::SetPenColor(node) => self.eval_set_pen_color(vmap, node),
+            //ParserNode::SetPosition(node) => self.eval_set_pos(vmap, node),
+            //ParserNode::SetScreenColor(node) => self.eval_set_screen_color(vmap, node),
+            _ => Ok(()),
         }
     }
 
-    fn eval_assign(&mut self, vmap: &mut VarMap, node: &AssignNode) -> RuntimeResult {
+    /*fn eval_assign(&mut self, vmap: &mut VarMap, node: &AssignNode) -> RuntimeResult {
         let value = self.eval_expr(vmap, node.val())?;
         if let Some(var) = vmap.get_mut(node.name()) {
             *var = value;
@@ -214,16 +215,17 @@ impl Interpreter {
             PenNode::Down => self.state.pen_down = true,
             PenNode::Up => self.state.pen_down = false,
         }
-    }
+    }*/
 
-    fn eval_random(&mut self, vmap: &mut VarMap, expr: &LexerExpr) -> RuntimeResult {
-        let max = self.eval_expr_as_number(vmap, expr)?;
+    fn eval_random(&mut self, vmap: &mut VarMap, node: &RandomNode) -> RuntimeResult {
+        let max = self.eval_expr_as_number(vmap, node.max())?;
+        println!("max {}", max);
         let int = max.round() as u32;
         let num = rand::thread_rng().gen_range(0..=int);
         Ok(())
     }
 
-    fn eval_repeat(
+    /*fn eval_repeat(
         &mut self,
         _frame: &mut Frame,
         fmap: &ParserFuncMap,
@@ -297,26 +299,12 @@ impl Interpreter {
         let val = self.eval_expr(vmap, node.color())?;
         self.state.screen_color = Self::get_color(&self.pal, &val)?;
         Ok(())
-    }
+    }*/
 
-    fn eval_any_item(&mut self, vmap: &VarMap, item: &LexerAny) -> RuntimeResult<Value> {
-        match item {
-            LexerAny::LexerBinExpr(expr) => self.eval_bin_expr(vmap, expr),
-            LexerAny::LexerExpr(enw) => self.eval_expr(vmap, enw),
-            LexerAny::LexerList(list) => self.eval_list(vmap, list),
-            LexerAny::LexerNumber(num) => Ok(Value::Number(*num)),
-            LexerAny::LexerWord(word) => self.eval_word(vmap, word),
-            _ => {
-                let msg = format!("cannot evaluate {:?}", item);
-                Err(RuntimeError::Interpreter(msg))
-            }
-        }
-    }
-
-    fn eval_bin_expr(&mut self, vmap: &VarMap, expr: &LexerBinExpr) -> RuntimeResult<Value> {
-        let a = self.eval_expr(vmap, &expr.a())?;
-        let op = expr.op();
-        let b = self.eval_expr(vmap, &expr.b())?;
+    fn eval_bin_expr(&mut self, vmap: &VarMap, bin_expr: &BinExprNode) -> RuntimeResult<Value> {
+        let a = self.eval_expr(vmap, &bin_expr.a())?;
+        let op = bin_expr.op();
+        let b = self.eval_expr(vmap, &bin_expr.b())?;
 
         match op {
             LexerOperator::Add => Self::eval_add(&a, &b),
@@ -324,31 +312,32 @@ impl Interpreter {
             LexerOperator::Multiply => Self::eval_multiply(&a, &b),
             LexerOperator::Subtract => Self::eval_subtract(&a, &b),
             _ => {
-                let msg = "cannot evaluate assignment in binary expression".to_string();
+                let msg = "cannot evaluate operator".to_string();
                 Err(RuntimeError::Interpreter(msg))
             }
         }
     }
 
-    fn eval_expr(&mut self, vmap: &VarMap, expr: &LexerExpr) -> RuntimeResult<Value> {
+    fn eval_expr(&mut self, vmap: &VarMap, expr: &ParserNode) -> RuntimeResult<Value> {
         match expr {
-            LexerExpr::LexerBinExpr(bin_expr) => self.eval_bin_expr(vmap, bin_expr),
-            LexerExpr::LexerCall(call) => Ok(Value::Number(0.0)),
-            LexerExpr::LexerList(list) => self.eval_list(vmap, list),
-            LexerExpr::LexerNumber(num) => Ok(Value::Number(*num)),
-            LexerExpr::LexerWord(word) => self.eval_word(vmap, word),
+            ParserNode::BinExpr(bin_expr) => self.eval_bin_expr(vmap, bin_expr),
+            ParserNode::Call(call) => Ok(Value::Number(0.0)),
+            //ParserNode::LexerList(list) => self.eval_list(vmap, list),
+            ParserNode::Number(num) => Ok(Value::Number(*num)),
+            ParserNode::Word(word) => self.eval_word(vmap, word),
+            _ => Ok(Value::Number(1.0)),
         }
     }
 
-    fn eval_expr_as_number(&mut self, vmap: &VarMap, expr: &LexerExpr) -> RuntimeResult<f64> {
+    fn eval_expr_as_number(&mut self, vmap: &VarMap, expr: &ParserNode) -> RuntimeResult<f64> {
         let val = self.eval_expr(vmap, expr)?;
         Self::get_number(&val)
     }
 
-    fn eval_list(&mut self, vmap: &VarMap, list: &[LexerAny]) -> RuntimeResult<Value> {
+    fn eval_list(&mut self, vmap: &VarMap, list: &[ParserNode]) -> RuntimeResult<Value> {
         let mut out = ValueList::new();
         for item in list.iter() {
-            let v = self.eval_any_item(vmap, item)?;
+            let v = self.eval_expr(vmap, item)?;
             out.push(v);
         }
 

@@ -118,6 +118,10 @@ impl RandomNode {
     pub fn new(max: ParserNode) -> Self {
         Self { max: Box::new(max) }
     }
+
+    pub fn max(&self) -> &ParserNode {
+        &self.max
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
