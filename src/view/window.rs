@@ -68,7 +68,22 @@ fn build_input() -> impl Widget<AppState> {
         \n\
         If you're stuck, try typing this:\n\
         \n\
-        fd 10";
+        fn box {\n\
+        \tlet a = random 100\n\
+        \tfd a\n\
+        \trt 90\n\
+        \tfd a\n\
+        \trt 90\n\
+        \tfd a\n\
+        \trt 90\n\
+        \tfd a\n\
+        }\n\
+        \n\
+        repeat 20 {\n\
+        \tsetpc random 15\n\
+        \tbox\n\
+        \trt 10\n\
+        }";
 
     Container::new(
         TextBox::multiline()
