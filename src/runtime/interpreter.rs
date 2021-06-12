@@ -124,10 +124,12 @@ impl Interpreter {
             ParserNode::ClearScreen => self.eval_clear_screen(),
             ParserNode::Home => self.eval_home(),
             ParserNode::Let(node) => self.eval_let(frame, node),
+            ParserNode::List(node) => self.eval_list(frame, node),
             ParserNode::Move(node) => self.eval_move(frame, node),
             ParserNode::Number(num) => Ok(Value::Number(*num)),
             ParserNode::Pen(node) => Ok(self.eval_pen(node)),
             ParserNode::Random(node) => self.eval_random(frame, node),
+            ParserNode::Repcount => Ok(self.eval_repcount(frame)),
             ParserNode::Repeat(node) => self.eval_repeat(frame, node),
             ParserNode::Rotate(node) => self.eval_rotate(frame, node),
             ParserNode::SetHeading(node) => self.eval_set_heading(frame, node),
@@ -234,6 +236,10 @@ impl Interpreter {
         let intmax = max.round() as u32;
         let num = rand::thread_rng().gen_range(0..=intmax);
         Ok(Value::Number(num as f64))
+    }
+
+    fn eval_repcount(&mut self, frame: &mut Frame) -> Value {
+        Value::Number(frame.repcount as f64)
     }
 
     fn eval_repeat(&mut self, frame: &mut Frame, node: &RepeatNode) -> RuntimeResult<Value> {

@@ -116,6 +116,7 @@ impl Parser {
             "pd" | "pendown" => self.parse_pen_down(),
             "pu" | "penup" => self.parse_pen_up(),
             "random" => self.parse_random(iter)?,
+            "repcount" => ParserNode::Repcount,
             "repeat" => self.parse_repeat(iter)?,
             "rt" | "right" => self.parse_right(iter)?,
             "seth" | "setheading" => self.parse_set_heading(iter)?,
@@ -184,6 +185,7 @@ impl Parser {
         match expr {
             LexerAny::LexerBinExpr(bin_expr) => self.parse_bin_expr(iter, &bin_expr),
             LexerAny::LexerNumber(num) => Ok(ParserNode::Number(*num)),
+            LexerAny::LexerList(list) => self.parse_list(iter, &list),
             LexerAny::LexerWord(word) => self.parse_word(iter, &word),
             _ => {
                 let msg = "failed to parse expression".to_string();
@@ -233,6 +235,18 @@ impl Parser {
         let angle_node = self.parse_expr(iter, &angle)?;
         let rotate_node = RotateNode::new(angle_node, Direction::Left);
         Ok(ParserNode::Rotate(rotate_node))
+    }
+
+    fn parse_list(&mut self, iter: &mut ListIter, list: &LexerList) -> RuntimeResult<ParserNode> {
+        let mut list_iter = ListIter::new(&list);
+
+        let mut node_list = ParserNodeList::new();
+        while !list_iter.is_empty() {
+            let expr = self.get_expr(&mut list_iter)?;
+            let node = self.parse_expr(&mut list_iter, &expr)?;
+            node_list.push(node);
+        }
+        Ok(ParserNode::List(node_list))
     }
 
     fn parse_pen_down(&mut self) -> ParserNode {
