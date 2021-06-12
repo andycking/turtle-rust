@@ -23,13 +23,13 @@ pub enum LexerOperator {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct LexerBinExpr {
-    a: Box<LexerExpr>,
+    a: Box<LexerAny>,
     op: LexerOperator,
-    b: Box<LexerExpr>,
+    b: Box<LexerAny>,
 }
 
 impl LexerBinExpr {
-    pub fn new(a: LexerExpr, op: LexerOperator, b: LexerExpr) -> Self {
+    pub fn new(a: LexerAny, op: LexerOperator, b: LexerAny) -> Self {
         Self {
             a: Box::new(a),
             op,
@@ -37,7 +37,7 @@ impl LexerBinExpr {
         }
     }
 
-    pub fn a(&self) -> &LexerExpr {
+    pub fn a(&self) -> &LexerAny {
         &self.a
     }
 
@@ -45,7 +45,7 @@ impl LexerBinExpr {
         self.op
     }
 
-    pub fn b(&self) -> &LexerExpr {
+    pub fn b(&self) -> &LexerAny {
         &self.b
     }
 }
@@ -53,11 +53,11 @@ impl LexerBinExpr {
 #[derive(Clone, Debug, PartialEq)]
 pub struct LexerCall {
     name: String,
-    args: LexerExprList,
+    args: LexerList,
 }
 
 impl LexerCall {
-    pub fn new(name: &str, args: LexerExprList) -> Self {
+    pub fn new(name: &str, args: LexerList) -> Self {
         Self {
             name: String::from(name),
             args,
@@ -74,22 +74,10 @@ pub type LexerList = Vec<LexerAny>;
 pub type LexerBlock = LexerList;
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum LexerExpr {
-    LexerBinExpr(LexerBinExpr),
-    LexerCall(LexerCall),
-    LexerList(LexerList),
-    LexerNumber(f64),
-    LexerWord(String),
-}
-
-pub type LexerExprList = Vec<LexerExpr>;
-
-#[derive(Clone, Debug, PartialEq)]
 pub enum LexerAny {
     LexerBlock(LexerBlock),
     LexerBinExpr(LexerBinExpr),
     LexerCall(LexerCall),
-    LexerExpr(LexerExpr),
     LexerList(LexerList),
     LexerNumber(f64),
     LexerOperator(LexerOperator),

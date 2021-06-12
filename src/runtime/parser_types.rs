@@ -19,20 +19,52 @@ use super::lexer_types::*;
 #[derive(Clone, Debug, PartialEq)]
 pub struct AssignNode {
     name: String,
-    val: LexerExpr,
+    val: Box<ParserNode>,
 }
 
 impl AssignNode {
-    pub fn new(name: String, val: LexerExpr) -> Self {
-        Self { name, val }
+    pub fn new(name: String, val: ParserNode) -> Self {
+        Self {
+            name,
+            val: Box::new(val),
+        }
     }
 
     pub fn name(&self) -> &str {
         &self.name
     }
 
-    pub fn val(&self) -> &LexerExpr {
+    pub fn val(&self) -> &ParserNode {
         &self.val
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct BinExprNode {
+    a: Box<ParserNode>,
+    op: LexerOperator,
+    b: Box<ParserNode>,
+}
+
+impl BinExprNode {
+    pub fn new(a: ParserNode, op: LexerOperator, b: ParserNode) -> Self {
+        Self {
+            a: Box::new(a),
+            op,
+            b: Box::new(b),
+        }
+    }
+
+    pub fn a(&self) -> &ParserNode {
+        &self.a
+    }
+
+    pub fn op(&self) -> LexerOperator {
+        self.op
+    }
+
+    pub fn b(&self) -> &ParserNode {
+        &self.b
     }
 }
 
@@ -50,19 +82,19 @@ pub type LetNode = AssignNode;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MoveNode {
-    distance: LexerExpr,
+    distance: LexerAny,
     direction: Direction,
 }
 
 impl MoveNode {
-    pub fn new(distance: LexerExpr, direction: Direction) -> Self {
+    pub fn new(distance: LexerAny, direction: Direction) -> Self {
         Self {
             distance,
             direction,
         }
     }
 
-    pub fn distance(&self) -> &LexerExpr {
+    pub fn distance(&self) -> &LexerAny {
         &self.distance
     }
 
@@ -77,18 +109,29 @@ pub enum PenNode {
     Up,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
+pub struct RandomNode {
+    max: Box<ParserNode>,
+}
+
+impl RandomNode {
+    pub fn new(max: ParserNode) -> Self {
+        Self { max: Box::new(max) }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct RepeatNode {
-    count: LexerExpr,
+    count: LexerAny,
     list: ParserNodeList,
 }
 
 impl RepeatNode {
-    pub fn new(count: LexerExpr, list: ParserNodeList) -> Self {
+    pub fn new(count: LexerAny, list: ParserNodeList) -> Self {
         Self { count, list }
     }
 
-    pub fn count(&self) -> &LexerExpr {
+    pub fn count(&self) -> &LexerAny {
         &self.count
     }
 
@@ -99,16 +142,16 @@ impl RepeatNode {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RotateNode {
-    angle: LexerExpr,
+    angle: LexerAny,
     direction: Direction,
 }
 
 impl RotateNode {
-    pub fn new(angle: LexerExpr, direction: Direction) -> Self {
+    pub fn new(angle: LexerAny, direction: Direction) -> Self {
         Self { angle, direction }
     }
 
-    pub fn angle(&self) -> &LexerExpr {
+    pub fn angle(&self) -> &LexerAny {
         &self.angle
     }
 
@@ -119,86 +162,90 @@ impl RotateNode {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SetHeadingNode {
-    angle: LexerExpr,
+    angle: LexerAny,
 }
 
 impl SetHeadingNode {
-    pub fn new(angle: LexerExpr) -> Self {
+    pub fn new(angle: LexerAny) -> Self {
         Self { angle }
     }
 
-    pub fn angle(&self) -> &LexerExpr {
+    pub fn angle(&self) -> &LexerAny {
         &self.angle
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SetPenColorNode {
-    color: LexerExpr,
+    color: LexerAny,
 }
 
 impl SetPenColorNode {
-    pub fn new(color: LexerExpr) -> Self {
+    pub fn new(color: LexerAny) -> Self {
         Self { color }
     }
 
-    pub fn color(&self) -> &LexerExpr {
+    pub fn color(&self) -> &LexerAny {
         &self.color
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SetPositionNode {
-    x: Option<LexerExpr>,
-    y: Option<LexerExpr>,
+    x: Option<LexerAny>,
+    y: Option<LexerAny>,
 }
 
 impl SetPositionNode {
-    pub fn new(x: Option<LexerExpr>, y: Option<LexerExpr>) -> Self {
+    pub fn new(x: Option<LexerAny>, y: Option<LexerAny>) -> Self {
         Self { x, y }
     }
 
-    pub fn x(&self) -> Option<&LexerExpr> {
+    pub fn x(&self) -> Option<&LexerAny> {
         self.x.as_ref()
     }
 
-    pub fn y(&self) -> Option<&LexerExpr> {
+    pub fn y(&self) -> Option<&LexerAny> {
         self.y.as_ref()
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SetScreenColorNode {
-    color: LexerExpr,
+    color: LexerAny,
 }
 
 impl SetScreenColorNode {
-    pub fn new(color: LexerExpr) -> Self {
+    pub fn new(color: LexerAny) -> Self {
         Self { color }
     }
 
-    pub fn color(&self) -> &LexerExpr {
+    pub fn color(&self) -> &LexerAny {
         &self.color
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ParserNode {
     Assign(AssignNode),
+    BinExpr(BinExprNode),
     Call(CallNode),
     Clean,
     ClearScreen,
     Home,
     Let(LetNode),
     Move(MoveNode),
+    Number(f64),
     Pen(PenNode),
-    Random(LexerExpr),
+    Placeholder,
+    Random(RandomNode),
     Repeat(RepeatNode),
     Rotate(RotateNode),
     SetHeading(SetHeadingNode),
     SetPenColor(SetPenColorNode),
     SetPosition(SetPositionNode),
     SetScreenColor(SetScreenColorNode),
+    Word(String),
 }
 
 pub type ParserNodeList = Vec<ParserNode>;

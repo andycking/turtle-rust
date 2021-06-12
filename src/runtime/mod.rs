@@ -16,12 +16,12 @@ use std::sync::Arc;
 
 use crate::model::render::RenderTx;
 use error::*;
-use interpreter::Interpreter;
+//use interpreter::Interpreter;
 use lexer::Lexer;
 use parser::Parser;
 
 pub mod error;
-mod interpreter;
+//mod interpreter;
 mod lexer;
 mod lexer_types;
 mod parser;
@@ -33,7 +33,7 @@ pub fn entry(input: String, render_tx: Arc<RenderTx>) -> RuntimeResult {
     println!("lexer out {:?}", lexer_out);
     let parser_out = Parser::new().go(&lexer_out)?;
     println!("parser out {:?}", parser_out);
-    let intrp_out = Interpreter::new(render_tx).go(&parser_out)?;
+    //let intrp_out = Interpreter::new(render_tx).go(&parser_out)?;
     println!("Runtime finished.");
     Ok(())
 }
@@ -47,7 +47,7 @@ mod tests {
 
     #[test]
     fn it_goes() {
-        let input = "random 10".to_string();
+        let input = "let a = (1 + 2)".to_string();
         let (render_tx, render_rx) = mpsc::unbounded::<RenderCommand>();
         let res = entry(input, Arc::new(render_tx));
         if let Err(err) = res {
