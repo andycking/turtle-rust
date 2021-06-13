@@ -29,11 +29,11 @@ pub struct PixBuf {
 }
 
 impl PixBuf {
-    pub fn width(&self) -> u32 {
+    pub fn _width(&self) -> u32 {
         self.width
     }
 
-    pub fn height(&self) -> u32 {
+    pub fn _height(&self) -> u32 {
         self.height
     }
 
@@ -46,7 +46,7 @@ impl PixBuf {
         bits::zero(&mut pixels);
     }
 
-    pub fn read_xy(&self, x: usize, y: usize) -> Color {
+    pub fn _read_xy(&self, x: usize, y: usize) -> Color {
         let byte_idx = (y * (self.width as usize) + x) * 4;
 
         druid::Color::rgba8(
@@ -58,8 +58,8 @@ impl PixBuf {
     }
 
     #[inline]
-    pub fn read(&self, p: Point) -> Color {
-        self.read_xy(p.x as usize, p.y as usize)
+    pub fn _read(&self, p: Point) -> Color {
+        self._read_xy(p.x as usize, p.y as usize)
     }
 
     fn write_xy_inner(bytes: &mut [u8], x: usize, y: usize, color: &Color) {
@@ -77,13 +77,13 @@ impl PixBuf {
         }
     }
 
-    pub fn write_xy(&mut self, x: usize, y: usize, color: &Color) {
+    pub fn _write_xy(&mut self, x: usize, y: usize, color: &Color) {
         let bytes = Arc::make_mut(&mut self.bytes);
         Self::write_xy_inner(bytes, x, y, color);
     }
 
-    pub fn write(&mut self, p: Point, color: &Color) {
-        self.write_xy(p.x as usize, p.y as usize, color);
+    pub fn _write(&mut self, p: Point, color: &Color) {
+        self._write_xy(p.x as usize, p.y as usize, color);
     }
 
     fn screen_xy(x: i32, y: i32) -> (i32, i32) {
