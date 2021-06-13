@@ -50,25 +50,6 @@ impl LexerBinExpr {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct LexerCall {
-    name: String,
-    args: LexerList,
-}
-
-impl LexerCall {
-    pub fn new(name: &str, args: LexerList) -> Self {
-        Self {
-            name: String::from(name),
-            args,
-        }
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-}
-
 pub type LexerList = Vec<LexerAny>;
 
 pub type LexerBlock = LexerList;
@@ -77,7 +58,6 @@ pub type LexerBlock = LexerList;
 pub enum LexerAny {
     LexerBlock(LexerBlock),
     LexerBinExpr(LexerBinExpr),
-    LexerCall(LexerCall),
     LexerList(LexerList),
     LexerNumber(f64),
     LexerOperator(LexerOperator),

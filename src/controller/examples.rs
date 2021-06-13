@@ -28,7 +28,7 @@ pub fn show(_ctx: &mut DelegateCtx, cmd: &druid::Command, data: &mut AppState) {
         _ => "",
     };
 
-    let mut input = Arc::make_mut(&mut data.input);
+    let input = Arc::make_mut(&mut data.input);
     input.clear();
     input.push_str(example);
 }

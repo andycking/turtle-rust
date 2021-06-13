@@ -68,7 +68,24 @@ impl BinExprNode {
     }
 }
 
-pub type CallNode = LexerCall;
+#[derive(Clone, Debug, PartialEq)]
+pub struct CallNode {
+    name: String,
+    args: LexerList,
+}
+
+impl CallNode {
+    pub fn new(name: &str, args: LexerList) -> Self {
+        Self {
+            name: String::from(name),
+            args,
+        }
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Direction {

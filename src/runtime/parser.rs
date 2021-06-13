@@ -171,7 +171,7 @@ impl Parser {
         let num_args = func_def.num_args();
         iter.expect(num_args)?;
         let args = self.get_args(iter, num_args)?;
-        let call = LexerCall::new(name, args);
+        let call = CallNode::new(name, args);
         Ok(ParserNode::Call(call))
     }
 
@@ -187,7 +187,7 @@ impl Parser {
         match expr {
             LexerAny::LexerBinExpr(bin_expr) => self.parse_bin_expr(iter, &bin_expr),
             LexerAny::LexerNumber(num) => Ok(ParserNode::Number(*num)),
-            LexerAny::LexerList(list) => self.parse_list(iter, &list),
+            LexerAny::LexerList(list) => self.parse_list(&list),
             LexerAny::LexerWord(word) => self.parse_word(iter, &word),
             _ => {
                 let msg = "failed to parse expression".to_string();
@@ -239,7 +239,7 @@ impl Parser {
         Ok(ParserNode::Rotate(rotate_node))
     }
 
-    fn parse_list(&mut self, iter: &mut ListIter, list: &LexerList) -> RuntimeResult<ParserNode> {
+    fn parse_list(&mut self, list: &LexerList) -> RuntimeResult<ParserNode> {
         let mut list_iter = ListIter::new(&list);
 
         let mut node_list = ParserNodeList::new();
