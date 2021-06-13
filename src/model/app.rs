@@ -30,6 +30,7 @@ pub struct AppState {
     pub pixels: PixBuf,
     pub pos: Point,
     pub show_turtle: bool,
+    pub speed: u8,
     pub thread_pool: Arc<ThreadPool>,
     pub render_tx: Arc<RenderTx>,
 
@@ -51,6 +52,7 @@ impl AppState {
             pixels: Default::default(),
             pos: Point::ZERO,
             show_turtle: false,
+            speed: 1,
             thread_pool: Arc::new(thread_pool),
             render_tx: Arc::new(render_tx),
             window_id,

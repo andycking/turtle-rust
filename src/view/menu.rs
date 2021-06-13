@@ -46,12 +46,26 @@ fn build_edit() -> Menu<AppState> {
 }
 
 fn build_interpreter() -> Menu<AppState> {
-    Menu::new(LocalizedString::new("Interpreter")).entry(
-        MenuItem::new(LocalizedString::new("Go"))
-            .enabled_if(|data: &AppState, _env| data.input.len() > 0)
-            .hotkey(SysMods::Cmd, "g")
-            .command(commands::INTERPRETER_GO),
-    )
+    Menu::new(LocalizedString::new("Interpreter"))
+        .entry(
+            MenuItem::new(LocalizedString::new("Go"))
+                .enabled_if(|data: &AppState, _env| data.input.len() > 0)
+                .hotkey(SysMods::Cmd, "g")
+                .command(commands::INTERPRETER_GO),
+        )
+        .separator()
+        .entry(
+            MenuItem::new(LocalizedString::new("Faster"))
+                .enabled_if(|data: &AppState, _env| data.input.len() > 0)
+                .hotkey(SysMods::Cmd, "+")
+                .command(commands::INTERPRETER_SPEED.with(true)),
+        )
+        .entry(
+            MenuItem::new(LocalizedString::new("Slower"))
+                .enabled_if(|data: &AppState, _env| data.input.len() > 0)
+                .hotkey(SysMods::Cmd, "-")
+                .command(commands::INTERPRETER_SPEED.with(false)),
+        )
 }
 
 fn build_examples() -> Menu<AppState> {

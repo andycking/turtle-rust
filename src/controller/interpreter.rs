@@ -16,6 +16,7 @@ use std::sync::Arc;
 
 use druid::DelegateCtx;
 
+use crate::common::commands;
 use crate::model::app::AppState;
 use crate::model::render::RenderTx;
 use crate::runtime;
@@ -31,4 +32,16 @@ pub fn go(_ctx: &mut DelegateCtx, _cmd: &druid::Command, data: &mut AppState) {
     data.clear();
     let future = entry_future(data.input.to_string(), data.render_tx.clone());
     data.thread_pool.spawn_ok(future);
+}
+
+pub fn speed(_ctx: &mut DelegateCtx, cmd: &druid::Command, data: &mut AppState) {
+    if *cmd.get_unchecked(commands::INTERPRETER_SPEED) {
+        if data.speed < 16 {
+            data.speed *= 2;
+        }
+    } else {
+        if data.speed > 1 {
+            data.speed /= 2;
+        }
+    }
 }

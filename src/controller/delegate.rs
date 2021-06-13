@@ -37,6 +37,11 @@ impl druid::AppDelegate<AppState> for Delegate {
                 Handled::Yes
             }
 
+            _ if cmd.is(commands::INTERPRETER_SPEED) => {
+                super::interpreter::speed(ctx, cmd, data);
+                Handled::Yes
+            }
+
             _ if cmd.is(commands::EXAMPLES) => {
                 super::examples::show(ctx, cmd, data);
                 Handled::Yes

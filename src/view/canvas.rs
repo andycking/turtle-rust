@@ -41,26 +41,34 @@ impl Canvas {
         }
     }
 
-    pub fn render(&mut self, data: &mut AppState) {
-        if let Ok(Some(cmd)) = self.render_rx.try_next() {
-            match cmd {
-                RenderCommand::MoveTo(move_to) => {
-                    let p = data.pos;
-                    let q = move_to.pos;
-                    if is_pen_down(move_to.pen_flags) {
-                        let color = if is_pen_erase(move_to.pen_flags) {
-                            &Color::BLACK
-                        } else {
-                            &move_to.color
-                        };
-                        data.pixels.line(&p, &q, color);
-                    }
-                    data.pos = q;
+    pub fn render_one(&mut self, data: &mut AppState, cmd: RenderCommand) {
+        match cmd {
+            RenderCommand::MoveTo(move_to) => {
+                let p = data.pos;
+                let q = move_to.pos;
+                if is_pen_down(move_to.pen_flags) {
+                    let color = if is_pen_erase(move_to.pen_flags) {
+                        &Color::BLACK
+                    } else {
+                        &move_to.color
+                    };
+                    data.pixels.line(&p, &q, color);
                 }
+                data.pos = q;
+            }
 
-                RenderCommand::ShowTurtle(val) => {
-                    data.show_turtle = val;
-                }
+            RenderCommand::ShowTurtle(val) => {
+                data.show_turtle = val;
+            }
+        }
+    }
+
+    pub fn render(&mut self, data: &mut AppState) {
+        for _ in 0..data.speed {
+            if let Ok(Some(cmd)) = self.render_rx.try_next() {
+                self.render_one(data, cmd);
+            } else {
+                break;
             }
         }
     }

@@ -16,3 +16,4 @@ use druid::Selector;
 
 pub const EXAMPLES: Selector<&'static str> = Selector::new("examples");
 pub const INTERPRETER_GO: Selector = Selector::new("interpreter-go");
+pub const INTERPRETER_SPEED: Selector<bool> = Selector::new("interpreter-speed");
