@@ -66,24 +66,8 @@ fn build_input() -> impl Widget<AppState> {
         turtle carry them out, press\n\
         Command-G.\n\
         \n\
-        If you're stuck, try typing this:\n\
-        \n\
-        fn box {\n\
-        \tlet a = random 100\n\
-        \tfd a\n\
-        \trt 90\n\
-        \tfd a\n\
-        \trt 90\n\
-        \tfd a\n\
-        \trt 90\n\
-        \tfd a\n\
-        }\n\
-        \n\
-        repeat 20 {\n\
-        \tsetpc random 15\n\
-        \tbox\n\
-        \trt 10\n\
-        }";
+        Look under the Examples menu for\n\
+        ideas!";
 
     Container::new(
         TextBox::multiline()

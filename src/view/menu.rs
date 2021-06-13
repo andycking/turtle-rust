@@ -31,6 +31,7 @@ pub fn menu_bar(_: Option<WindowId>, _: &AppState, _: &Env) -> Menu<AppState> {
 
     base.entry(build_edit())
         .entry(build_interpreter())
+        .entry(build_examples())
         .rebuild_on(|_old_data, _data, _env| false)
 }
 
@@ -51,4 +52,24 @@ fn build_interpreter() -> Menu<AppState> {
             .hotkey(SysMods::Cmd, "g")
             .command(commands::INTERPRETER_GO),
     )
+}
+
+fn build_examples() -> Menu<AppState> {
+    Menu::new(LocalizedString::new("Examples"))
+        .entry(
+            MenuItem::new(LocalizedString::new("Color Ball"))
+                .command(commands::EXAMPLES.with("color-ball")),
+        )
+        .entry(
+            MenuItem::new(LocalizedString::new("Color Star"))
+                .command(commands::EXAMPLES.with("color-star")),
+        )
+        .entry(
+            MenuItem::new(LocalizedString::new("Squares"))
+                .command(commands::EXAMPLES.with("squares")),
+        )
+        .entry(
+            MenuItem::new(LocalizedString::new("Square Flower"))
+                .command(commands::EXAMPLES.with("square-flower")),
+        )
 }

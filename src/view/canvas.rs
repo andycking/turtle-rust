@@ -60,12 +60,12 @@ impl Widget<AppState> for Canvas {
             Event::Timer(timer_id) => {
                 if self.timer_id == *timer_id {
                     self.render(data);
-                    self.timer_id = ctx.request_timer(Duration::from_millis(20));
+                    self.timer_id = ctx.request_timer(Duration::from_millis(30));
                 }
             }
 
             Event::WindowConnected => {
-                self.timer_id = ctx.request_timer(Duration::from_millis(20));
+                self.timer_id = ctx.request_timer(Duration::from_millis(30));
             }
 
             _ => {}

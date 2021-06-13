@@ -14,4 +14,5 @@
 
 use druid::Selector;
 
+pub const EXAMPLES: Selector<&'static str> = Selector::new("examples");
 pub const INTERPRETER_GO: Selector = Selector::new("interpreter-go");

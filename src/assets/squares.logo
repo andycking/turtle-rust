@@ -1,0 +1,13 @@
+fn box {
+	let a = random 100
+	repeat 4 {
+		fd a
+		rt 90
+	}
+}
+
+repeat 30 {
+	setpc random 15
+	box
+	rt 10
+}
