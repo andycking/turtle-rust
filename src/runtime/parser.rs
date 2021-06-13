@@ -65,7 +65,7 @@ impl<'a> ListIter<'a> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 enum SymbolTag {
     Func,
     Var,
@@ -396,12 +396,19 @@ impl Parser {
     }
 
     fn check_symbol(&mut self, name: &str, tag: SymbolTag) -> RuntimeResult {
-        if !self.smap.contains_key(name) {
+        if let Some(existing_tag) = self.smap.get(name) {
+            if *existing_tag == tag {
+                Ok(())
+            } else {
+                let msg = format!(
+                    "symbol \"{}\" already exists with tag {:?}",
+                    name, existing_tag
+                );
+                Err(RuntimeError::Parser(msg))
+            }
+        } else {
             self.smap.insert(name.to_string(), tag);
             Ok(())
-        } else {
-            let msg = format!("duplicate symbol {}", name);
-            Err(RuntimeError::Parser(msg))
         }
     }
 }

@@ -17,29 +17,6 @@ use std::collections::HashMap;
 use super::lexer_types::*;
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct AssignNode {
-    name: String,
-    val: Box<ParserNode>,
-}
-
-impl AssignNode {
-    pub fn new(name: String, val: ParserNode) -> Self {
-        Self {
-            name,
-            val: Box::new(val),
-        }
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn val(&self) -> &ParserNode {
-        &self.val
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
 pub struct BinExprNode {
     a: Box<ParserNode>,
     op: LexerOperator,
@@ -95,7 +72,28 @@ pub enum Direction {
     Right,
 }
 
-pub type LetNode = AssignNode;
+#[derive(Clone, Debug, PartialEq)]
+pub struct LetNode {
+    name: String,
+    val: Box<ParserNode>,
+}
+
+impl LetNode {
+    pub fn new(name: String, val: ParserNode) -> Self {
+        Self {
+            name,
+            val: Box::new(val),
+        }
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn val(&self) -> &ParserNode {
+        &self.val
+    }
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MoveNode {
@@ -260,7 +258,6 @@ impl SetScreenColorNode {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ParserNode {
-    Assign(AssignNode),
     BinExpr(BinExprNode),
     Call(CallNode),
     Clean,
