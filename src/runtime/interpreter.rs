@@ -33,7 +33,7 @@ type Palette = HashMap<u8, Color>;
 struct State {
     angle: f64,
     color: Color,
-    pen_down: bool,
+    pen_flags: u32,
     pos: Point,
     screen_color: Color,
 }
@@ -43,7 +43,7 @@ impl State {
         Self {
             angle: 0.0,
             color: Color::WHITE,
-            pen_down: true,
+            pen_flags: PEN_FLAGS_DEFAULT,
             pos: Point::ZERO,
             screen_color: Color::BLACK,
         }
@@ -226,8 +226,11 @@ impl Interpreter {
 
     fn eval_pen(&mut self, node: &PenNode) -> Value {
         match node {
-            PenNode::Down => self.state.pen_down = true,
-            PenNode::Up => self.state.pen_down = false,
+            PenNode::Down => self.state.pen_flags = PEN_FLAGS_DOWN, // FIXME
+            PenNode::Erase => self.state.pen_flags = PEN_FLAGS_DOWN | PEN_FLAGS_ERASE,
+            PenNode::Paint => self.state.pen_flags = PEN_FLAGS_DOWN | PEN_FLAGS_PAINT,
+            PenNode::Reverse => self.state.pen_flags = PEN_FLAGS_DOWN | PEN_FLAGS_REVERSE,
+            PenNode::Up => self.state.pen_flags = PEN_FLAGS_UP, // FIXME
         }
         Value::Void
     }
@@ -468,7 +471,13 @@ impl Interpreter {
     }
 
     fn move_to_inner(&mut self, angle: f64, p: Point) -> RuntimeResult {
-        let move_to = MoveTo::new(angle, self.state.color.clone(), 0.0, self.state.pen_down, p);
+        let move_to = MoveTo::new(
+            angle,
+            self.state.color.clone(),
+            0.0,
+            self.state.pen_flags,
+            p,
+        );
 
         let cmd = RenderCommand::MoveTo(move_to);
         self.render_tx.unbounded_send(cmd)?;

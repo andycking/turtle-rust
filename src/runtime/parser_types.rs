@@ -121,6 +121,9 @@ impl MoveNode {
 #[derive(Clone, Debug, PartialEq)]
 pub enum PenNode {
     Down,
+    Erase,
+    Paint,
+    Reverse,
     Up,
 }
 

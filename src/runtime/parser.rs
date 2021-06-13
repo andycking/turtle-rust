@@ -115,6 +115,9 @@ impl Parser {
             "let" => self.parse_let(iter)?,
             "lt" | "left" => self.parse_left(iter)?,
             "pd" | "pendown" => self.parse_pen_down(),
+            "pe" | "penerase" => self.parse_pen_erase(),
+            "ppt" | "penpaint" => self.parse_pen_paint(),
+            "px" | "penreverse" => self.parse_pen_reverse(),
             "pu" | "penup" => self.parse_pen_up(),
             "random" => self.parse_random(iter)?,
             "repcount" => ParserNode::Repcount,
@@ -253,6 +256,21 @@ impl Parser {
 
     fn parse_pen_down(&mut self) -> ParserNode {
         let pen_node = PenNode::Down;
+        ParserNode::Pen(pen_node)
+    }
+
+    fn parse_pen_erase(&mut self) -> ParserNode {
+        let pen_node = PenNode::Erase;
+        ParserNode::Pen(pen_node)
+    }
+
+    fn parse_pen_paint(&mut self) -> ParserNode {
+        let pen_node = PenNode::Paint;
+        ParserNode::Pen(pen_node)
+    }
+
+    fn parse_pen_reverse(&mut self) -> ParserNode {
+        let pen_node = PenNode::Reverse;
         ParserNode::Pen(pen_node)
     }
 
