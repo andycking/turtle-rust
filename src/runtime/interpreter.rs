@@ -226,11 +226,11 @@ impl Interpreter {
 
     fn eval_pen(&mut self, node: &PenNode) -> Value {
         match node {
-            PenNode::Down => self.state.pen_flags = PEN_FLAGS_DOWN, // FIXME
+            PenNode::Down => self.state.pen_flags = pen_down(self.state.pen_flags),
             PenNode::Erase => self.state.pen_flags = PEN_FLAGS_DOWN | PEN_FLAGS_ERASE,
             PenNode::Paint => self.state.pen_flags = PEN_FLAGS_DOWN | PEN_FLAGS_PAINT,
             PenNode::Reverse => self.state.pen_flags = PEN_FLAGS_DOWN | PEN_FLAGS_REVERSE,
-            PenNode::Up => self.state.pen_flags = PEN_FLAGS_UP, // FIXME
+            PenNode::Up => self.state.pen_flags = pen_up(self.state.pen_flags),
         }
         Value::Void
     }

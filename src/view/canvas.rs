@@ -47,8 +47,8 @@ impl Canvas {
                 RenderCommand::MoveTo(move_to) => {
                     let p = data.pos;
                     let q = move_to.pos;
-                    if move_to.pen_flags & PEN_FLAGS_DOWN == PEN_FLAGS_DOWN {
-                        let color = if move_to.pen_flags & PEN_FLAGS_ERASE == PEN_FLAGS_ERASE {
+                    if is_pen_down(move_to.pen_flags) {
+                        let color = if is_pen_erase(move_to.pen_flags) {
                             &Color::BLACK
                         } else {
                             &move_to.color

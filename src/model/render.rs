@@ -18,12 +18,29 @@ use druid::Point;
 use futures::channel::mpsc::UnboundedReceiver;
 use futures::channel::mpsc::UnboundedSender;
 
+pub const PEN_FLAGS_MASK_VIS: u32 = 0xff;
 pub const PEN_FLAGS_DOWN: u32 = 1 << 0;
 pub const PEN_FLAGS_UP: u32 = 1 << 1;
 pub const PEN_FLAGS_PAINT: u32 = 1 << 8;
 pub const PEN_FLAGS_ERASE: u32 = 1 << 9;
 pub const PEN_FLAGS_REVERSE: u32 = 1 << 10;
 pub const PEN_FLAGS_DEFAULT: u32 = PEN_FLAGS_DOWN | PEN_FLAGS_PAINT;
+
+pub fn is_pen_down(flags: u32) -> bool {
+    flags & PEN_FLAGS_DOWN == PEN_FLAGS_DOWN
+}
+
+pub fn pen_down(flags: u32) -> u32 {
+    (flags & !PEN_FLAGS_MASK_VIS) | PEN_FLAGS_DOWN
+}
+
+pub fn pen_up(flags: u32) -> u32 {
+    (flags & !PEN_FLAGS_MASK_VIS) | PEN_FLAGS_UP
+}
+
+pub fn is_pen_erase(flags: u32) -> bool {
+    flags & PEN_FLAGS_ERASE == PEN_FLAGS_ERASE
+}
 
 #[derive(Clone, Data, Debug, PartialEq)]
 pub struct MoveTo {
@@ -54,3 +71,25 @@ pub enum RenderCommand {
 
 pub type RenderRx = UnboundedReceiver<RenderCommand>;
 pub type RenderTx = UnboundedSender<RenderCommand>;
+
+#[cfg(test)]
+mod tests {
+    use futures::channel::mpsc;
+
+    use super::*;
+    use crate::model::render::RenderCommand;
+
+    #[test]
+    fn it_sets_pen_down() {
+        let input = PEN_FLAGS_UP | PEN_FLAGS_ERASE;
+        let got = pen_down(input);
+        assert_eq!(got, PEN_FLAGS_DOWN | PEN_FLAGS_ERASE);
+    }
+
+    #[test]
+    fn it_sets_pen_up() {
+        let input = PEN_FLAGS_DOWN | PEN_FLAGS_REVERSE;
+        let got = pen_up(input);
+        assert_eq!(got, PEN_FLAGS_UP | PEN_FLAGS_REVERSE);
+    }
+}
