@@ -139,7 +139,7 @@ impl Parser {
             Some(SymbolTag::Func) => self.parse_call(iter, word),
             Some(SymbolTag::Var) => Ok(ParserNode::Word(word.to_string())),
             _ => {
-                let msg = format!("unrecognized symbol {}", word);
+                let msg = format!("unrecognized symbol \"{}\"", word);
                 Err(RuntimeError::Parser(msg))
             }
         }

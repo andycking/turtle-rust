@@ -170,7 +170,7 @@ impl Interpreter {
             let mut child_frame = Frame::new(frame.fmap, &mut frame.vmap, frame.repcount);
             self.run(&mut child_frame, &func.list)
         } else {
-            let msg = format!("no such function {}", name);
+            let msg = format!("no such function \"{}\"", name);
             Err(RuntimeError::Interpreter(msg))
         }
     }
@@ -333,7 +333,7 @@ impl Interpreter {
         if let Some(value) = frame.vmap.get(word) {
             Ok(value.clone())
         } else {
-            let msg = format!("no such variable {}", word);
+            let msg = format!("no such variable \"{}\"", word);
             Err(RuntimeError::Interpreter(msg))
         }
     }
@@ -403,7 +403,7 @@ impl Interpreter {
         if (0.0..=255.0).contains(&comp) {
             Ok(comp as u8)
         } else {
-            let msg = format!("color component out of bounds {}", comp);
+            let msg = format!("color component out of bounds \"{}\"", comp);
             Err(RuntimeError::Interpreter(msg))
         }
     }

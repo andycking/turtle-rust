@@ -39,7 +39,7 @@ impl LexerState {
                 if let Ok(val) = self.symbol.parse::<f64>() {
                     LexerAny::LexerNumber(val)
                 } else {
-                    let msg = format!("{}: failed to parse number {}", idx, self.symbol);
+                    let msg = format!("{}: failed to parse number \"{}\"", idx, self.symbol);
                     return Err(RuntimeError::Lexer(msg));
                 }
             } else {
@@ -148,7 +148,7 @@ impl Lexer {
                         state.symbol.push(c);
                         state.number = false;
                     } else {
-                        let msg = format!("{}: unrecognized character {}", self.idx, c);
+                        let msg = format!("{}: unrecognized character \'{}\'", self.idx, c);
                         return Err(RuntimeError::Lexer(msg));
                     }
                 }
@@ -170,7 +170,7 @@ impl Lexer {
             '*' => Ok(LexerOperator::Multiply),
             '/' => Ok(LexerOperator::Divide),
             _ => {
-                let msg = format!("{}: unrecognized operator {}", idx, c);
+                let msg = format!("{}: unrecognized operator \'{}\'", idx, c);
                 Err(RuntimeError::Lexer(msg))
             }
         }
