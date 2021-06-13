@@ -1,5 +1,7 @@
+ht
 repeat 35 {
 	setpc (repcount / 5)
 	fd (repcount * 6)
 	rt 144
 }
+st

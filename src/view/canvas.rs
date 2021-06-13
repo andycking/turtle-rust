@@ -14,9 +14,12 @@
 
 use std::time::Duration;
 
+use druid::kurbo::Circle;
 use druid::piet::ImageFormat;
 use druid::piet::InterpolationMode;
 use druid::widget::prelude::*;
+use druid::Color;
+use druid::Point;
 use druid::Rect;
 use druid::TimerToken;
 use druid::Widget;
@@ -48,6 +51,10 @@ impl Canvas {
                         data.pixels.line(&p, &q, &move_to.color);
                     }
                     data.pos = q;
+                }
+
+                RenderCommand::ShowTurtle(val) => {
+                    data.show_turtle = val;
                 }
             }
         }
@@ -108,5 +115,11 @@ impl Widget<AppState> for Canvas {
             .unwrap();
         let rect = Rect::from_origin_size((0.0, 0.0), DIMS);
         ctx.draw_image(&image, rect, InterpolationMode::Bilinear);
+
+        if data.show_turtle {
+            let origin = Point::new(data.pos.x + ORIGIN.x, (-data.pos.y) + ORIGIN.y);
+            let c = Circle::new(origin, 1.0);
+            ctx.stroke(c, &Color::WHITE, 2.0);
+        }
     }
 }

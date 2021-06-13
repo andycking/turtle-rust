@@ -263,6 +263,7 @@ pub enum ParserNode {
     SetPenColor(SetPenColorNode),
     SetPosition(SetPositionNode),
     SetScreenColor(SetScreenColorNode),
+    ShowTurtle(bool),
     Word(String),
 }
 

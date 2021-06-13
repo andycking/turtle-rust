@@ -110,6 +110,7 @@ impl Parser {
             "cs" | "clearscreen" => self.parse_clear_screen(),
             "fd" | "forward" => self.parse_forward(iter)?,
             "fn" => self.parse_fn(iter)?,
+            "ht" | "hideturtle" => ParserNode::ShowTurtle(false),
             "home" => self.parse_home(),
             "let" => self.parse_let(iter)?,
             "lt" | "left" => self.parse_left(iter)?,
@@ -126,6 +127,7 @@ impl Parser {
             "setxy" => self.parse_setxy(iter)?,
             "setx" => self.parse_setx(iter)?,
             "sety" => self.parse_sety(iter)?,
+            "st" | "showturtle" => ParserNode::ShowTurtle(true),
             _ => self.parse_other(iter, word)?,
         };
 

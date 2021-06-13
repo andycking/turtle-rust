@@ -29,6 +29,7 @@ pub struct AppState {
     pub output: Arc<String>,
     pub pixels: PixBuf,
     pub pos: Point,
+    pub show_turtle: bool,
     pub thread_pool: Arc<ThreadPool>,
     pub render_tx: Arc<RenderTx>,
 
@@ -49,6 +50,7 @@ impl AppState {
             output: "".to_string().into(),
             pixels: Default::default(),
             pos: Point::ZERO,
+            show_turtle: false,
             thread_pool: Arc::new(thread_pool),
             render_tx: Arc::new(render_tx),
             window_id,
@@ -56,7 +58,8 @@ impl AppState {
     }
 
     pub fn clear(&mut self) {
-        self.pos = Point::ZERO;
         self.pixels.clear();
+        self.pos = Point::ZERO;
+        self.show_turtle = true;
     }
 }

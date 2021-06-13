@@ -1,3 +1,4 @@
+ht
 fn box {
 	let a = random 100
 	repeat 4 {
@@ -5,9 +6,9 @@ fn box {
 		rt 90
 	}
 }
-
 repeat 30 {
 	setpc random 15
 	box
 	rt 10
 }
+st

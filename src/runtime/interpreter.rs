@@ -136,6 +136,7 @@ impl Interpreter {
             ParserNode::SetPenColor(node) => self.eval_set_pen_color(frame, node),
             ParserNode::SetPosition(node) => self.eval_set_pos(frame, node),
             ParserNode::SetScreenColor(node) => self.eval_set_screen_color(frame, node),
+            ParserNode::ShowTurtle(val) => self.eval_show_turtle(*val),
             ParserNode::Word(word) => self.eval_word(frame, word),
             _ => Ok(Value::Void),
         }
@@ -319,6 +320,12 @@ impl Interpreter {
     ) -> RuntimeResult<Value> {
         let val = self.eval_node(frame, node.color())?;
         self.state.screen_color = Self::get_color(&self.pal, &val)?;
+        Ok(Value::Void)
+    }
+
+    fn eval_show_turtle(&mut self, val: bool) -> RuntimeResult<Value> {
+        let cmd = RenderCommand::ShowTurtle(val);
+        self.render_tx.unbounded_send(cmd)?;
         Ok(Value::Void)
     }
 
