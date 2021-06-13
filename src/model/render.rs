@@ -42,6 +42,7 @@ impl MoveTo {
 #[derive(Clone, Data, Debug, PartialEq)]
 pub enum RenderCommand {
     MoveTo(MoveTo),
+    ShowTurtle(bool),
 }
 
 pub type RenderRx = UnboundedReceiver<RenderCommand>;

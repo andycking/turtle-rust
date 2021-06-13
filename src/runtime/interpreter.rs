@@ -17,19 +17,13 @@ use std::sync::Arc;
 
 use druid::Color;
 use druid::Point;
+use rand::Rng;
 
 use super::error::*;
+use super::interpreter_types::*;
 use super::lexer_types::*;
 use super::parser_types::*;
 use crate::model::render::*;
-
-type ValueList = Vec<Value>;
-
-#[derive(Clone, Debug, PartialEq)]
-enum Value {
-    List(ValueList),
-    Number(f64),
-}
 
 type VarMap = HashMap<String, Value>;
 
@@ -56,14 +50,20 @@ impl State {
     }
 }
 
-#[derive(Clone, Debug)]
-struct Frame {
+#[derive(Debug)]
+struct Frame<'a> {
+    pub fmap: &'a ParserFuncMap,
+    pub vmap: &'a mut VarMap,
     pub repcount: usize,
 }
 
-impl Frame {
-    pub fn new(repcount: usize) -> Self {
-        Self { repcount }
+impl<'a> Frame<'a> {
+    pub fn new(fmap: &'a ParserFuncMap, vmap: &'a mut VarMap, repcount: usize) -> Self {
+        Self {
+            fmap,
+            vmap,
+            repcount,
+        }
     }
 }
 
@@ -102,94 +102,121 @@ impl Interpreter {
         }
     }
 
-    pub fn go(&mut self, input: &ParserOutput) -> RuntimeResult {
-        let mut frame = Frame::new(0);
+    pub fn go(&mut self, input: &ParserOutput) -> RuntimeResult<Value> {
         let mut vmap = VarMap::new();
-        self.run(&mut frame, &input.fmap, &mut vmap, &input.list)
+        let mut frame = Frame::new(&input.fmap, &mut vmap, 0);
+        self.run(&mut frame, &input.list)
     }
 
-    fn run(
-        &mut self,
-        frame: &mut Frame,
-        fmap: &ParserFuncMap,
-        vmap: &mut VarMap,
-        list: &[ParserNode],
-    ) -> RuntimeResult {
-        println!("repcount {}", frame.repcount);
+    fn run(&mut self, frame: &mut Frame, list: &[ParserNode]) -> RuntimeResult<Value> {
+        let mut val = Value::Void;
         for node in list.iter() {
-            match node {
-                ParserNode::Assign(node) => self.eval_assign(vmap, node)?,
-                ParserNode::Call(node) => self.eval_call(frame, fmap, vmap, node)?,
-                ParserNode::Clean => self.eval_clean(),
-                ParserNode::ClearScreen => self.eval_clear_screen()?,
-                ParserNode::Home => self.eval_home()?,
-                ParserNode::Let(node) => self.eval_let(vmap, node)?,
-                ParserNode::Move(node) => self.eval_move(vmap, node)?,
-                ParserNode::Pen(node) => self.eval_pen(node),
-                ParserNode::Repeat(node) => self.eval_repeat(frame, fmap, vmap, node)?,
-                ParserNode::Rotate(node) => self.eval_rotate(vmap, node)?,
-                ParserNode::SetHeading(node) => self.eval_set_heading(vmap, node)?,
-                ParserNode::SetPenColor(node) => self.eval_set_pen_color(vmap, node)?,
-                ParserNode::SetPosition(node) => self.eval_set_pos(vmap, node)?,
-                ParserNode::SetScreenColor(node) => self.eval_set_screen_color(vmap, node)?,
+            val = self.eval_node(frame, node)?;
+        }
+        Ok(val)
+    }
+
+    fn eval_node(&mut self, frame: &mut Frame, node: &ParserNode) -> RuntimeResult<Value> {
+        match node {
+            ParserNode::BinExpr(bin_expr) => self.eval_bin_expr(frame, bin_expr),
+            ParserNode::Call(node) => self.eval_call(frame, node),
+            ParserNode::Clean => Ok(self.eval_clean()),
+            ParserNode::ClearScreen => self.eval_clear_screen(),
+            ParserNode::Home => self.eval_home(),
+            ParserNode::Let(node) => self.eval_let(frame, node),
+            ParserNode::List(node) => self.eval_list(frame, node),
+            ParserNode::Move(node) => self.eval_move(frame, node),
+            ParserNode::Number(num) => Ok(Value::Number(*num)),
+            ParserNode::Pen(node) => Ok(self.eval_pen(node)),
+            ParserNode::Random(node) => self.eval_random(frame, node),
+            ParserNode::Repcount => Ok(self.eval_repcount(frame)),
+            ParserNode::Repeat(node) => self.eval_repeat(frame, node),
+            ParserNode::Rotate(node) => self.eval_rotate(frame, node),
+            ParserNode::SetHeading(node) => self.eval_set_heading(frame, node),
+            ParserNode::SetPenColor(node) => self.eval_set_pen_color(frame, node),
+            ParserNode::SetPosition(node) => self.eval_set_pos(frame, node),
+            ParserNode::SetScreenColor(node) => self.eval_set_screen_color(frame, node),
+            ParserNode::ShowTurtle(val) => self.eval_show_turtle(*val),
+            ParserNode::Word(word) => self.eval_word(frame, word),
+            _ => Ok(Value::Void),
+        }
+    }
+
+    fn eval_node_as_number(&mut self, frame: &mut Frame, expr: &ParserNode) -> RuntimeResult<f64> {
+        let val = self.eval_node(frame, expr)?;
+        Self::get_number(&val)
+    }
+
+    fn eval_bin_expr(&mut self, frame: &mut Frame, bin_expr: &BinExprNode) -> RuntimeResult<Value> {
+        let a = self.eval_node(frame, &bin_expr.a())?;
+        let op = bin_expr.op();
+        let b = self.eval_node(frame, &bin_expr.b())?;
+
+        match op {
+            LexerOperator::Add => Self::eval_add(&a, &b),
+            LexerOperator::Divide => Self::eval_divide(&a, &b),
+            LexerOperator::Multiply => Self::eval_multiply(&a, &b),
+            LexerOperator::Subtract => Self::eval_subtract(&a, &b),
+            _ => {
+                let msg = "cannot evaluate operator".to_string();
+                Err(RuntimeError::Interpreter(msg))
             }
         }
-
-        Ok(())
     }
 
-    fn eval_assign(&mut self, vmap: &mut VarMap, node: &AssignNode) -> RuntimeResult {
-        let value = self.eval_expr(vmap, node.val())?;
-        if let Some(var) = vmap.get_mut(node.name()) {
-            *var = value;
-            Ok(())
-        } else {
-            let msg = format!("no such variable {}", node.name());
-            Err(RuntimeError::Interpreter(msg))
-        }
-    }
-
-    fn eval_call(
-        &mut self,
-        frame: &mut Frame,
-        fmap: &ParserFuncMap,
-        vmap: &mut VarMap,
-        node: &CallNode,
-    ) -> RuntimeResult {
+    fn eval_call(&mut self, frame: &mut Frame, node: &CallNode) -> RuntimeResult<Value> {
         let name = node.name();
-        if let Some(func) = fmap.get(name.name()) {
-            let mut child_frame = Frame::new(frame.repcount);
-            self.run(&mut child_frame, fmap, vmap, &func.list)
+        if let Some(func) = frame.fmap.get(name) {
+            let mut child_frame = Frame::new(frame.fmap, &mut frame.vmap, frame.repcount);
+            self.run(&mut child_frame, &func.list)
         } else {
-            let msg = format!("no such function {}", name.name());
+            let msg = format!("no such function {}", name);
             Err(RuntimeError::Interpreter(msg))
         }
     }
 
-    fn eval_clean(&mut self) {}
+    fn eval_clean(&mut self) -> Value {
+        Value::Void
+    }
 
-    fn eval_clear_screen(&mut self) -> RuntimeResult {
+    fn eval_clear_screen(&mut self) -> RuntimeResult<Value> {
         self.eval_home()?;
-        self.eval_clean();
-        Ok(())
+        Ok(self.eval_clean())
     }
 
-    fn eval_home(&mut self) -> RuntimeResult {
-        self.move_to(Point::ZERO)
+    fn eval_home(&mut self) -> RuntimeResult<Value> {
+        self.move_to(Point::ZERO)?;
+        Ok(Value::Void)
     }
 
-    fn eval_let(&mut self, vmap: &mut VarMap, node: &LetNode) -> RuntimeResult {
-        let val = self.eval_expr(vmap, node.val())?;
-        vmap.insert(node.name().to_string(), val);
-        Ok(())
+    fn eval_let(&mut self, frame: &mut Frame, node: &LetNode) -> RuntimeResult<Value> {
+        let val = self.eval_node(frame, node.val())?;
+        frame.vmap.insert(node.name().to_string(), val);
+        Ok(Value::Void)
     }
 
-    fn eval_move(&mut self, vmap: &mut VarMap, node: &MoveNode) -> RuntimeResult {
-        let distance = self.eval_expr_as_number(vmap, node.distance())?;
+    fn eval_list(&mut self, frame: &mut Frame, list: &[ParserNode]) -> RuntimeResult<Value> {
+        let mut out = ValueList::new();
+        for item in list.iter() {
+            let v = self.eval_node(frame, item)?;
+            out.push(v);
+        }
+
+        Ok(Value::List(out))
+    }
+
+    fn eval_move(&mut self, frame: &mut Frame, node: &MoveNode) -> RuntimeResult<Value> {
+        let distance = self.eval_node_as_number(frame, node.distance())?;
 
         match node.direction() {
-            Direction::Forward => self.move_by(distance),
-            Direction::Backward => self.move_by(-distance),
+            Direction::Forward => {
+                self.move_by(distance)?;
+                Ok(Value::Void)
+            }
+            Direction::Backward => {
+                self.move_by(-distance)?;
+                Ok(Value::Void)
+            }
             _ => {
                 let msg = "movement must be forward or backward".to_string();
                 Err(RuntimeError::Interpreter(msg))
@@ -197,43 +224,49 @@ impl Interpreter {
         }
     }
 
-    fn eval_pen(&mut self, node: &PenNode) {
+    fn eval_pen(&mut self, node: &PenNode) -> Value {
         match node {
             PenNode::Down => self.state.pen_down = true,
             PenNode::Up => self.state.pen_down = false,
         }
+        Value::Void
     }
 
-    fn eval_repeat(
-        &mut self,
-        _frame: &mut Frame,
-        fmap: &ParserFuncMap,
-        vmap: &mut VarMap,
-        node: &RepeatNode,
-    ) -> RuntimeResult {
-        let count = self.eval_expr_as_number(vmap, node.count())?;
+    fn eval_random(&mut self, frame: &mut Frame, node: &RandomNode) -> RuntimeResult<Value> {
+        let max = self.eval_node_as_number(frame, node.max())?;
+        let intmax = max.round() as u32;
+        let num = rand::thread_rng().gen_range(0..=intmax);
+        Ok(Value::Number(num as f64))
+    }
+
+    fn eval_repcount(&mut self, frame: &mut Frame) -> Value {
+        Value::Number(frame.repcount as f64)
+    }
+
+    fn eval_repeat(&mut self, frame: &mut Frame, node: &RepeatNode) -> RuntimeResult<Value> {
+        let count = self.eval_node_as_number(frame, node.count())?;
         let list = node.list();
-        let mut child_frame = Frame::new(0);
+        let mut child_frame = Frame::new(frame.fmap, &mut frame.vmap, 0);
 
         for _ in 0..count as usize {
             child_frame.repcount += 1;
-            self.run(&mut child_frame, fmap, vmap, list)?;
+            self.run(&mut child_frame, list)?;
         }
 
-        Ok(())
+        Ok(Value::Void)
     }
 
-    fn eval_rotate(&mut self, vmap: &mut VarMap, node: &RotateNode) -> RuntimeResult {
-        let angle = self.eval_expr_as_number(vmap, node.angle())?;
+    fn eval_rotate(&mut self, frame: &mut Frame, node: &RotateNode) -> RuntimeResult<Value> {
+        let angle = self.eval_node_as_number(frame, node.angle())?;
 
         match node.direction() {
             Direction::Left => {
                 self.state.angle -= angle.to_radians();
-                Ok(())
+                Ok(Value::Void)
             }
             Direction::Right => {
                 self.state.angle += angle.to_radians();
-                Ok(())
+                Ok(Value::Void)
             }
             _ => {
                 let msg = "rotation must be right or left".to_string();
@@ -242,117 +275,79 @@ impl Interpreter {
         }
     }
 
-    fn eval_set_heading(&mut self, vmap: &mut VarMap, node: &SetHeadingNode) -> RuntimeResult {
-        let angle = self.eval_expr_as_number(vmap, node.angle())?;
+    fn eval_set_heading(
+        &mut self,
+        frame: &mut Frame,
+        node: &SetHeadingNode,
+    ) -> RuntimeResult<Value> {
+        let angle = self.eval_node_as_number(frame, node.angle())?;
         self.state.angle = angle.to_radians();
-        Ok(())
+        Ok(Value::Void)
     }
 
-    fn eval_set_pen_color(&mut self, vmap: &mut VarMap, node: &SetPenColorNode) -> RuntimeResult {
-        let val = self.eval_expr(vmap, node.color())?;
+    fn eval_set_pen_color(
+        &mut self,
+        frame: &mut Frame,
+        node: &SetPenColorNode,
+    ) -> RuntimeResult<Value> {
+        let val = self.eval_node(frame, node.color())?;
         self.state.color = Self::get_color(&self.pal, &val)?;
-        Ok(())
+        Ok(Value::Void)
     }
 
-    fn eval_set_pos(&mut self, vmap: &mut VarMap, node: &SetPositionNode) -> RuntimeResult {
+    fn eval_set_pos(&mut self, frame: &mut Frame, node: &SetPositionNode) -> RuntimeResult<Value> {
         let new_x = if let Some(xitem) = node.x() {
-            self.eval_expr_as_number(vmap, xitem)?
+            self.eval_node_as_number(frame, xitem)?
         } else {
             self.state.pos.x
         };
 
         let new_y = if let Some(yitem) = node.y() {
-            self.eval_expr_as_number(vmap, yitem)?
+            self.eval_node_as_number(frame, yitem)?
         } else {
             self.state.pos.y
         };
 
-        self.move_to(Point::new(new_x, new_y))
+        self.move_to(Point::new(new_x, new_y))?;
+
+        Ok(Value::Void)
     }
 
     fn eval_set_screen_color(
         &mut self,
-        vmap: &mut VarMap,
+        frame: &mut Frame,
         node: &SetScreenColorNode,
-    ) -> RuntimeResult {
-        let val = self.eval_expr(vmap, node.color())?;
+    ) -> RuntimeResult<Value> {
+        let val = self.eval_node(frame, node.color())?;
         self.state.screen_color = Self::get_color(&self.pal, &val)?;
-        Ok(())
+        Ok(Value::Void)
     }
 
-    fn eval_any_item(&mut self, vmap: &VarMap, item: &LexerAny) -> RuntimeResult<Value> {
-        match item {
-            LexerAny::LexerBinExpr(expr) => self.eval_bin_expr(vmap, expr),
-            LexerAny::LexerExpr(enw) => self.eval_expr(vmap, enw),
-            LexerAny::LexerList(list) => self.eval_list(vmap, list),
-            LexerAny::LexerNumber(num) => Ok(Value::Number(num.val())),
-            LexerAny::LexerWord(word) => self.eval_word(vmap, word),
-            _ => {
-                let msg = "cannot evaluate item".to_string();
-                Err(RuntimeError::Interpreter(msg))
-            }
-        }
+    fn eval_show_turtle(&mut self, val: bool) -> RuntimeResult<Value> {
+        let cmd = RenderCommand::ShowTurtle(val);
+        self.render_tx.unbounded_send(cmd)?;
+        Ok(Value::Void)
     }
 
-    fn eval_bin_expr(&mut self, vmap: &VarMap, expr: &LexerBinExpr) -> RuntimeResult<Value> {
-        let a = self.eval_expr(vmap, &expr.a())?;
-        let op = expr.op();
-        let b = self.eval_expr(vmap, &expr.b())?;
-
-        match op {
-            LexerOperator::Add => Self::eval_add(&a, &b),
-            LexerOperator::Divide => Self::eval_divide(&a, &b),
-            LexerOperator::Multiply => Self::eval_multiply(&a, &b),
-            LexerOperator::Subtract => Self::eval_subtract(&a, &b),
-            _ => {
-                let msg = "cannot evaluate assignment as part of LexerBinExpr".to_string();
-                Err(RuntimeError::Interpreter(msg))
-            }
-        }
-    }
-
-    fn eval_expr(&mut self, vmap: &VarMap, expr: &LexerExpr) -> RuntimeResult<Value> {
-        match expr {
-            LexerExpr::LexerBinExpr(bin_expr) => self.eval_bin_expr(vmap, bin_expr),
-            LexerExpr::LexerCall(call) => Ok(Value::Number(0.0)),
-            LexerExpr::LexerList(list) => self.eval_list(vmap, list),
-            LexerExpr::LexerNumber(num) => Ok(Value::Number(num.val())),
-            LexerExpr::LexerWord(word) => self.eval_word(vmap, word),
-        }
-    }
-
-    fn eval_expr_as_number(&mut self, vmap: &VarMap, expr: &LexerExpr) -> RuntimeResult<f64> {
-        let val = self.eval_expr(vmap, expr)?;
-        Self::get_number(&val)
-    }
-
-    fn eval_list(&mut self, vmap: &VarMap, list: &[LexerAny]) -> RuntimeResult<Value> {
-        let mut out = ValueList::new();
-        for item in list.iter() {
-            let v = self.eval_any_item(vmap, item)?;
-            out.push(v);
-        }
-
-        Ok(Value::List(out))
-    }
-
-    fn eval_word(&mut self, vmap: &VarMap, word: &LexerWord) -> RuntimeResult<Value> {
-        if let Some(value) = vmap.get(word.name()) {
+    fn eval_word(&mut self, frame: &mut Frame, word: &str) -> RuntimeResult<Value> {
+        if let Some(value) = frame.vmap.get(word) {
             Ok(value.clone())
         } else {
-            let msg = format!("no such variable {}", word.name());
+            let msg = format!("no such variable {}", word);
             Err(RuntimeError::Interpreter(msg))
         }
+    }
+
+    fn err_eval_bin_expr(a: &Value, b: &Value) -> RuntimeResult<Value> {
+        let msg = format!("cannot evaluate {:?} {:?}", a, b);
+        Err(RuntimeError::Interpreter(msg))
     }
 
     fn eval_add(a: &Value, b: &Value) -> RuntimeResult<Value> {
         match a {
             Value::Number(a_num) => match b {
                 Value::Number(b_num) => Ok(Value::Number(a_num + b_num)),
-                _ => {
-                    let msg = "cannot add a number and a list".to_string();
-                    Err(RuntimeError::Interpreter(msg))
-                }
+                _ => Self::err_eval_bin_expr(a, b),
             },
             Value::List(a_list) => match b {
                 Value::List(b_list) => {
@@ -367,7 +362,9 @@ impl Interpreter {
                     merged.push(Value::Number(*b_num));
                     Ok(Value::List(merged))
                 }
+                _ => Self::err_eval_bin_expr(a, b),
             },
+            _ => Self::err_eval_bin_expr(a, b),
         }
     }
 
@@ -375,15 +372,9 @@ impl Interpreter {
         match a {
             Value::Number(a_num) => match b {
                 Value::Number(other_num) => Ok(Value::Number(a_num / other_num)),
-                _ => {
-                    let msg = "cannot divide a number and a list".to_string();
-                    Err(RuntimeError::Interpreter(msg))
-                }
+                _ => Self::err_eval_bin_expr(a, b),
             },
-            Value::List(_) => {
-                let msg = "cannot divide two lists".to_string();
-                Err(RuntimeError::Interpreter(msg))
-            }
+            _ => Self::err_eval_bin_expr(a, b),
         }
     }
 
@@ -391,15 +382,9 @@ impl Interpreter {
         match a {
             Value::Number(a_num) => match b {
                 Value::Number(b_num) => Ok(Value::Number(a_num * b_num)),
-                _ => {
-                    let msg = "cannot multiply a number and a list".to_string();
-                    Err(RuntimeError::Interpreter(msg))
-                }
+                _ => Self::err_eval_bin_expr(a, b),
             },
-            Value::List(_) => {
-                let msg = "cannot multiply two lists".to_string();
-                Err(RuntimeError::Interpreter(msg))
-            }
+            _ => Self::err_eval_bin_expr(a, b),
         }
     }
 
@@ -407,15 +392,9 @@ impl Interpreter {
         match a {
             Value::Number(a_num) => match b {
                 Value::Number(b_num) => Ok(Value::Number(a_num - b_num)),
-                _ => {
-                    let msg = "cannot subtract a list from a number".to_string();
-                    Err(RuntimeError::Interpreter(msg))
-                }
+                _ => Self::err_eval_bin_expr(a, b),
             },
-            Value::List(_) => {
-                let msg = "cannot subtract two lists".to_string();
-                Err(RuntimeError::Interpreter(msg))
-            }
+            _ => Self::err_eval_bin_expr(a, b),
         }
     }
 
@@ -448,6 +427,11 @@ impl Interpreter {
                     let msg = format!("invalid palette index {}", idx);
                     Err(RuntimeError::Interpreter(msg))
                 }
+            }
+
+            _ => {
+                let msg = "color cannot be void".to_string();
+                Err(RuntimeError::Interpreter(msg))
             }
         }
     }

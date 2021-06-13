@@ -12,6 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod delegate;
-mod examples;
-mod interpreter;
+pub type ValueList = Vec<Value>;
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Value {
+    Void,
+    List(ValueList),
+    Number(f64),
+}

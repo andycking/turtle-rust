@@ -37,15 +37,13 @@ impl LexerState {
         if !self.symbol.is_empty() {
             let item = if self.number {
                 if let Ok(val) = self.symbol.parse::<f64>() {
-                    let num = LexerNumber::new(val);
-                    LexerAny::LexerNumber(num)
+                    LexerAny::LexerNumber(val)
                 } else {
                     let msg = format!("{}: failed to parse number {}", idx, self.symbol);
                     return Err(RuntimeError::Lexer(msg));
                 }
             } else {
-                let word = LexerWord::new(&self.symbol);
-                LexerAny::LexerWord(word)
+                LexerAny::LexerWord(self.symbol.to_string())
             };
             self.list.push(item);
         }
@@ -202,12 +200,12 @@ impl Lexer {
         Ok(LexerBinExpr::new(a, op, b))
     }
 
-    fn get_expression(item: Option<&LexerAny>, idx: usize) -> RuntimeResult<LexerExpr> {
+    fn get_expression(item: Option<&LexerAny>, idx: usize) -> RuntimeResult<LexerAny> {
         match item {
-            Some(LexerAny::LexerBinExpr(bin_expr)) => Ok(LexerExpr::LexerBinExpr(bin_expr.clone())),
-            Some(LexerAny::LexerList(list)) => Ok(LexerExpr::LexerList(list.clone())),
-            Some(LexerAny::LexerNumber(num)) => Ok(LexerExpr::LexerNumber(*num)),
-            Some(LexerAny::LexerWord(word)) => Ok(LexerExpr::LexerWord(word.clone())),
+            Some(LexerAny::LexerBinExpr(bin_expr)) => Ok(LexerAny::LexerBinExpr(bin_expr.clone())),
+            Some(LexerAny::LexerList(list)) => Ok(LexerAny::LexerList(list.clone())),
+            Some(LexerAny::LexerNumber(num)) => Ok(LexerAny::LexerNumber(*num)),
+            Some(LexerAny::LexerWord(word)) => Ok(LexerAny::LexerWord(word.clone())),
             _ => {
                 let msg = format!("{}: expected an expression", idx);
                 Err(RuntimeError::Lexer(msg))

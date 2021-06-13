@@ -1,0 +1,10 @@
+ht
+repeat 100 {
+	repeat 4 {
+		fd 100
+		rt 90
+	}
+	rt 17
+	setpc random 15
+}
+st

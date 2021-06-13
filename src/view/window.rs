@@ -66,9 +66,8 @@ fn build_input() -> impl Widget<AppState> {
         turtle carry them out, press\n\
         Command-G.\n\
         \n\
-        If you're stuck, try typing this:\n\
-        \n\
-        fd 10";
+        Look under the Examples menu for\n\
+        ideas!";
 
     Container::new(
         TextBox::multiline()

@@ -1,0 +1,11 @@
+ht
+repeat 4 {
+	setpc repcount
+	repeat 120 {
+		fd (repcount * 2)
+		rt 204
+	}
+	home
+	rt (90 * repcount)
+}
+st

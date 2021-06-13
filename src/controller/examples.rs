@@ -16,19 +16,19 @@ use std::sync::Arc;
 
 use druid::DelegateCtx;
 
+use crate::common::commands;
 use crate::model::app::AppState;
-use crate::model::render::RenderTx;
-use crate::runtime;
 
-async fn entry_future(input: String, render_tx: Arc<RenderTx>) {
-    let res = runtime::entry(input, render_tx);
-    if let Err(err) = res {
-        eprintln!("{}", err);
-    }
-}
+pub fn show(_ctx: &mut DelegateCtx, cmd: &druid::Command, data: &mut AppState) {
+    let example = match *cmd.get_unchecked(commands::EXAMPLES) {
+        "color-ball" => include_str!("../assets/color-ball.logo"),
+        "color-star" => include_str!("../assets/color-star.logo"),
+        "squares" => include_str!("../assets/squares.logo"),
+        "square-flower" => include_str!("../assets/square-flower.logo"),
+        _ => "",
+    };
 
-pub fn go(_ctx: &mut DelegateCtx, _cmd: &druid::Command, data: &mut AppState) {
-    data.clear();
-    let future = entry_future(data.input.to_string(), data.render_tx.clone());
-    data.thread_pool.spawn_ok(future);
+    let mut input = Arc::make_mut(&mut data.input);
+    input.clear();
+    input.push_str(example);
 }

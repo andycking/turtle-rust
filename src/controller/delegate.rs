@@ -37,6 +37,11 @@ impl druid::AppDelegate<AppState> for Delegate {
                 Handled::Yes
             }
 
+            _ if cmd.is(commands::EXAMPLES) => {
+                super::examples::show(ctx, cmd, data);
+                Handled::Yes
+            }
+
             _ => Handled::No,
         }
     }

@@ -47,69 +47,21 @@ impl<'a> ListIter<'a> {
         }
     }
 
+    fn expect_assign(&mut self) -> RuntimeResult {
+        if let LexerAny::LexerOperator(op) = self.next() {
+            if op == LexerOperator::Assign {
+                return Ok(());
+            }
+        }
+
+        let msg = "expected an assignment".to_string();
+        Err(RuntimeError::Parser(msg))
+    }
+
     fn next(&mut self) -> LexerAny {
         let temp = self.idx;
         self.idx += 1;
         self.list[temp].clone()
-    }
-
-    fn get_assignment(&mut self) -> RuntimeResult<LexerOperator> {
-        let op = self.get_operator()?;
-        if op == LexerOperator::Assign {
-            Ok(op)
-        } else {
-            let msg = "expected an assignment".to_string();
-            Err(RuntimeError::Parser(msg))
-        }
-    }
-
-    fn get_block(&mut self) -> RuntimeResult<LexerBlock> {
-        if let LexerAny::LexerBlock(block) = self.next() {
-            Ok(block)
-        } else {
-            let msg = "expected a block".to_string();
-            Err(RuntimeError::Parser(msg))
-        }
-    }
-
-    fn get_expression(&mut self) -> RuntimeResult<LexerExpr> {
-        match self.next() {
-            LexerAny::LexerBinExpr(bin_expr) => Ok(LexerExpr::LexerBinExpr(bin_expr)),
-            LexerAny::LexerList(list) => Ok(LexerExpr::LexerList(list)),
-            LexerAny::LexerNumber(num) => Ok(LexerExpr::LexerNumber(num)),
-            LexerAny::LexerWord(word) => Ok(LexerExpr::LexerWord(word)),
-            _ => {
-                let msg = "expected an expression".to_string();
-                Err(RuntimeError::Parser(msg))
-            }
-        }
-    }
-
-    fn get_list(&mut self) -> RuntimeResult<LexerList> {
-        if let LexerAny::LexerList(list) = self.next() {
-            Ok(list)
-        } else {
-            let msg = "expected a list".to_string();
-            Err(RuntimeError::Parser(msg))
-        }
-    }
-
-    fn get_operator(&mut self) -> RuntimeResult<LexerOperator> {
-        if let LexerAny::LexerOperator(op) = self.next() {
-            Ok(op)
-        } else {
-            let msg = "expected an operator".to_string();
-            Err(RuntimeError::Parser(msg))
-        }
-    }
-
-    fn get_word(&mut self) -> RuntimeResult<LexerWord> {
-        if let LexerAny::LexerWord(word) = self.next() {
-            Ok(word)
-        } else {
-            let msg = "expected a word".to_string();
-            Err(RuntimeError::Parser(msg))
-        }
     }
 }
 
@@ -121,19 +73,15 @@ enum SymbolTag {
 
 #[derive(Clone, Debug)]
 pub struct Parser {
-    symbols: HashMap<String, SymbolTag>,
+    smap: HashMap<String, SymbolTag>,
     fmap: ParserFuncMap,
 }
 
 impl Parser {
     pub fn new() -> Self {
-        let fmap = crate::hashmap![
-            "random".to_string() => ParserFuncDef::new(true, 1, ParserNodeList::new())
-        ];
-
         Self {
-            symbols: HashMap::new(),
-            fmap,
+            smap: HashMap::new(),
+            fmap: ParserFuncMap::new(),
         }
     }
 
@@ -147,137 +95,84 @@ impl Parser {
         let mut list = ParserNodeList::new();
 
         while !iter.is_empty() {
-            let word = iter.get_word()?;
-            let name = word.name();
-
-            match name.to_lowercase().as_str() {
-                "bk" | "backward" => {
-                    let node = self.parse_backward(iter)?;
-                    list.push(node);
-                }
-
-                "clean" => {
-                    list.push(self.parse_clean());
-                }
-
-                "cs" | "clearscreen" => {
-                    list.push(self.parse_clear_screen());
-                }
-
-                "fd" | "forward" => {
-                    let node = self.parse_forward(iter)?;
-                    list.push(node);
-                }
-
-                "fn" => {
-                    self.parse_fn(iter)?;
-                }
-
-                "home" => {
-                    list.push(self.parse_home());
-                }
-
-                "let" => {
-                    let node = self.parse_let(iter)?;
-                    list.push(node);
-                }
-
-                "lt" | "left" => {
-                    let node = self.parse_left(iter)?;
-                    list.push(node);
-                }
-
-                "pd" | "pendown" => {
-                    list.push(self.parse_pen_down());
-                }
-
-                "pu" | "penup" => {
-                    list.push(self.parse_pen_up());
-                }
-
-                "repeat" => {
-                    let node = self.parse_repeat(iter)?;
-                    list.push(node);
-                }
-
-                "rt" | "right" => {
-                    let node = self.parse_right(iter)?;
-                    list.push(node);
-                }
-
-                "seth" | "setheading" => {
-                    let node = self.parse_set_heading(iter)?;
-                    list.push(node);
-                }
-
-                "setpc" | "setpencolor" => {
-                    let node = self.parse_set_pen_color(iter)?;
-                    list.push(node);
-                }
-
-                "setpos" => {
-                    let node = self.parse_set_pos(iter)?;
-                    list.push(node);
-                }
-
-                "setsc" | "setscreencolor" => {
-                    let node = self.parse_set_screen_color(iter)?;
-                    list.push(node);
-                }
-
-                "setxy" => {
-                    let node = self.parse_setxy(iter)?;
-                    list.push(node);
-                }
-
-                "setx" => {
-                    let node = self.parse_setx(iter)?;
-                    list.push(node);
-                }
-
-                "sety" => {
-                    let node = self.parse_sety(iter)?;
-                    list.push(node);
-                }
-
-                _ => match self.symbols.get(name) {
-                    Some(SymbolTag::Func) => {
-                        let node = self.parse_call(iter, word);
-                        list.push(node);
-                    }
-                    Some(SymbolTag::Var) => {
-                        let node = self.parse_assign(iter, word)?;
-                        list.push(node);
-                    }
-                    _ => {
-                        let msg = format!("unrecognized symbol {}", name);
-                        return Err(RuntimeError::Parser(msg));
-                    }
-                },
-            }
+            let word = self.get_word(iter)?;
+            let node = self.parse_word(iter, &word)?;
+            list.push(node);
         }
 
         Ok(list)
     }
 
-    fn parse_assign(&mut self, iter: &mut ListIter, name: LexerWord) -> RuntimeResult<ParserNode> {
-        iter.expect(2)?;
-        iter.get_assignment()?;
-        let rhs = iter.get_expression()?;
-        let node = AssignNode::new(name.name().to_string(), rhs);
-        Ok(ParserNode::Assign(node))
+    fn parse_word(&mut self, iter: &mut ListIter, word: &str) -> RuntimeResult<ParserNode> {
+        let res = match word.to_lowercase().as_str() {
+            "bk" | "backward" => self.parse_backward(iter)?,
+            "clean" => self.parse_clean(),
+            "cs" | "clearscreen" => self.parse_clear_screen(),
+            "fd" | "forward" => self.parse_forward(iter)?,
+            "fn" => self.parse_fn(iter)?,
+            "ht" | "hideturtle" => ParserNode::ShowTurtle(false),
+            "home" => self.parse_home(),
+            "let" => self.parse_let(iter)?,
+            "lt" | "left" => self.parse_left(iter)?,
+            "pd" | "pendown" => self.parse_pen_down(),
+            "pu" | "penup" => self.parse_pen_up(),
+            "random" => self.parse_random(iter)?,
+            "repcount" => ParserNode::Repcount,
+            "repeat" => self.parse_repeat(iter)?,
+            "rt" | "right" => self.parse_right(iter)?,
+            "seth" | "setheading" => self.parse_set_heading(iter)?,
+            "setpc" | "setpencolor" => self.parse_set_pen_color(iter)?,
+            "setpos" => self.parse_set_pos(iter)?,
+            "setsc" | "setscreencolor" => self.parse_set_screen_color(iter)?,
+            "setxy" => self.parse_setxy(iter)?,
+            "setx" => self.parse_setx(iter)?,
+            "sety" => self.parse_sety(iter)?,
+            "st" | "showturtle" => ParserNode::ShowTurtle(true),
+            _ => self.parse_other(iter, word)?,
+        };
+
+        Ok(res)
+    }
+
+    fn parse_other(&mut self, iter: &mut ListIter, word: &str) -> RuntimeResult<ParserNode> {
+        match self.smap.get(word) {
+            Some(SymbolTag::Func) => self.parse_call(iter, word),
+            Some(SymbolTag::Var) => Ok(ParserNode::Word(word.to_string())),
+            _ => {
+                let msg = format!("unrecognized symbol {}", word);
+                Err(RuntimeError::Parser(msg))
+            }
+        }
     }
 
     fn parse_backward(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let distance = iter.get_expression()?;
-        let move_node = MoveNode::new(distance, Direction::Backward);
+        let distance = self.get_expr(iter)?;
+        let distance_node = self.parse_expr(iter, &distance)?;
+        let move_node = MoveNode::new(distance_node, Direction::Backward);
         Ok(ParserNode::Move(move_node))
     }
 
-    fn parse_call(&mut self, _: &mut ListIter, name: LexerWord) -> ParserNode {
-        let call_node = CallNode::new(name);
-        ParserNode::Call(call_node)
+    fn parse_bin_expr(
+        &mut self,
+        iter: &mut ListIter,
+        bin_expr: &LexerBinExpr,
+    ) -> RuntimeResult<ParserNode> {
+        let a = bin_expr.a();
+        let b = bin_expr.b();
+        let anode = self.parse_expr(iter, a)?;
+        let bnode = self.parse_expr(iter, b)?;
+        let node = BinExprNode::new(anode, bin_expr.op(), bnode);
+        Ok(ParserNode::BinExpr(node))
+    }
+
+    fn parse_call(&mut self, iter: &mut ListIter, name: &str) -> RuntimeResult<ParserNode> {
+        let func_def = self.fmap.get(name).unwrap();
+        let num_args = func_def.num_args();
+        iter.expect(num_args)?;
+        let args = self.get_args(iter, num_args)?;
+        let call = LexerCall::new(name, args);
+        Ok(ParserNode::Call(call))
     }
 
     fn parse_clean(&mut self) -> ParserNode {
@@ -288,22 +183,36 @@ impl Parser {
         ParserNode::ClearScreen
     }
 
-    fn parse_fn(&mut self, iter: &mut ListIter) -> RuntimeResult {
+    fn parse_expr(&mut self, iter: &mut ListIter, expr: &LexerAny) -> RuntimeResult<ParserNode> {
+        match expr {
+            LexerAny::LexerBinExpr(bin_expr) => self.parse_bin_expr(iter, &bin_expr),
+            LexerAny::LexerNumber(num) => Ok(ParserNode::Number(*num)),
+            LexerAny::LexerList(list) => self.parse_list(iter, &list),
+            LexerAny::LexerWord(word) => self.parse_word(iter, &word),
+            _ => {
+                let msg = "failed to parse expression".to_string();
+                Err(RuntimeError::Parser(msg))
+            }
+        }
+    }
+
+    fn parse_fn(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(2)?;
-        let name = iter.get_word()?;
-        self.check_symbol(name.name(), SymbolTag::Func)?;
-        let block = iter.get_block()?;
+        let name = self.get_word(iter)?;
+        self.check_symbol(&name, SymbolTag::Func)?;
+        let block = self.get_block(iter)?;
         let mut block_iter = ListIter::new(&block);
         let list = self.parse(&mut block_iter)?;
         let func = ParserFuncDef::new(false, 0, list);
-        self.fmap.insert(name.name().to_string(), func);
-        Ok(())
+        self.fmap.insert(name, func);
+        Ok(ParserNode::Placeholder)
     }
 
     fn parse_forward(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let distance = iter.get_expression()?;
-        let move_node = MoveNode::new(distance, Direction::Forward);
+        let distance = self.get_expr(iter)?;
+        let distance_node = self.parse_expr(iter, &distance)?;
+        let move_node = MoveNode::new(distance_node, Direction::Forward);
         Ok(ParserNode::Move(move_node))
     }
 
@@ -313,19 +222,33 @@ impl Parser {
 
     fn parse_let(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(3)?;
-        let var = iter.get_word()?;
-        self.check_symbol(var.name(), SymbolTag::Var)?;
-        iter.get_assignment()?;
-        let rhs = iter.get_expression()?;
-        let l_node = LetNode::new(var.name().to_string(), rhs);
+        let var = self.get_word(iter)?;
+        self.check_symbol(&var, SymbolTag::Var)?;
+        iter.expect_assign()?;
+        let rhs = iter.next();
+        let rhs_node = self.parse_expr(iter, &rhs)?;
+        let l_node = LetNode::new(var, rhs_node);
         Ok(ParserNode::Let(l_node))
     }
 
     fn parse_left(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let angle = iter.get_expression()?;
-        let rotate_node = RotateNode::new(angle, Direction::Left);
+        let angle = self.get_expr(iter)?;
+        let angle_node = self.parse_expr(iter, &angle)?;
+        let rotate_node = RotateNode::new(angle_node, Direction::Left);
         Ok(ParserNode::Rotate(rotate_node))
+    }
+
+    fn parse_list(&mut self, iter: &mut ListIter, list: &LexerList) -> RuntimeResult<ParserNode> {
+        let mut list_iter = ListIter::new(&list);
+
+        let mut node_list = ParserNodeList::new();
+        while !list_iter.is_empty() {
+            let expr = self.get_expr(&mut list_iter)?;
+            let node = self.parse_expr(&mut list_iter, &expr)?;
+            node_list.push(node);
+        }
+        Ok(ParserNode::List(node_list))
     }
 
     fn parse_pen_down(&mut self) -> ParserNode {
@@ -338,76 +261,143 @@ impl Parser {
         ParserNode::Pen(pen_node)
     }
 
+    fn parse_random(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
+        iter.expect(1)?;
+        let max = iter.next();
+        let max_node = self.parse_expr(iter, &max)?;
+        let random_node = RandomNode::new(max_node);
+        Ok(ParserNode::Random(random_node))
+    }
+
     fn parse_repeat(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(2)?;
-        let count = iter.get_expression()?;
-        let block = iter.get_block()?;
+        let count = self.get_expr(iter)?;
+        let count_node = self.parse_expr(iter, &count)?;
+        let block = self.get_block(iter)?;
         let mut block_iter = ListIter::new(&block);
         let node_list = self.parse(&mut block_iter)?;
-        let repeat_node = RepeatNode::new(count, node_list);
+        let repeat_node = RepeatNode::new(count_node, node_list);
         Ok(ParserNode::Repeat(repeat_node))
     }
 
     fn parse_right(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let angle = iter.get_expression()?;
-        let rotate_node = RotateNode::new(angle, Direction::Right);
+        let angle = self.get_expr(iter)?;
+        let angle_node = self.parse_expr(iter, &angle)?;
+        let rotate_node = RotateNode::new(angle_node, Direction::Right);
         Ok(ParserNode::Rotate(rotate_node))
     }
 
     fn parse_set_heading(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let angle = iter.get_expression()?;
-        let node = SetHeadingNode::new(angle);
+        let angle = self.get_expr(iter)?;
+        let angle_node = self.parse_expr(iter, &angle)?;
+        let node = SetHeadingNode::new(angle_node);
         Ok(ParserNode::SetHeading(node))
     }
 
     fn parse_set_pen_color(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let color = iter.get_expression()?;
-        let pen_color_node = SetPenColorNode::new(color);
+        let color = self.get_expr(iter)?;
+        let color_node = self.parse_expr(iter, &color)?;
+        let pen_color_node = SetPenColorNode::new(color_node);
         Ok(ParserNode::SetPenColor(pen_color_node))
     }
 
     fn parse_set_pos(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let pos = iter.get_list()?;
+        let pos = self.get_list(iter)?;
         let mut pos_iter = ListIter::new(&pos);
         self.parse_setxy(&mut pos_iter)
     }
 
     fn parse_set_screen_color(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let color = iter.get_expression()?;
-        let pen_color_node = SetScreenColorNode::new(color);
+        let color = self.get_expr(iter)?;
+        let color_node = self.parse_expr(iter, &color)?;
+        let pen_color_node = SetScreenColorNode::new(color_node);
         Ok(ParserNode::SetScreenColor(pen_color_node))
     }
 
     fn parse_setxy(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(2)?;
-        let x = iter.get_expression()?;
-        let y = iter.get_expression()?;
-        let pos_node = SetPositionNode::new(Some(x), Some(y));
+        let x = self.get_expr(iter)?;
+        let x_node = self.parse_expr(iter, &x)?;
+        let y = self.get_expr(iter)?;
+        let y_node = self.parse_expr(iter, &y)?;
+        let pos_node = SetPositionNode::new(Some(Box::new(x_node)), Some(Box::new(y_node)));
         Ok(ParserNode::SetPosition(pos_node))
     }
 
     fn parse_setx(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let x = iter.get_expression()?;
-        let pos_node = SetPositionNode::new(Some(x), None);
+        let x = self.get_expr(iter)?;
+        let x_node = self.parse_expr(iter, &x)?;
+        let pos_node = SetPositionNode::new(Some(Box::new(x_node)), None);
         Ok(ParserNode::SetPosition(pos_node))
     }
 
     fn parse_sety(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let y = iter.get_expression()?;
-        let pos_node = SetPositionNode::new(None, Some(y));
+        let y = self.get_expr(iter)?;
+        let y_node = self.parse_expr(iter, &y)?;
+        let pos_node = SetPositionNode::new(None, Some(Box::new(y_node)));
         Ok(ParserNode::SetPosition(pos_node))
     }
 
+    fn get_args(&mut self, iter: &mut ListIter, num_args: usize) -> RuntimeResult<LexerList> {
+        let mut args = LexerList::with_capacity(num_args as usize);
+        for _ in 0..num_args {
+            let arg = self.get_expr(iter)?;
+            args.push(arg);
+        }
+
+        Ok(args)
+    }
+
+    fn get_block(&mut self, iter: &mut ListIter) -> RuntimeResult<LexerBlock> {
+        if let LexerAny::LexerBlock(block) = iter.next() {
+            Ok(block)
+        } else {
+            let msg = "expected a block".to_string();
+            Err(RuntimeError::Parser(msg))
+        }
+    }
+
+    fn get_expr(&mut self, iter: &mut ListIter) -> RuntimeResult<LexerAny> {
+        match iter.next() {
+            LexerAny::LexerBinExpr(bin_expr) => Ok(LexerAny::LexerBinExpr(bin_expr)),
+            LexerAny::LexerList(list) => Ok(LexerAny::LexerList(list)),
+            LexerAny::LexerNumber(num) => Ok(LexerAny::LexerNumber(num)),
+            LexerAny::LexerWord(word) => Ok(LexerAny::LexerWord(word)),
+            _ => {
+                let msg = "expected an expression".to_string();
+                Err(RuntimeError::Parser(msg))
+            }
+        }
+    }
+
+    fn get_list(&mut self, iter: &mut ListIter) -> RuntimeResult<LexerList> {
+        if let LexerAny::LexerList(list) = iter.next() {
+            Ok(list)
+        } else {
+            let msg = "expected a list".to_string();
+            Err(RuntimeError::Parser(msg))
+        }
+    }
+
+    fn get_word(&mut self, iter: &mut ListIter) -> RuntimeResult<String> {
+        if let LexerAny::LexerWord(word) = iter.next() {
+            Ok(word)
+        } else {
+            let msg = "expected a word".to_string();
+            Err(RuntimeError::Parser(msg))
+        }
+    }
+
     fn check_symbol(&mut self, name: &str, tag: SymbolTag) -> RuntimeResult {
-        if !self.symbols.contains_key(name) {
-            self.symbols.insert(name.to_string(), tag);
+        if !self.smap.contains_key(name) {
+            self.smap.insert(name.to_string(), tag);
             Ok(())
         } else {
             let msg = format!("duplicate symbol {}", name);
