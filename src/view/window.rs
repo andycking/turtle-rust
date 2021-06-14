@@ -103,7 +103,10 @@ fn build_input() -> impl Widget<AppState> {
 
 fn build_status_label() -> impl druid::Widget<AppState> {
     druid::widget::Label::new(|data: &AppState, _env: &_| {
-        format!("commands: {:6}   speed: {:2}", data.command_count, data.speed)
+        format!(
+            "commands: {:6}   speed: {:2}",
+            data.command_count, data.speed
+        )
     })
     .with_font(druid::FontDescriptor::new(druid::FontFamily::MONOSPACE).with_size(FONT_SIZE))
     .with_text_color(Color::WHITE)
