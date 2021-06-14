@@ -36,6 +36,7 @@ use crate::model::render::RenderRx;
 
 const FONT_SIZE: f64 = 14.0;
 const INPUT_WIDTH: f64 = 300.0;
+const STATUS_BAR_HEIGHT: f64 = FONT_SIZE + 3.0;
 
 pub fn window(render_rx: RenderRx) -> WindowDesc<AppState> {
     let ui = build_ui(render_rx);
@@ -50,9 +51,18 @@ fn build_ui(render_rx: RenderRx) -> impl Widget<AppState> {
     Flex::row()
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .with_child(build_input())
-        .with_child(build_canvas(render_rx))
+        .with_child(build_center_pane(render_rx))
         .background(Color::WHITE)
         .controller(WindowController {})
+}
+
+fn build_center_pane(render_rx: RenderRx) -> impl druid::Widget<AppState> {
+    Flex::column()
+        .cross_axis_alignment(druid::widget::CrossAxisAlignment::End)
+        .with_child(build_canvas(render_rx))
+        .with_spacer(1.0)
+        .with_child(build_status_bar())
+        .with_default_spacer()
 }
 
 fn build_canvas(render_rx: RenderRx) -> impl Widget<AppState> {
@@ -91,8 +101,24 @@ fn build_input() -> impl Widget<AppState> {
     )
 }
 
+fn build_status_label() -> impl druid::Widget<AppState> {
+    druid::widget::Label::new(|data: &AppState, _env: &_| {
+        format!("commands: {:6}", data.command_count)
+    })
+    .with_font(druid::FontDescriptor::new(druid::FontFamily::MONOSPACE).with_size(FONT_SIZE))
+    .with_text_color(Color::WHITE)
+}
+
+fn build_status_bar() -> impl druid::Widget<AppState> {
+    Flex::row()
+        .main_axis_alignment(druid::widget::MainAxisAlignment::End)
+        .with_child(build_status_label())
+        .fix_width(DIMS.width)
+        .background(Color::BLACK)
+}
+
 fn window_size() -> Size {
-    Size::new(DIMS.width + INPUT_WIDTH, DIMS.height)
+    Size::new(DIMS.width + INPUT_WIDTH, DIMS.height + STATUS_BAR_HEIGHT)
 }
 
 struct WindowController {}

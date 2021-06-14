@@ -42,6 +42,8 @@ impl Canvas {
     }
 
     pub fn render_one(&mut self, data: &mut AppState, cmd: RenderCommand) {
+        data.command_count += 1;
+
         match cmd {
             RenderCommand::MoveTo(move_to) => {
                 let p = data.pos;

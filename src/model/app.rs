@@ -25,6 +25,7 @@ use super::render::RenderTx;
 /// Application state.
 #[derive(Clone, Data, Debug, Lens)]
 pub struct AppState {
+    pub command_count: u32,
     pub input: Arc<String>,
     pub output: Arc<String>,
     pub pixels: PixBuf,
@@ -47,6 +48,7 @@ impl AppState {
             .expect("Failed to create thread pool");
 
         Self {
+            command_count: 0,
             input: "".to_string().into(),
             output: "".to_string().into(),
             pixels: Default::default(),
@@ -60,6 +62,7 @@ impl AppState {
     }
 
     pub fn clear(&mut self) {
+        self.command_count = 0;
         self.pixels.clear();
         self.pos = Point::ZERO;
         self.show_turtle = true;
