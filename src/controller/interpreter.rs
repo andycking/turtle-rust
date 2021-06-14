@@ -39,9 +39,7 @@ pub fn speed(_ctx: &mut DelegateCtx, cmd: &druid::Command, data: &mut AppState) 
         if data.speed < 16 {
             data.speed *= 2;
         }
-    } else {
-        if data.speed > 1 {
-            data.speed /= 2;
-        }
+    } else if data.speed > 1 {
+        data.speed /= 2;
     }
 }

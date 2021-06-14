@@ -242,7 +242,7 @@ impl Parser {
         Ok(ParserNode::Rotate(rotate_node))
     }
 
-    fn parse_list(&mut self, list: &LexerList) -> RuntimeResult<ParserNode> {
+    fn parse_list(&mut self, list: &[LexerAny]) -> RuntimeResult<ParserNode> {
         let mut list_iter = ListIter::new(&list);
 
         let mut node_list = ParserNodeList::new();
