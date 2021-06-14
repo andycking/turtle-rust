@@ -36,7 +36,7 @@ use crate::model::render::RenderRx;
 
 const FONT_SIZE: f64 = 14.0;
 const INPUT_WIDTH: f64 = 300.0;
-const STATUS_BAR_HEIGHT: f64 = FONT_SIZE + 3.0;
+const STATUS_BAR_HEIGHT: f64 = FONT_SIZE + 8.0;
 
 pub fn window(render_rx: RenderRx) -> WindowDesc<AppState> {
     let ui = build_ui(render_rx);
@@ -103,7 +103,7 @@ fn build_input() -> impl Widget<AppState> {
 
 fn build_status_label() -> impl druid::Widget<AppState> {
     druid::widget::Label::new(|data: &AppState, _env: &_| {
-        format!("commands: {:6}", data.command_count)
+        format!("commands: {:6}   speed: {:2}", data.command_count, data.speed)
     })
     .with_font(druid::FontDescriptor::new(druid::FontFamily::MONOSPACE).with_size(FONT_SIZE))
     .with_text_color(Color::WHITE)
@@ -114,6 +114,7 @@ fn build_status_bar() -> impl druid::Widget<AppState> {
         .main_axis_alignment(druid::widget::MainAxisAlignment::End)
         .with_child(build_status_label())
         .fix_width(DIMS.width)
+        .fix_height(STATUS_BAR_HEIGHT)
         .background(Color::BLACK)
 }
 
