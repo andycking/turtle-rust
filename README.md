@@ -1,3 +1,3 @@
 # Turtle
 
-<img width="1212" alt="Screen Shot 2021-06-12 at 9 13 20 PM" src="https://user-images.githubusercontent.com/2487024/121793263-081b4c00-cbc3-11eb-8957-b2e60f94297e.png">
+<img width="1212" alt="Screen Shot 2021-06-13 at 8 53 32 PM" src="https://user-images.githubusercontent.com/2487024/121829910-6e6aa200-cc89-11eb-996d-8b506a69eac2.png">
