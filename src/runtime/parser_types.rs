@@ -299,6 +299,7 @@ pub enum ParserNode {
     Call(CallNode),
     Clean,
     ClearScreen,
+    Fill,
     Home,
     Let(LetNode),
     List(ParserNodeList),

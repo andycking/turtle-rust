@@ -17,6 +17,7 @@ use futures::channel::mpsc;
 
 mod common;
 mod controller;
+mod graphics;
 mod model;
 mod runtime;
 mod view;

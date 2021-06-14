@@ -122,6 +122,7 @@ impl Interpreter {
             ParserNode::Call(node) => self.eval_call(frame, node),
             ParserNode::Clean => Ok(self.eval_clean()),
             ParserNode::ClearScreen => self.eval_clear_screen(),
+            ParserNode::Fill => self.eval_fill(),
             ParserNode::Home => self.eval_home(),
             ParserNode::Let(node) => self.eval_let(frame, node),
             ParserNode::List(node) => self.eval_list(frame, node),
@@ -183,6 +184,12 @@ impl Interpreter {
     fn eval_clear_screen(&mut self) -> RuntimeResult<Value> {
         self.eval_home()?;
         Ok(self.eval_clean())
+    }
+
+    fn eval_fill(&mut self) -> RuntimeResult<Value> {
+        let cmd = RenderCommand::Fill(self.state.color.clone());
+        self.render_tx.unbounded_send(cmd)?;
+        Ok(Value::Void)
     }
 
     fn eval_home(&mut self) -> RuntimeResult<Value> {

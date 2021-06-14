@@ -111,6 +111,7 @@ impl Parser {
             "cs" | "clearscreen" => self.parse_clear_screen(),
             "cos" => self.parse_math(iter, MathOp::Cos)?,
             "fd" | "forward" => self.parse_forward(iter)?,
+            "fill" => self.parse_fill(),
             "fn" => self.parse_fn(iter)?,
             "ht" | "hideturtle" => ParserNode::ShowTurtle(false),
             "home" => self.parse_home(),
@@ -204,6 +205,10 @@ impl Parser {
                 Err(RuntimeError::Parser(msg))
             }
         }
+    }
+
+    fn parse_fill(&mut self) -> ParserNode {
+        ParserNode::Fill
     }
 
     fn parse_fn(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {

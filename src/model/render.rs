@@ -65,6 +65,7 @@ impl MoveTo {
 
 #[derive(Clone, Data, Debug, PartialEq)]
 pub enum RenderCommand {
+    Fill(Color),
     MoveTo(MoveTo),
     ShowTurtle(bool),
 }

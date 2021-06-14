@@ -1,0 +1,15 @@
+ht
+repeat 5 {
+	setpc repcount
+	repeat 4 {
+		fd 100
+		rt 90
+	}
+	pu
+	setxy 10 10
+	pd
+	fill
+	setxy 0 0
+	rt 10
+}
+st

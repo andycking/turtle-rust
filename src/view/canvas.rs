@@ -25,6 +25,7 @@ use druid::TimerToken;
 use druid::Widget;
 
 use crate::common::constants::*;
+use crate::graphics;
 use crate::model::app::AppState;
 use crate::model::render::*;
 
@@ -45,6 +46,10 @@ impl Canvas {
         data.command_count += 1;
 
         match cmd {
+            RenderCommand::Fill(color) => {
+                graphics::flood_fill(&mut data.pixels, &data.pos, &color);
+            }
+
             RenderCommand::MoveTo(move_to) => {
                 let p = data.pos;
                 let q = move_to.pos;
@@ -54,7 +59,7 @@ impl Canvas {
                     } else {
                         &move_to.color
                     };
-                    data.pixels.line(&p, &q, color);
+                    graphics::line(&mut data.pixels, &p, &q, color);
                 }
                 data.pos = q;
             }
