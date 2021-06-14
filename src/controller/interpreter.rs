@@ -36,7 +36,7 @@ pub fn go(_ctx: &mut DelegateCtx, _cmd: &druid::Command, data: &mut AppState) {
 
 pub fn speed(_ctx: &mut DelegateCtx, cmd: &druid::Command, data: &mut AppState) {
     if *cmd.get_unchecked(commands::INTERPRETER_SPEED) {
-        if data.speed < 16 {
+        if data.speed < 32 {
             data.speed *= 2;
         }
     } else if data.speed > 1 {
