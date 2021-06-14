@@ -105,14 +105,18 @@ impl Parser {
 
     fn parse_word(&mut self, iter: &mut ListIter, word: &str) -> RuntimeResult<ParserNode> {
         let res = match word.to_lowercase().as_str() {
+            "arctan" => self.parse_math(iter, MathOp::Atan)?,
             "bk" | "backward" => self.parse_backward(iter)?,
             "clean" => self.parse_clean(),
             "cs" | "clearscreen" => self.parse_clear_screen(),
+            "cos" => self.parse_math(iter, MathOp::Cos)?,
             "fd" | "forward" => self.parse_forward(iter)?,
             "fn" => self.parse_fn(iter)?,
             "ht" | "hideturtle" => ParserNode::ShowTurtle(false),
             "home" => self.parse_home(),
             "let" => self.parse_let(iter)?,
+            "log10" => self.parse_math(iter, MathOp::Log10)?,
+            "ln" => self.parse_math(iter, MathOp::Ln)?,
             "lt" | "left" => self.parse_left(iter)?,
             "pd" | "pendown" => self.parse_pen_down(),
             "pe" | "penerase" => self.parse_pen_erase(),
@@ -122,6 +126,7 @@ impl Parser {
             "random" => self.parse_random(iter)?,
             "repcount" => ParserNode::Repcount,
             "repeat" => self.parse_repeat(iter)?,
+            "round" => self.parse_math(iter, MathOp::Round)?,
             "rt" | "right" => self.parse_right(iter)?,
             "seth" | "setheading" => self.parse_set_heading(iter)?,
             "setpc" | "setpencolor" => self.parse_set_pen_color(iter)?,
@@ -130,6 +135,8 @@ impl Parser {
             "setxy" => self.parse_setxy(iter)?,
             "setx" => self.parse_setx(iter)?,
             "sety" => self.parse_sety(iter)?,
+            "sin" => self.parse_math(iter, MathOp::Sin)?,
+            "sqrt" => self.parse_math(iter, MathOp::Sqrt)?,
             "st" | "showturtle" => ParserNode::ShowTurtle(true),
             _ => self.parse_other(iter, word)?,
         };
@@ -252,6 +259,14 @@ impl Parser {
             node_list.push(node);
         }
         Ok(ParserNode::List(node_list))
+    }
+
+    fn parse_math(&mut self, iter: &mut ListIter, op: MathOp) -> RuntimeResult<ParserNode> {
+        iter.expect(1)?;
+        let arg = self.get_expr(iter)?;
+        let arg_node = self.parse_expr(iter, &arg)?;
+        let math_node = MathNode::new(op, arg_node);
+        Ok(ParserNode::Math(math_node))
     }
 
     fn parse_pen_down(&mut self) -> ParserNode {

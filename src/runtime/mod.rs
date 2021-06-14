@@ -49,7 +49,7 @@ mod tests {
 
     #[test]
     fn it_goes() {
-        let input = "let a = 1".to_string();
+        let input = "let a = sqrt 100.0 a".to_string();
         let (render_tx, render_rx) = mpsc::unbounded::<RenderCommand>();
         let res = entry(input, Arc::new(render_tx));
         if let Err(err) = res {

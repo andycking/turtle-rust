@@ -95,6 +95,40 @@ impl LetNode {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum MathOp {
+    Atan,
+    Cos,
+    Log10,
+    Ln,
+    Round,
+    Sin,
+    Sqrt,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct MathNode {
+    op: MathOp,
+    arg: Box<ParserNode>,
+}
+
+impl MathNode {
+    pub fn new(op: MathOp, arg: ParserNode) -> Self {
+        Self {
+            op,
+            arg: Box::new(arg),
+        }
+    }
+
+    pub fn op(&self) -> MathOp {
+        self.op
+    }
+
+    pub fn arg(&self) -> &ParserNode {
+        &self.arg
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct MoveNode {
     distance: Box<ParserNode>,
@@ -268,6 +302,7 @@ pub enum ParserNode {
     Home,
     Let(LetNode),
     List(ParserNodeList),
+    Math(MathNode),
     Move(MoveNode),
     Number(f64),
     Pen(PenNode),

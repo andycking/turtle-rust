@@ -125,6 +125,7 @@ impl Interpreter {
             ParserNode::Home => self.eval_home(),
             ParserNode::Let(node) => self.eval_let(frame, node),
             ParserNode::List(node) => self.eval_list(frame, node),
+            ParserNode::Math(node) => self.eval_math(frame, node),
             ParserNode::Move(node) => self.eval_move(frame, node),
             ParserNode::Number(num) => Ok(Value::Number(*num)),
             ParserNode::Pen(node) => Ok(self.eval_pen(node)),
@@ -203,6 +204,31 @@ impl Interpreter {
         }
 
         Ok(Value::List(out))
+    }
+
+    fn eval_math(&mut self, frame: &mut Frame, node: &MathNode) -> RuntimeResult<Value> {
+        let arg = self.eval_node_as_number(frame, node.arg())?;
+
+        let res = match node.op() {
+            MathOp::Atan => {
+                let rads = arg.to_radians();
+                Value::Number(rads.atan())
+            }
+            MathOp::Cos => {
+                let rads = arg.to_radians();
+                Value::Number(rads.cos())
+            }
+            MathOp::Log10 => Value::Number(arg.log10()),
+            MathOp::Ln => Value::Number(arg.ln()),
+            MathOp::Round => Value::Number(arg.round()),
+            MathOp::Sin => {
+                let rads = arg.to_radians();
+                Value::Number(rads.sin())
+            }
+            MathOp::Sqrt => Value::Number(arg.sqrt()),
+        };
+
+        Ok(res)
     }
 
     fn eval_move(&mut self, frame: &mut Frame, node: &MoveNode) -> RuntimeResult<Value> {
