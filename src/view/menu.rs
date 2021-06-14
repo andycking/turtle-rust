@@ -80,10 +80,12 @@ fn build_examples() -> Menu<AppState> {
 
     let mut menu = Menu::new(LocalizedString::new("Examples"));
 
-    for (key, value) in examples {
-        menu = menu.entry(
-            MenuItem::new(LocalizedString::new(&key)).command(commands::EXAMPLES.with(&value)),
-        );
+    let mut keys: Vec<_> = examples.keys().collect();
+    keys.sort();
+    for k in keys {
+        let v = examples[k];
+        let entry = MenuItem::new(LocalizedString::new(&k)).command(commands::EXAMPLES.with(&v));
+        menu = menu.entry(entry);
     }
 
     menu
