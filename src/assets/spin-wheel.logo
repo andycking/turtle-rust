@@ -1,0 +1,11 @@
+ht
+repeat 24 {
+	setpc random 15
+	repeat 25 {
+		fd 20
+		bk 20
+		rt 15
+	}
+	fd 40
+}
+st

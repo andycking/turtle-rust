@@ -77,6 +77,14 @@ fn build_examples() -> Menu<AppState> {
                 .command(commands::EXAMPLES.with("color-star")),
         )
         .entry(
+            MenuItem::new(LocalizedString::new("Fan Flower"))
+                .command(commands::EXAMPLES.with("fan-flower")),
+        )
+        .entry(
+            MenuItem::new(LocalizedString::new("Spin Wheel"))
+                .command(commands::EXAMPLES.with("spin-wheel")),
+        )
+        .entry(
             MenuItem::new(LocalizedString::new("Squares"))
                 .command(commands::EXAMPLES.with("squares")),
         )
