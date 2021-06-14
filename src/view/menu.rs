@@ -72,6 +72,7 @@ fn build_examples() -> Menu<AppState> {
         "Color Ball" => "color-ball",
         "Color Star" => "color-star",
         "Fan Flower" => "fan-flower",
+        "Fill" => "fill",
         "Spin Wheel" => "spin-wheel",
         "Spiral" => "spiral",
         "Squares" => "squares",

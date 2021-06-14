@@ -24,6 +24,7 @@ pub fn show(_ctx: &mut DelegateCtx, cmd: &druid::Command, data: &mut AppState) {
         "color-ball" => include_str!("../assets/color-ball.logo"),
         "color-star" => include_str!("../assets/color-star.logo"),
         "fan-flower" => include_str!("../assets/fan-flower.logo"),
+        "fill" => include_str!("../assets/fill.logo"),
         "spin-wheel" => include_str!("../assets/spin-wheel.logo"),
         "spiral" => include_str!("../assets/spiral.logo"),
         "squares" => include_str!("../assets/squares.logo"),
