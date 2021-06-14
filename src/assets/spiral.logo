@@ -1,0 +1,9 @@
+ht
+repeat 120 {
+	setpc 11
+	let s = sin repcount
+	fd (200 * s)
+	let c = cos s
+	rt (88 * c)
+}
+st

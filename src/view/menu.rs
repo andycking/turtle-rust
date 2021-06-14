@@ -66,30 +66,25 @@ fn build_interpreter() -> Menu<AppState> {
         )
 }
 
+use std::collections::HashMap;
 fn build_examples() -> Menu<AppState> {
-    Menu::new(LocalizedString::new("Examples"))
-        .entry(
-            MenuItem::new(LocalizedString::new("Color Ball"))
-                .command(commands::EXAMPLES.with("color-ball")),
-        )
-        .entry(
-            MenuItem::new(LocalizedString::new("Color Star"))
-                .command(commands::EXAMPLES.with("color-star")),
-        )
-        .entry(
-            MenuItem::new(LocalizedString::new("Fan Flower"))
-                .command(commands::EXAMPLES.with("fan-flower")),
-        )
-        .entry(
-            MenuItem::new(LocalizedString::new("Spin Wheel"))
-                .command(commands::EXAMPLES.with("spin-wheel")),
-        )
-        .entry(
-            MenuItem::new(LocalizedString::new("Squares"))
-                .command(commands::EXAMPLES.with("squares")),
-        )
-        .entry(
-            MenuItem::new(LocalizedString::new("Square Flower"))
-                .command(commands::EXAMPLES.with("square-flower")),
-        )
+    let examples: HashMap<&'static str, &'static str> = crate::hashmap![
+        "Color Ball" => "color-ball",
+        "Color Star" => "color-star",
+        "Fan Flower" => "fan-flower",
+        "Spin Wheel" => "spin-wheel",
+        "Spiral" => "spiral",
+        "Squares" => "squares",
+        "Square Flower" => "square-flower"
+    ];
+
+    let mut menu = Menu::new(LocalizedString::new("Examples"));
+
+    for (key, value) in examples {
+        menu = menu.entry(
+            MenuItem::new(LocalizedString::new(&key)).command(commands::EXAMPLES.with(&value)),
+        );
+    }
+
+    menu
 }
