@@ -60,9 +60,9 @@ fn build_center_pane(render_rx: RenderRx) -> impl Widget<AppState> {
         .cross_axis_alignment(CrossAxisAlignment::End)
         .with_child(build_canvas(render_rx))
         .with_spacer(1.0)
-        .with_child(build_console())
-        .with_spacer(1.0)
         .with_child(build_status_bar())
+        .with_spacer(1.0)
+        .with_child(build_console())
         .with_default_spacer()
 }
 
