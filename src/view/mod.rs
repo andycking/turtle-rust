@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod canvas;
-pub mod menu;
+mod canvas;
+mod console;
+mod constants;
+mod menu;
 pub mod window;

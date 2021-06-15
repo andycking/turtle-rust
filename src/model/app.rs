@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use std::sync::Arc;
+use std::sync::Mutex;
 
 use druid::Data;
 use druid::Lens;
@@ -27,7 +28,7 @@ use super::render::RenderTx;
 pub struct AppState {
     pub command_count: u32,
     pub input: Arc<String>,
-    pub output: Arc<String>,
+    pub output: Arc<Mutex<String>>,
     pub pixels: PixBuf,
     pub pos: Point,
     pub show_turtle: bool,
@@ -50,7 +51,7 @@ impl AppState {
         Self {
             command_count: 0,
             input: "".to_string().into(),
-            output: "".to_string().into(),
+            output: Arc::new(Mutex::new("".to_string())),
             pixels: Default::default(),
             pos: Point::ZERO,
             show_turtle: false,
