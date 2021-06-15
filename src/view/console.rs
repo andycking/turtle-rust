@@ -49,16 +49,15 @@ impl Console {
     }
 
     fn update_output(&mut self, data: &mut AppState) -> bool {
-        let guard = data.output.lock().unwrap();
-        let output = guard.to_string();
+        let output = { data.output.lock().unwrap().clone() };
 
-        if output != self.output {
-            self.output = output;
-            self.label.set_text(self.output.clone());
-            true
-        } else {
-            false
+        if output == self.output {
+            return false;
         }
+
+        self.output = output;
+        self.label.set_text(self.output.clone());
+        true
     }
 }
 

@@ -24,6 +24,7 @@ use crate::runtime;
 
 async fn entry_future(input: String, output: Arc<Mutex<String>>, render_tx: Arc<RenderTx>) {
     let result = runtime::entry(input, render_tx);
+
     let string = match result {
         Ok(val) => format!("{}", val),
         Err(err) => format!("{}", err),
