@@ -70,14 +70,18 @@ impl Canvas {
         }
     }
 
-    pub fn render(&mut self, data: &mut AppState) {
+    pub fn render(&mut self, data: &mut AppState) -> bool {
+        let mut dirty = false;
         for _ in 0..data.speed {
             if let Ok(Some(cmd)) = self.render_rx.try_next() {
                 self.render_one(data, cmd);
+                dirty = true;
             } else {
                 break;
             }
         }
+
+        dirty
     }
 }
 
@@ -86,7 +90,9 @@ impl Widget<AppState> for Canvas {
         match event {
             Event::Timer(timer_id) => {
                 if self.timer_id == *timer_id {
-                    self.render(data);
+                    if self.render(data) {
+                        ctx.request_paint();
+                    }
                     self.timer_id = ctx.request_timer(Duration::from_millis(30));
                 }
             }
@@ -108,10 +114,7 @@ impl Widget<AppState> for Canvas {
     ) {
     }
 
-    fn update(&mut self, ctx: &mut UpdateCtx, old_data: &AppState, data: &AppState, _env: &Env) {
-        if !old_data.same(data) {
-            ctx.request_paint();
-        }
+    fn update(&mut self, _ctx: &mut UpdateCtx, _old_data: &AppState, _data: &AppState, _env: &Env) {
     }
 
     fn layout(
