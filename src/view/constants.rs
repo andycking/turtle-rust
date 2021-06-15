@@ -12,23 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::fmt;
+pub const FONT_SIZE: f64 = 14.0;
 
-pub type ValueList = Vec<Value>;
+pub const CONSOLE_HEIGHT: f64 = FONT_SIZE * 6.0 + 8.0;
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum Value {
-    Void,
-    List(ValueList),
-    Number(f64),
-}
+pub const INPUT_WIDTH: f64 = 300.0;
 
-impl fmt::Display for Value {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Value::Void => write!(f, "void"),
-            Value::List(_) => write!(f, "[]"),
-            Value::Number(num) => write!(f, "{}", num),
-        }
-    }
-}
+pub const STATUS_BAR_HEIGHT: f64 = FONT_SIZE + 8.0;

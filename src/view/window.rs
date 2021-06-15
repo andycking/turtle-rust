@@ -18,6 +18,8 @@ use druid::widget::Container;
 use druid::widget::Controller;
 use druid::widget::CrossAxisAlignment;
 use druid::widget::Flex;
+use druid::widget::Label;
+use druid::widget::MainAxisAlignment;
 use druid::widget::TextBox;
 use druid::widget::Widget;
 use druid::Color;
@@ -28,15 +30,12 @@ use druid::WidgetExt;
 use druid::WindowDesc;
 
 use super::canvas::Canvas;
+use super::console::Console;
+use super::constants::*;
 use super::menu;
-
 use crate::common::constants::*;
 use crate::model::app::AppState;
 use crate::model::render::RenderRx;
-
-const FONT_SIZE: f64 = 14.0;
-const INPUT_WIDTH: f64 = 300.0;
-const STATUS_BAR_HEIGHT: f64 = FONT_SIZE + 8.0;
 
 pub fn window(render_rx: RenderRx) -> WindowDesc<AppState> {
     let ui = build_ui(render_rx);
@@ -56,10 +55,12 @@ fn build_ui(render_rx: RenderRx) -> impl Widget<AppState> {
         .controller(WindowController {})
 }
 
-fn build_center_pane(render_rx: RenderRx) -> impl druid::Widget<AppState> {
+fn build_center_pane(render_rx: RenderRx) -> impl Widget<AppState> {
     Flex::column()
-        .cross_axis_alignment(druid::widget::CrossAxisAlignment::End)
+        .cross_axis_alignment(CrossAxisAlignment::End)
         .with_child(build_canvas(render_rx))
+        .with_spacer(1.0)
+        .with_child(build_console())
         .with_spacer(1.0)
         .with_child(build_status_bar())
         .with_default_spacer()
@@ -101,8 +102,17 @@ fn build_input() -> impl Widget<AppState> {
     )
 }
 
-fn build_status_label() -> impl druid::Widget<AppState> {
-    druid::widget::Label::new(|data: &AppState, _env: &_| {
+fn build_console() -> impl Widget<AppState> {
+    Flex::row()
+        .main_axis_alignment(MainAxisAlignment::Start)
+        .with_child(Console::new())
+        .background(Color::BLACK)
+        .fix_width(DIMS.width)
+        .fix_height(CONSOLE_HEIGHT)
+}
+
+fn build_status_label() -> impl Widget<AppState> {
+    Label::new(|data: &AppState, _: &_| {
         format!(
             "commands: {:6}   speed: {:2}",
             data.command_count, data.speed
@@ -112,9 +122,9 @@ fn build_status_label() -> impl druid::Widget<AppState> {
     .with_text_color(Color::WHITE)
 }
 
-fn build_status_bar() -> impl druid::Widget<AppState> {
+fn build_status_bar() -> impl Widget<AppState> {
     Flex::row()
-        .main_axis_alignment(druid::widget::MainAxisAlignment::End)
+        .main_axis_alignment(MainAxisAlignment::End)
         .with_child(build_status_label())
         .fix_width(DIMS.width)
         .fix_height(STATUS_BAR_HEIGHT)
@@ -122,7 +132,10 @@ fn build_status_bar() -> impl druid::Widget<AppState> {
 }
 
 fn window_size() -> Size {
-    Size::new(DIMS.width + INPUT_WIDTH, DIMS.height + STATUS_BAR_HEIGHT)
+    Size::new(
+        DIMS.width + INPUT_WIDTH,
+        DIMS.height + CONSOLE_HEIGHT + STATUS_BAR_HEIGHT + 2.0,
+    )
 }
 
 struct WindowController {}
