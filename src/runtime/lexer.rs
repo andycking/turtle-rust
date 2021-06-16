@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::iter::Peekable;
 use std::str::Chars;
 
 use super::error::*;
@@ -66,11 +67,11 @@ impl Lexer {
     }
 
     pub fn go(&mut self, input: &str) -> RuntimeResult<LexerList> {
-        let mut iter = input.chars();
+        let mut iter = input.chars().peekable();
         self.lex(&mut iter)
     }
 
-    fn lex(&mut self, iter: &mut Chars) -> RuntimeResult<LexerList> {
+    fn lex(&mut self, iter: &mut Peekable<Chars>) -> RuntimeResult<LexerList> {
         let mut state = LexerState::new();
 
         while let Some(c) = iter.next() {
@@ -121,6 +122,14 @@ impl Lexer {
 
                 '+' | '-' | '*' | '/' | '=' => {
                     state.delimit(self.idx)?;
+
+                    if let Some(next_c) = iter.peek() {
+                        if next_c.is_digit(10) {
+                            state.number = true;
+                            state.symbol.push(c);
+                            continue;
+                        }
+                    }
 
                     let op = Self::operator(c, self.idx)?;
                     let item = LexerAny::LexerOperator(op);
@@ -176,7 +185,7 @@ impl Lexer {
         }
     }
 
-    fn munch(iter: &mut Chars) -> usize {
+    fn munch(iter: &mut Peekable<Chars>) -> usize {
         let mut idx = 0;
 
         for c in iter {
@@ -189,7 +198,7 @@ impl Lexer {
         idx
     }
 
-    fn get_bin_expr(&mut self, iter: &mut Chars) -> RuntimeResult<LexerBinExpr> {
+    fn get_bin_expr(&mut self, iter: &mut Peekable<Chars>) -> RuntimeResult<LexerBinExpr> {
         let expr_list = self.lex(iter)?;
         let mut expr_iter = expr_list.iter();
 
