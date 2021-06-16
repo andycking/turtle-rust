@@ -55,7 +55,7 @@ impl AppState {
             pixels: Default::default(),
             pos: Point::ZERO,
             show_turtle: false,
-            speed: 1,
+            speed: 4,
             thread_pool: Arc::new(thread_pool),
             render_tx: Arc::new(render_tx),
             window_id,
