@@ -158,8 +158,7 @@ impl Parser {
 
     fn parse_backward(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let distance = self.get_expr(iter)?;
-        let distance_node = self.parse_expr(iter, &distance)?;
+        let distance_node = self.get_parse_expr(iter)?;
         let move_node = MoveNode::new(distance_node, Direction::Backward);
         Ok(ParserNode::Move(move_node))
     }
@@ -225,8 +224,7 @@ impl Parser {
 
     fn parse_forward(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let distance = self.get_expr(iter)?;
-        let distance_node = self.parse_expr(iter, &distance)?;
+        let distance_node = self.get_parse_expr(iter)?;
         let move_node = MoveNode::new(distance_node, Direction::Forward);
         Ok(ParserNode::Move(move_node))
     }
@@ -248,8 +246,7 @@ impl Parser {
 
     fn parse_left(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let angle = self.get_expr(iter)?;
-        let angle_node = self.parse_expr(iter, &angle)?;
+        let angle_node = self.get_parse_expr(iter)?;
         let rotate_node = RotateNode::new(angle_node, Direction::Left);
         Ok(ParserNode::Rotate(rotate_node))
     }
@@ -268,8 +265,7 @@ impl Parser {
 
     fn parse_math(&mut self, iter: &mut ListIter, op: MathOp) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let arg = self.get_expr(iter)?;
-        let arg_node = self.parse_expr(iter, &arg)?;
+        let arg_node = self.get_parse_expr(iter)?;
         let math_node = MathNode::new(op, arg_node);
         Ok(ParserNode::Math(math_node))
     }
@@ -309,8 +305,7 @@ impl Parser {
 
     fn parse_repeat(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(2)?;
-        let count = self.get_expr(iter)?;
-        let count_node = self.parse_expr(iter, &count)?;
+        let count_node = self.get_parse_expr(iter)?;
         let block = self.get_block(iter)?;
         let mut block_iter = ListIter::new(&block);
         let node_list = self.parse(&mut block_iter)?;
@@ -320,24 +315,21 @@ impl Parser {
 
     fn parse_right(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let angle = self.get_expr(iter)?;
-        let angle_node = self.parse_expr(iter, &angle)?;
+        let angle_node = self.get_parse_expr(iter)?;
         let rotate_node = RotateNode::new(angle_node, Direction::Right);
         Ok(ParserNode::Rotate(rotate_node))
     }
 
     fn parse_set_heading(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let angle = self.get_expr(iter)?;
-        let angle_node = self.parse_expr(iter, &angle)?;
+        let angle_node = self.get_parse_expr(iter)?;
         let node = SetHeadingNode::new(angle_node);
         Ok(ParserNode::SetHeading(node))
     }
 
     fn parse_set_pen_color(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let color = self.get_expr(iter)?;
-        let color_node = self.parse_expr(iter, &color)?;
+        let color_node = self.get_parse_expr(iter)?;
         let pen_color_node = SetPenColorNode::new(color_node);
         Ok(ParserNode::SetPenColor(pen_color_node))
     }
@@ -351,34 +343,29 @@ impl Parser {
 
     fn parse_set_screen_color(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let color = self.get_expr(iter)?;
-        let color_node = self.parse_expr(iter, &color)?;
+        let color_node = self.get_parse_expr(iter)?;
         let pen_color_node = SetScreenColorNode::new(color_node);
         Ok(ParserNode::SetScreenColor(pen_color_node))
     }
 
     fn parse_setxy(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(2)?;
-        let x = self.get_expr(iter)?;
-        let x_node = self.parse_expr(iter, &x)?;
-        let y = self.get_expr(iter)?;
-        let y_node = self.parse_expr(iter, &y)?;
+        let x_node = self.get_parse_expr(iter)?;
+        let y_node = self.get_parse_expr(iter)?;
         let pos_node = SetPositionNode::new(Some(Box::new(x_node)), Some(Box::new(y_node)));
         Ok(ParserNode::SetPosition(pos_node))
     }
 
     fn parse_setx(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let x = self.get_expr(iter)?;
-        let x_node = self.parse_expr(iter, &x)?;
+        let x_node = self.get_parse_expr(iter)?;
         let pos_node = SetPositionNode::new(Some(Box::new(x_node)), None);
         Ok(ParserNode::SetPosition(pos_node))
     }
 
     fn parse_sety(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
         iter.expect(1)?;
-        let y = self.get_expr(iter)?;
-        let y_node = self.parse_expr(iter, &y)?;
+        let y_node = self.get_parse_expr(iter)?;
         let pos_node = SetPositionNode::new(None, Some(Box::new(y_node)));
         Ok(ParserNode::SetPosition(pos_node))
     }
@@ -431,6 +418,11 @@ impl Parser {
             let msg = "expected a word".to_string();
             Err(RuntimeError::Parser(msg))
         }
+    }
+
+    fn get_parse_expr(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
+        let val = self.get_expr(iter)?;
+        self.parse_expr(iter, &val)
     }
 
     fn check_symbol(&mut self, name: &str, tag: SymbolTag) -> RuntimeResult {
