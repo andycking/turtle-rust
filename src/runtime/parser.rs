@@ -113,6 +113,7 @@ impl Parser {
             "fd" | "forward" => self.parse_forward(iter)?,
             "fill" => self.parse_fill(),
             "fn" => self.parse_fn(iter)?,
+            "for" => self.parse_for(iter)?,
             "ht" | "hideturtle" => ParserNode::ShowTurtle(false),
             "home" => self.parse_home(),
             "let" => self.parse_let(iter)?,
@@ -220,6 +221,24 @@ impl Parser {
         let func = ParserFuncDef::new(false, 0, list);
         self.fmap.insert(name, func);
         Ok(ParserNode::Placeholder)
+    }
+
+    fn parse_for(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {
+        iter.expect(5)?;
+
+        let var = self.get_word(iter)?;
+        self.check_symbol(&var, SymbolTag::Var)?;
+
+        let initial = self.get_parse_expr(iter)?;
+        let limit = self.get_parse_expr(iter)?;
+        let step = self.get_parse_expr(iter)?;
+
+        let block = self.get_block(iter)?;
+        let mut block_iter = ListIter::new(&block);
+        let node_list = self.parse(&mut block_iter)?;
+
+        let for_node = ForNode::new(var, initial, limit, step, node_list);
+        Ok(ParserNode::For(for_node))
     }
 
     fn parse_forward(&mut self, iter: &mut ListIter) -> RuntimeResult<ParserNode> {

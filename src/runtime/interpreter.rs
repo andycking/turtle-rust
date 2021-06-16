@@ -123,6 +123,7 @@ impl Interpreter {
             ParserNode::Clean => Ok(self.eval_clean()),
             ParserNode::ClearScreen => self.eval_clear_screen(),
             ParserNode::Fill => self.eval_fill(),
+            ParserNode::For(node) => self.eval_for(frame, node),
             ParserNode::Home => self.eval_home(),
             ParserNode::Let(node) => self.eval_let(frame, node),
             ParserNode::List(node) => self.eval_list(frame, node),
@@ -189,6 +190,29 @@ impl Interpreter {
     fn eval_fill(&mut self) -> RuntimeResult<Value> {
         let cmd = RenderCommand::Fill(self.state.color.clone());
         self.render_tx.unbounded_send(cmd)?;
+        Ok(Value::Void)
+    }
+
+    fn eval_for(&mut self, frame: &mut Frame, node: &ForNode) -> RuntimeResult<Value> {
+        let var = node.var();
+        let initial = self.eval_node_as_number(frame, node.initial())?;
+        let limit = self.eval_node_as_number(frame, node.limit())?;
+        let step = self.eval_node_as_number(frame, node.step())?;
+        let list = node.list();
+
+        // We should really make a new frame here, and update repcount. But then
+        // we have two mutable borrows because of the vmap modifications below.
+
+        let mut i = initial;
+        frame.vmap.insert(var.to_string(), Value::Number(i));
+
+        while i < limit {
+            self.run(frame, list)?;
+
+            i += step;
+            frame.vmap.insert(var.to_string(), Value::Number(i));
+        }
+
         Ok(Value::Void)
     }
 
