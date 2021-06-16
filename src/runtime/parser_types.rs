@@ -73,6 +73,53 @@ pub enum Direction {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct ForNode {
+    var: String,
+    initial: Box<ParserNode>,
+    limit: Box<ParserNode>,
+    step: Box<ParserNode>,
+    list: ParserNodeList,
+}
+
+impl ForNode {
+    pub fn new(
+        var: String,
+        initial: ParserNode,
+        limit: ParserNode,
+        step: ParserNode,
+        list: ParserNodeList,
+    ) -> Self {
+        Self {
+            var,
+            initial: Box::new(initial),
+            limit: Box::new(limit),
+            step: Box::new(step),
+            list,
+        }
+    }
+
+    pub fn var(&self) -> &str {
+        &self.var
+    }
+
+    pub fn initial(&self) -> &ParserNode {
+        &self.initial
+    }
+
+    pub fn limit(&self) -> &ParserNode {
+        &self.limit
+    }
+
+    pub fn step(&self) -> &ParserNode {
+        &self.step
+    }
+
+    pub fn list(&self) -> &ParserNodeList {
+        &self.list
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct LetNode {
     name: String,
     val: Box<ParserNode>,
@@ -300,6 +347,7 @@ pub enum ParserNode {
     Clean,
     ClearScreen,
     Fill,
+    For(ForNode),
     Home,
     Let(LetNode),
     List(ParserNodeList),
