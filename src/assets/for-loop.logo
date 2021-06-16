@@ -1,0 +1,9 @@
+ht
+for i 0 500 5 {
+	fd (i / 2)
+	pu
+	bk (i / 2)
+	rt 4
+	pd
+}
+st
