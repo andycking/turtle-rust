@@ -120,7 +120,7 @@ impl Lexer {
                     break;
                 }
 
-                '+' | '-' | '*' | '/' | '=' => {
+                '-' => {
                     state.delimit(self.idx)?;
 
                     if let Some(next_c) = iter.peek() {
@@ -130,6 +130,14 @@ impl Lexer {
                             continue;
                         }
                     }
+
+                    let op = Self::operator(c, self.idx)?;
+                    let item = LexerAny::LexerOperator(op);
+                    state.list.push(item);
+                }
+
+                '+' | '*' | '/' | '=' | '%' => {
+                    state.delimit(self.idx)?;
 
                     let op = Self::operator(c, self.idx)?;
                     let item = LexerAny::LexerOperator(op);
@@ -178,6 +186,7 @@ impl Lexer {
             '-' => Ok(LexerOperator::Subtract),
             '*' => Ok(LexerOperator::Multiply),
             '/' => Ok(LexerOperator::Divide),
+            '%' => Ok(LexerOperator::Modulo),
             _ => {
                 let msg = format!("{}: unrecognized operator \'{}\'", idx, c);
                 Err(RuntimeError::Lexer(msg))

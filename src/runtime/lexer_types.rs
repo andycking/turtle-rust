@@ -17,6 +17,7 @@ pub enum LexerOperator {
     Add,
     Assign,
     Divide,
+    Modulo,
     Multiply,
     Subtract,
 }
