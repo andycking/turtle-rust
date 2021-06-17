@@ -19,6 +19,7 @@ pub enum LexerOperator {
     Divide,
     Modulo,
     Multiply,
+    Power,
     Subtract,
 }
 

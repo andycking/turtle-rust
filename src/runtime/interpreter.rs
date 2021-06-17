@@ -160,6 +160,7 @@ impl Interpreter {
             LexerOperator::Divide => Self::eval_divide(&a, &b),
             LexerOperator::Modulo => Self::eval_modulo(&a, &b),
             LexerOperator::Multiply => Self::eval_multiply(&a, &b),
+            LexerOperator::Power => Self::eval_power(&a, &b),
             LexerOperator::Subtract => Self::eval_subtract(&a, &b),
             _ => {
                 let msg = "cannot evaluate operator".to_string();
@@ -443,6 +444,16 @@ impl Interpreter {
         match a {
             Value::Number(a_num) => match b {
                 Value::Number(b_num) => Ok(Value::Number(a_num % b_num)),
+                _ => Self::err_eval_bin_expr(a, b),
+            },
+            _ => Self::err_eval_bin_expr(a, b),
+        }
+    }
+
+    fn eval_power(a: &Value, b: &Value) -> RuntimeResult<Value> {
+        match a {
+            Value::Number(a_num) => match b {
+                Value::Number(b_num) => Ok(Value::Number(a_num.powf(*b_num))),
                 _ => Self::err_eval_bin_expr(a, b),
             },
             _ => Self::err_eval_bin_expr(a, b),

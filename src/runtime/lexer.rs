@@ -136,7 +136,7 @@ impl Lexer {
                     state.list.push(item);
                 }
 
-                '+' | '*' | '/' | '=' | '%' => {
+                '+' | '*' | '/' | '=' | '%' | '^' => {
                     state.delimit(self.idx)?;
 
                     let op = Self::operator(c, self.idx)?;
@@ -187,6 +187,7 @@ impl Lexer {
             '*' => Ok(LexerOperator::Multiply),
             '/' => Ok(LexerOperator::Divide),
             '%' => Ok(LexerOperator::Modulo),
+            '^' => Ok(LexerOperator::Power),
             _ => {
                 let msg = format!("{}: unrecognized operator \'{}\'", idx, c);
                 Err(RuntimeError::Lexer(msg))
