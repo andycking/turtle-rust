@@ -73,9 +73,9 @@ pub fn speed(_ctx: &mut DelegateCtx, cmd: &druid::Command, data: &mut AppState) 
 
     data.speed
         .fetch_update(Ordering::Acquire, Ordering::Acquire, |x| {
-            if faster && x < 32 {
+            if faster && x < MAX_SPEED {
                 Some(x * 2)
-            } else if !faster && x > 1 {
+            } else if !faster && x > MIN_SPEED {
                 Some(x / 2)
             } else {
                 Some(x)
