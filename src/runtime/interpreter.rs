@@ -557,17 +557,6 @@ impl Interpreter {
         Ok(())
     }
 
-    fn tx(&mut self, cmd: RenderCommand) -> RuntimeResult {
-        self.render_tx_count += 1;
-        if self.render_tx_count % self.speed.load(Ordering::Relaxed) == 0 {
-            thread::sleep(Duration::from_millis(30));
-        }
-
-        self.render_tx.unbounded_send(cmd)?;
-
-        Ok(())
-    }
-
     fn move_to_inner(&mut self, angle: f64, p: Point) -> RuntimeResult {
         let move_to = MoveTo::new(
             angle,
@@ -578,6 +567,17 @@ impl Interpreter {
         );
 
         self.tx(RenderCommand::MoveTo(move_to))
+    }
+
+    fn tx(&mut self, cmd: RenderCommand) -> RuntimeResult {
+        self.render_tx_count += 1;
+        if self.render_tx_count % self.speed.load(Ordering::Relaxed) == 0 {
+            thread::sleep(Duration::from_millis(30));
+        }
+
+        self.render_tx.unbounded_send(cmd)?;
+
+        Ok(())
     }
 
     fn vlist_expect(list: &[Value], n: usize) -> RuntimeResult {
