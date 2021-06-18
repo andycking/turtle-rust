@@ -12,39 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::Arc;
-use std::sync::Mutex;
-
 use druid::DelegateCtx;
 
 use crate::common::commands;
 use crate::model::app::AppState;
-use crate::model::render::RenderTx;
 use crate::runtime;
-
-async fn entry_future(input: String, output: Arc<Mutex<String>>, render_tx: Arc<RenderTx>) {
-    let result = runtime::entry(input, render_tx);
-
-    let string = match result {
-        Ok(val) => format!("{}", val),
-        Err(err) => format!("{}", err),
-    };
-
-    {
-        let mut guard = output.lock().unwrap();
-        guard.clear();
-        guard.push_str(&string);
-    }
-}
 
 pub fn go(_ctx: &mut DelegateCtx, _cmd: &druid::Command, data: &mut AppState) {
     data.clear();
-    let future = entry_future(
-        data.input.to_string(),
-        data.output.clone(),
-        data.render_tx.clone(),
-    );
-    data.thread_pool.spawn_ok(future);
+
+    let input = data.input.to_string();
+    let output = data.output.clone();
+    let render_tx = data.render_tx.clone();
+
+    data.thread_pool.execute(move || {
+        let string = match runtime::entry(input, render_tx) {
+            Ok(val) => format!("{}", val),
+            Err(err) => format!("{}", err),
+        };
+
+        let mut guard = output.lock().unwrap();
+        guard.clear();
+        guard.push_str(&string);
+    });
 }
 
 pub fn speed(_ctx: &mut DelegateCtx, cmd: &druid::Command, data: &mut AppState) {

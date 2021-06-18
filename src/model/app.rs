@@ -18,7 +18,7 @@ use std::sync::Mutex;
 use druid::Data;
 use druid::Lens;
 use druid::Point;
-use futures::executor::ThreadPool;
+use threadpool::ThreadPool;
 
 use super::pixbuf::PixBuf;
 use super::render::RenderTx;
@@ -42,11 +42,7 @@ pub struct AppState {
 
 impl AppState {
     pub fn new(render_tx: RenderTx, window_id: druid::WindowId) -> Self {
-        let thread_pool = ThreadPool::builder()
-            .pool_size(1)
-            .name_prefix("render-tx")
-            .create()
-            .expect("Failed to create thread pool");
+        let thread_pool = ThreadPool::new(1);
 
         Self {
             command_count: 0,

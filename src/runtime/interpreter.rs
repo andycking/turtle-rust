@@ -14,6 +14,8 @@
 
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::thread;
+use std::time::Duration;
 
 use druid::Color;
 use druid::Point;
@@ -191,7 +193,7 @@ impl Interpreter {
 
     fn eval_fill(&mut self) -> RuntimeResult<Value> {
         let cmd = RenderCommand::Fill(self.state.color.clone());
-        self.render_tx.unbounded_send(cmd)?;
+        self.tx(cmd)?;
         Ok(Value::Void)
     }
 
@@ -387,7 +389,7 @@ impl Interpreter {
 
     fn eval_show_turtle(&mut self, val: bool) -> RuntimeResult<Value> {
         let cmd = RenderCommand::ShowTurtle(val);
-        self.render_tx.unbounded_send(cmd)?;
+        self.tx(cmd)?;
         Ok(Value::Void)
     }
 
@@ -549,6 +551,13 @@ impl Interpreter {
         Ok(())
     }
 
+    fn tx(&mut self, cmd: RenderCommand) -> RuntimeResult {
+        thread::sleep(Duration::from_millis(30));
+
+        self.render_tx.unbounded_send(cmd)?;
+        Ok(())
+    }
+
     fn move_to_inner(&mut self, angle: f64, p: Point) -> RuntimeResult {
         let move_to = MoveTo::new(
             angle,
@@ -558,10 +567,7 @@ impl Interpreter {
             p,
         );
 
-        let cmd = RenderCommand::MoveTo(move_to);
-        self.render_tx.unbounded_send(cmd)?;
-
-        Ok(())
+        self.tx(RenderCommand::MoveTo(move_to))
     }
 
     fn vlist_expect(list: &[Value], n: usize) -> RuntimeResult {
