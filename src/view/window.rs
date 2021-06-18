@@ -12,8 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::atomic::Ordering;
-
+use super::canvas::Canvas;
+use super::console::Console;
+use super::constants::*;
+use super::menu;
+use crate::common::constants::*;
+use crate::model::app::AppState;
+use crate::model::render::RenderRx;
 use druid::theme;
 use druid::widget::prelude::*;
 use druid::widget::Container;
@@ -30,14 +35,7 @@ use druid::FontFamily;
 use druid::Size;
 use druid::WidgetExt;
 use druid::WindowDesc;
-
-use super::canvas::Canvas;
-use super::console::Console;
-use super::constants::*;
-use super::menu;
-use crate::common::constants::*;
-use crate::model::app::AppState;
-use crate::model::render::RenderRx;
+use std::sync::atomic::Ordering;
 
 pub fn window(render_rx: RenderRx) -> WindowDesc<AppState> {
     let ui = build_ui(render_rx);

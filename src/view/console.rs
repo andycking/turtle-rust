@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::time::Duration;
-
 use druid::widget::prelude::*;
 use druid::widget::Label;
 use druid::widget::LineBreaking;
@@ -21,6 +19,7 @@ use druid::Color;
 use druid::TextAlignment;
 use druid::TimerToken;
 use druid::Widget;
+use std::time::Duration;
 
 use super::constants::*;
 use crate::model::app::AppState;

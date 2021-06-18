@@ -12,15 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::atomic::AtomicU32;
-use std::sync::Arc;
-
 use crate::model::render::RenderTx;
 use error::*;
 use interpreter::Interpreter;
 use interpreter_types::*;
 use lexer::Lexer;
 use parser::Parser;
+use std::sync::atomic::AtomicU32;
+use std::sync::Arc;
 
 pub mod error;
 mod interpreter;

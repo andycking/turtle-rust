@@ -12,18 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use super::pixbuf::PixBuf;
+use super::render::RenderTx;
+use druid::Data;
+use druid::Lens;
+use druid::Point;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
 use std::sync::Mutex;
-
-use druid::Data;
-use druid::Lens;
-use druid::Point;
 use threadpool::ThreadPool;
-
-use super::pixbuf::PixBuf;
-use super::render::RenderTx;
 
 /// Application state.
 #[derive(Clone, Data, Debug, Lens)]

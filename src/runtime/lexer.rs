@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::iter::Peekable;
-use std::str::Chars;
-
 use super::error::*;
 use super::lexer_types::*;
+use std::iter::Peekable;
+use std::str::Chars;
 
 #[derive(Clone, Debug)]
 struct LexerState {

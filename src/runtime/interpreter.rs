@@ -12,22 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use super::error::*;
+use super::interpreter_types::*;
+use super::lexer_types::*;
+use super::parser_types::*;
+use crate::model::render::*;
+use druid::Color;
+use druid::Point;
+use rand::Rng;
 use std::collections::HashMap;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
-
-use druid::Color;
-use druid::Point;
-use rand::Rng;
-
-use super::error::*;
-use super::interpreter_types::*;
-use super::lexer_types::*;
-use super::parser_types::*;
-use crate::model::render::*;
 
 type VarMap = HashMap<String, Value>;
 

@@ -12,18 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::atomic::AtomicBool;
-use std::sync::atomic::Ordering;
-use std::sync::Arc;
-use std::sync::Mutex;
-
-use druid::DelegateCtx;
-
 use crate::common::commands;
 use crate::common::constants::MAX_SPEED;
 use crate::common::constants::MIN_SPEED;
 use crate::model::app::AppState;
 use crate::runtime;
+use druid::DelegateCtx;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 fn set_output(output: &Arc<Mutex<String>>, string: &str) {
     let mut output_guard = output.lock().unwrap();

@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashMap;
-
 use super::error::*;
 use super::lexer_types::*;
 use super::parser_types::*;
+use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
 struct ListIter<'a> {

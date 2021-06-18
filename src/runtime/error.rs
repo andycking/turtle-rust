@@ -12,11 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::fmt;
-
-use futures::channel::mpsc::TrySendError;
-
 use crate::model::render::RenderCommand;
+use futures::channel::mpsc::TrySendError;
+use std::fmt;
 
 #[derive(Debug)]
 pub enum RuntimeError {

@@ -12,9 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashMap;
-
 use super::lexer_types::*;
+use std::collections::HashMap;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct BinExprNode {
