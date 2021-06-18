@@ -54,7 +54,7 @@ mod tests {
     fn it_goes() {
         let input = "let i = (2 ^ 3) i".to_string();
         let (render_tx, render_rx) = mpsc::unbounded::<RenderCommand>();
-        let res = entry(input, Arc::new(render_tx));
+        let res = entry(input, Arc::new(render_tx), Arc::new(AtomicU32::new(4)));
         if let Err(err) = res {
             eprintln!("{}", err);
         }
