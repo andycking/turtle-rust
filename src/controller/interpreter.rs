@@ -72,11 +72,13 @@ pub fn speed(_ctx: &mut DelegateCtx, cmd: &druid::Command, data: &mut AppState) 
     let faster = *cmd.get_unchecked(commands::INTERPRETER_SPEED);
 
     data.speed
-        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |x| {
-            if faster {
-                Some(std::cmp::min(x * 2, MAX_SPEED))
+        .fetch_update(Ordering::Acquire, Ordering::Acquire, |x| {
+            if faster && x < 32 {
+                Some(x * 2)
+            } else if !faster && x > 1 {
+                Some(x / 2)
             } else {
-                Some(std::cmp::max(x / 2, MIN_SPEED))
+                Some(x)
             }
         });
 }
