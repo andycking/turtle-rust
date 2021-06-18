@@ -13,6 +13,8 @@
 // limitations under the License.
 
 use std::collections::HashMap;
+use std::sync::atomic::AtomicU32;
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
@@ -73,11 +75,13 @@ impl<'a> Frame<'a> {
 pub struct Interpreter {
     pal: Palette,
     render_tx: Arc<RenderTx>,
+    render_tx_count: u32,
+    speed: Arc<AtomicU32>,
     state: State,
 }
 
 impl Interpreter {
-    pub fn new(render_tx: Arc<RenderTx>) -> Self {
+    pub fn new(render_tx: Arc<RenderTx>, speed: Arc<AtomicU32>) -> Self {
         let pal = crate::hashmap![
             0 => Color::BLACK,
             1 => Color::BLUE,
@@ -100,6 +104,8 @@ impl Interpreter {
         Self {
             pal,
             render_tx,
+            render_tx_count: 0,
+            speed,
             state: State::new(),
         }
     }
@@ -552,9 +558,13 @@ impl Interpreter {
     }
 
     fn tx(&mut self, cmd: RenderCommand) -> RuntimeResult {
-        thread::sleep(Duration::from_millis(30));
+        self.render_tx_count += 1;
+        if self.render_tx_count % self.speed.load(Ordering::Relaxed) == 0 {
+            thread::sleep(Duration::from_millis(30));
+        }
 
         self.render_tx.unbounded_send(cmd)?;
+
         Ok(())
     }
 

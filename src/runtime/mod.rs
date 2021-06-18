@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
 
 use crate::model::render::RenderTx;
@@ -29,13 +30,16 @@ mod lexer_types;
 mod parser;
 mod parser_types;
 
-pub fn entry(input: String, render_tx: Arc<RenderTx>) -> RuntimeResult<Value> {
-    println!("Runtime starting...");
+pub fn entry(
+    input: String,
+    render_tx: Arc<RenderTx>,
+    speed: Arc<AtomicU32>,
+) -> RuntimeResult<Value> {
     let lexer_out = Lexer::new().go(&input)?;
     println!("lexer out {:?}", lexer_out);
     let parser_out = Parser::new().go(&lexer_out)?;
     println!("parser out {:?}", parser_out);
-    let intrp_out = Interpreter::new(render_tx).go(&parser_out)?;
+    let intrp_out = Interpreter::new(render_tx, speed).go(&parser_out)?;
     println!("interpreter out {:?}", intrp_out);
     Ok(intrp_out)
 }

@@ -12,37 +12,73 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
+use std::sync::Arc;
+use std::sync::Mutex;
+
 use druid::DelegateCtx;
 
 use crate::common::commands;
+use crate::common::constants::MAX_SPEED;
+use crate::common::constants::MIN_SPEED;
 use crate::model::app::AppState;
 use crate::runtime;
 
-pub fn go(_ctx: &mut DelegateCtx, _cmd: &druid::Command, data: &mut AppState) {
+fn set_output(output: &Arc<Mutex<String>>, string: &str) {
+    let mut output_guard = output.lock().unwrap();
+    output_guard.clear();
+    output_guard.push_str(&string);
+}
+
+fn set_running(running: &Arc<AtomicBool>) -> bool {
+    match running.compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed) {
+        Ok(false) => true, // Original value replaced.
+        _ => false,        // Anything else means it's still running.
+    }
+}
+
+fn clear_running(running: &Arc<AtomicBool>) {
+    running
+        .compare_exchange(true, false, Ordering::SeqCst, Ordering::Acquire)
+        .unwrap();
+}
+
+fn go_inner(data: &mut AppState) {
     data.clear();
 
     let input = data.input.to_string();
     let output = data.output.clone();
     let render_tx = data.render_tx.clone();
+    let running = data.running.clone();
+    let speed = data.speed.clone();
 
     data.thread_pool.execute(move || {
-        let string = match runtime::entry(input, render_tx) {
+        let string = match runtime::entry(input, render_tx, speed) {
             Ok(val) => format!("{}", val),
             Err(err) => format!("{}", err),
         };
 
-        let mut guard = output.lock().unwrap();
-        guard.clear();
-        guard.push_str(&string);
+        set_output(&output, &string);
+        clear_running(&running);
     });
 }
 
-pub fn speed(_ctx: &mut DelegateCtx, cmd: &druid::Command, data: &mut AppState) {
-    if *cmd.get_unchecked(commands::INTERPRETER_SPEED) {
-        if data.speed < 32 {
-            data.speed *= 2;
-        }
-    } else if data.speed > 1 {
-        data.speed /= 2;
+pub fn go(_ctx: &mut DelegateCtx, _cmd: &druid::Command, data: &mut AppState) {
+    if set_running(&data.running) {
+        go_inner(data);
     }
+}
+
+pub fn speed(_ctx: &mut DelegateCtx, cmd: &druid::Command, data: &mut AppState) {
+    let faster = *cmd.get_unchecked(commands::INTERPRETER_SPEED);
+
+    data.speed
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |x| {
+            if faster {
+                Some(std::cmp::min(x * 2, MAX_SPEED))
+            } else {
+                Some(std::cmp::max(x / 2, MIN_SPEED))
+            }
+        });
 }

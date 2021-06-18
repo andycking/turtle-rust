@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -31,8 +33,9 @@ pub struct AppState {
     pub output: Arc<Mutex<String>>,
     pub pixels: PixBuf,
     pub pos: Point,
+    pub running: Arc<AtomicBool>,
     pub show_turtle: bool,
-    pub speed: u8,
+    pub speed: Arc<AtomicU32>,
     pub thread_pool: Arc<ThreadPool>,
     pub render_tx: Arc<RenderTx>,
 
@@ -42,17 +45,16 @@ pub struct AppState {
 
 impl AppState {
     pub fn new(render_tx: RenderTx, window_id: druid::WindowId) -> Self {
-        let thread_pool = ThreadPool::new(1);
-
         Self {
             command_count: 0,
             input: "".to_string().into(),
             output: Arc::new(Mutex::new("".to_string())),
             pixels: Default::default(),
             pos: Point::ZERO,
+            running: Arc::new(AtomicBool::new(false)),
             show_turtle: false,
-            speed: 4,
-            thread_pool: Arc::new(thread_pool),
+            speed: Arc::new(AtomicU32::new(4)),
+            thread_pool: Arc::new(ThreadPool::new(1)),
             render_tx: Arc::new(render_tx),
             window_id,
         }

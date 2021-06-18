@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::sync::atomic::Ordering;
+
 use druid::theme;
 use druid::widget::prelude::*;
 use druid::widget::Container;
@@ -115,7 +117,8 @@ fn build_status_label() -> impl Widget<AppState> {
     Label::new(|data: &AppState, _: &_| {
         format!(
             "commands: {:6}   speed: {:2}",
-            data.command_count, data.speed
+            data.command_count,
+            data.speed.load(Ordering::Relaxed)
         )
     })
     .with_font(druid::FontDescriptor::new(druid::FontFamily::MONOSPACE).with_size(FONT_SIZE))

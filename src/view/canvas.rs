@@ -72,7 +72,7 @@ impl Canvas {
 
     pub fn render(&mut self, data: &mut AppState) -> bool {
         let mut dirty = false;
-        for _ in 0..data.speed {
+        for _ in 0..MAX_SPEED {
             if let Ok(Some(cmd)) = self.render_rx.try_next() {
                 self.render_one(data, cmd);
                 dirty = true;
