@@ -12,15 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::common::commands;
+use crate::model::app::AppState;
 use druid::menu::Menu;
 use druid::menu::MenuItem;
 use druid::widget::prelude::*;
 use druid::LocalizedString;
 use druid::SysMods;
 use druid::WindowId;
-
-use crate::common::commands;
-use crate::model::app::AppState;
 
 pub fn menu_bar(_: Option<WindowId>, _: &AppState, _: &Env) -> Menu<AppState> {
     #[cfg(target_os = "macos")]

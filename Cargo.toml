@@ -15,5 +15,8 @@ git = "https://github.com/linebender/druid"
 version = "0.3.15"
 features = ["executor", "thread-pool"]
 
+[dependencies.threadpool]
+version = "1.8.1"
+
 [dependencies.rand]
 version = "0.8.3"

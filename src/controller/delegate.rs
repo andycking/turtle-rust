@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::common::commands;
+use crate::model::app::AppState;
 use druid::DelegateCtx;
 use druid::Env;
 use druid::Handled;
 use druid::Target;
-
-use crate::common::commands;
-use crate::model::app::AppState;
 
 pub struct Delegate;
 

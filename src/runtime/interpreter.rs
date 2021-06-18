@@ -12,18 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashMap;
-use std::sync::Arc;
-
-use druid::Color;
-use druid::Point;
-use rand::Rng;
-
 use super::error::*;
 use super::interpreter_types::*;
 use super::lexer_types::*;
 use super::parser_types::*;
 use crate::model::render::*;
+use druid::Color;
+use druid::Point;
+use rand::Rng;
+use std::collections::HashMap;
+use std::sync::atomic::AtomicU32;
+use std::sync::atomic::Ordering;
+use std::sync::Arc;
+use std::thread;
+use std::time::Duration;
 
 type VarMap = HashMap<String, Value>;
 
@@ -71,11 +73,13 @@ impl<'a> Frame<'a> {
 pub struct Interpreter {
     pal: Palette,
     render_tx: Arc<RenderTx>,
+    render_tx_count: u32,
+    speed: Arc<AtomicU32>,
     state: State,
 }
 
 impl Interpreter {
-    pub fn new(render_tx: Arc<RenderTx>) -> Self {
+    pub fn new(render_tx: Arc<RenderTx>, speed: Arc<AtomicU32>) -> Self {
         let pal = crate::hashmap![
             0 => Color::BLACK,
             1 => Color::BLUE,
@@ -98,6 +102,8 @@ impl Interpreter {
         Self {
             pal,
             render_tx,
+            render_tx_count: 0,
+            speed,
             state: State::new(),
         }
     }
@@ -191,7 +197,7 @@ impl Interpreter {
 
     fn eval_fill(&mut self) -> RuntimeResult<Value> {
         let cmd = RenderCommand::Fill(self.state.color.clone());
-        self.render_tx.unbounded_send(cmd)?;
+        self.tx(cmd)?;
         Ok(Value::Void)
     }
 
@@ -387,7 +393,7 @@ impl Interpreter {
 
     fn eval_show_turtle(&mut self, val: bool) -> RuntimeResult<Value> {
         let cmd = RenderCommand::ShowTurtle(val);
-        self.render_tx.unbounded_send(cmd)?;
+        self.tx(cmd)?;
         Ok(Value::Void)
     }
 
@@ -558,7 +564,15 @@ impl Interpreter {
             p,
         );
 
-        let cmd = RenderCommand::MoveTo(move_to);
+        self.tx(RenderCommand::MoveTo(move_to))
+    }
+
+    fn tx(&mut self, cmd: RenderCommand) -> RuntimeResult {
+        self.render_tx_count += 1;
+        if self.render_tx_count % self.speed.load(Ordering::Relaxed) == 0 {
+            thread::sleep(Duration::from_millis(30));
+        }
+
         self.render_tx.unbounded_send(cmd)?;
 
         Ok(())

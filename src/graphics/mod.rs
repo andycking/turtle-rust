@@ -12,13 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::VecDeque;
-use std::sync::Arc;
-
+use crate::model::pixbuf::PixBuf;
 use druid::Color;
 use druid::Point;
-
-use crate::model::pixbuf::PixBuf;
+use std::collections::VecDeque;
+use std::sync::Arc;
 
 pub fn line(pixels: &mut PixBuf, p: &Point, q: &Point, color: &Color) {
     let bytes = Arc::make_mut(&mut pixels.bytes);

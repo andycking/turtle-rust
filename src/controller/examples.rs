@@ -12,12 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::Arc;
-
-use druid::DelegateCtx;
-
 use crate::common::commands;
 use crate::model::app::AppState;
+use druid::DelegateCtx;
+use std::sync::Arc;
 
 pub fn show(_ctx: &mut DelegateCtx, cmd: &druid::Command, data: &mut AppState) {
     let example = match *cmd.get_unchecked(commands::EXAMPLES) {

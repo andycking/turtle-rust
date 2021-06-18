@@ -18,3 +18,7 @@ use druid::Size;
 pub const DIMS: Size = Size::new(800.0, 600.0);
 
 pub const ORIGIN: Point = Point::new(DIMS.width / 2.0, DIMS.height / 2.0);
+
+pub const MIN_SPEED: u32 = 32;
+
+pub const MAX_SPEED: u32 = 32;

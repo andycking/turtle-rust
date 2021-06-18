@@ -12,8 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::time::Duration;
-
+use crate::common::constants::*;
+use crate::graphics;
+use crate::model::app::AppState;
+use crate::model::render::*;
 use druid::kurbo::Circle;
 use druid::piet::ImageFormat;
 use druid::piet::InterpolationMode;
@@ -23,11 +25,7 @@ use druid::Point;
 use druid::Rect;
 use druid::TimerToken;
 use druid::Widget;
-
-use crate::common::constants::*;
-use crate::graphics;
-use crate::model::app::AppState;
-use crate::model::render::*;
+use std::time::Duration;
 
 pub struct Canvas {
     render_rx: RenderRx,
@@ -72,7 +70,7 @@ impl Canvas {
 
     pub fn render(&mut self, data: &mut AppState) -> bool {
         let mut dirty = false;
-        for _ in 0..data.speed {
+        for _ in 0..MAX_SPEED {
             if let Ok(Some(cmd)) = self.render_rx.try_next() {
                 self.render_one(data, cmd);
                 dirty = true;

@@ -12,14 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::Arc;
-
+use crate::common::bits;
+use crate::common::constants::*;
 use druid::Color;
 use druid::Data;
 use druid::Point;
-
-use crate::common::bits;
-use crate::common::constants::*;
+use std::sync::Arc;
 
 #[derive(Clone, Data, Debug)]
 pub struct PixBuf {

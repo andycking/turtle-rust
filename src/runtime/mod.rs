@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::Arc;
-
 use crate::model::render::RenderTx;
 use error::*;
 use interpreter::Interpreter;
 use interpreter_types::*;
 use lexer::Lexer;
 use parser::Parser;
+use std::sync::atomic::AtomicU32;
+use std::sync::Arc;
 
 pub mod error;
 mod interpreter;
@@ -29,13 +29,16 @@ mod lexer_types;
 mod parser;
 mod parser_types;
 
-pub fn entry(input: String, render_tx: Arc<RenderTx>) -> RuntimeResult<Value> {
-    println!("Runtime starting...");
+pub fn entry(
+    input: String,
+    render_tx: Arc<RenderTx>,
+    speed: Arc<AtomicU32>,
+) -> RuntimeResult<Value> {
     let lexer_out = Lexer::new().go(&input)?;
     println!("lexer out {:?}", lexer_out);
     let parser_out = Parser::new().go(&lexer_out)?;
     println!("parser out {:?}", parser_out);
-    let intrp_out = Interpreter::new(render_tx).go(&parser_out)?;
+    let intrp_out = Interpreter::new(render_tx, speed).go(&parser_out)?;
     println!("interpreter out {:?}", intrp_out);
     Ok(intrp_out)
 }
@@ -51,7 +54,7 @@ mod tests {
     fn it_goes() {
         let input = "let i = (2 ^ 3) i".to_string();
         let (render_tx, render_rx) = mpsc::unbounded::<RenderCommand>();
-        let res = entry(input, Arc::new(render_tx));
+        let res = entry(input, Arc::new(render_tx), Arc::new(AtomicU32::new(4)));
         if let Err(err) = res {
             eprintln!("{}", err);
         }
